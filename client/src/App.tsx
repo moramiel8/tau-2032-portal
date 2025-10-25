@@ -1,11 +1,13 @@
 // client/src/App.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import CourseList from "./components/CourseList";
 import CoursePage from "./components/CoursePage";
 import { YEARS } from "./data/years";
 import type { Course } from "./data/years";
 import { fetchSession, isTauEmail, startGoogleLogin, getDomain } from "./utils/auth";
 import type { User } from "./utils/auth";
+
+
 
 /**
  * CONFIG

@@ -1,5 +1,4 @@
 // client/src/components/LinkCard.tsx
-import React from "react";
 
 export default function LinkCard({
   href,

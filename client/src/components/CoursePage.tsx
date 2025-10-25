@@ -1,5 +1,4 @@
 // client/src/components/CoursePage.tsx
-import React from "react";
 import type { Course } from "../data/years";
 import LinkCard from "./LinkCard";
 import { IMG_DRIVE, IMG_MOODLE, IMG_PDF, IMG_WHATSAPP } from "../constants/icons";

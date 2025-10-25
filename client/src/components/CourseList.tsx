@@ -1,5 +1,5 @@
 // client/src/components/CourseList.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import type { Year, Course } from "../data/years";
 import Chip from "./Chip";
 
