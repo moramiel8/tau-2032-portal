@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+html { direction: rtl; }
+body { @apply bg-white text-black; }
