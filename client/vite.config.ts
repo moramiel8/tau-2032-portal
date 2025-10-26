@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001', // השרת שלך
+        target: 'https://tau-2032-portal-server.vercel.app',
         changeOrigin: true,
         secure: true,
       },
