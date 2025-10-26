@@ -11,12 +11,19 @@ export default function CoursePage({ course, onBack }: { course: Course; onBack:
       <h1 className="text-2xl font-semibold mb-2 flex items-center gap-2">
         {course.name}
         {course.note && <Chip>{course.note}</Chip>}
-      </h1>
-      <div className="space-y-1 text-sm">
-        <div><span className="font-medium">מרכז/ת הקורס/מרצה:</span> {course.coordinator}</div>
-        <div><span className="font-medium">ועד קורס מטעמנו:</span> {course.reps}</div>
-        <div><span className="font-medium">מספר קורס:</span> {course.courseNumber}</div>
-      </div>
+        </h1>
+     <div className="space-y-2 text-sm">
+          <div><span className="font-medium">מרכז/ת הקורס/מרצה:</span> {course.coordinator}</div>
+          <div><span className="font-medium">ועד קורס מטעמנו:</span> {course.reps}</div>
+          <div><span className="font-medium">מספר קורס:</span> {course.courseNumber}</div>
+       {}
+      {course.place && (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">כיתה:</span>
+          <Chip>{course.place}</Chip>
+         </div>
+       )}
+        </div>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <LinkCard href={course.syllabus} img={IMG_PDF} alt="סילבוס PDF" label="סילבוס (PDF)" />
