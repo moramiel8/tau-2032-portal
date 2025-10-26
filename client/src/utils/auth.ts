@@ -1,13 +1,10 @@
-// client/src/utils/auth.ts
 export type User = { email: string; inTauGroup: boolean };
 
-const ALLOWED_DOMAINS = ["mail.tau.ac.il", "tauex.tau.ac.il"];
-export const getDomain = (email?: string) => (email || "").split("@")[1] || "";
-export const isTauEmail = (email?: string) => ALLOWED_DOMAINS.includes(getDomain(email));
+const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? "/api";
 
 export async function fetchSession(): Promise<User | null> {
   try {
-    const res = await fetch("/api/session", { credentials: "include" });
+    const res = await fetch(`${API_BASE}/session`, { credentials: "include" });
     if (!res.ok) return null;
     const data = await res.json();
     return data?.user || null;
@@ -17,5 +14,9 @@ export async function fetchSession(): Promise<User | null> {
 }
 
 export function startGoogleLogin() {
-  window.location.href = "/api/auth/google?prompt=select_account";
+  window.location.href = `${API_BASE}/auth/google?prompt=select_account`;
 }
+
+export const getDomain = (email?: string) => (email || "").split("@")[1] || "";
+export const isTauEmail = (email?: string) =>
+  ["mail.tau.ac.il", "tauex.tau.ac.il"].includes(getDomain(email));

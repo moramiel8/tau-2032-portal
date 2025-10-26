@@ -8,6 +8,7 @@ export type Course = {
   coordinator?: string;
   reps?: string;
   courseNumber?: string;
+  place?: string;
   syllabus?: string;
   links?: { drive?: string; moodle?: string; whatsapp?: string };
   externalMaterials?: { label: string; href: string; icon?: string }[];
@@ -32,6 +33,7 @@ export const YEARS: Year[] = [
             coordinator: 'ד"ר ענאן חג` יחיא ערישה',
             reps: "—",
             courseNumber: "0111-1212",
+            place: "אולם לולה 001",
             syllabus:
               "https://ims.tau.ac.il/Tal/Scans/Syllabus_Download.aspx?kurs=01111212&syllabus=kr_syllabus_s20251_k00_v00.pdf&dt=24102025105813",
             links: {
