@@ -8,7 +8,6 @@ const API =
 
   console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
 
-  
 // --- API calls ---
 
 export async function fetchSession(): Promise<User | null> {
