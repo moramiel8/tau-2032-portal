@@ -74,10 +74,36 @@ app.get("/auth/google",
   })
 );
 
-app.get("/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: `${CLIENT_URL}?login=failed` }),
-  (req, res) => res.redirect(CLIENT_URL)
+const OAUTH_CALLBACK = `${BASE_URL}/auth/google/callback`;
+
+app.get(
+  "/auth/google/callback",
+  (req, res, next) => {
+    passport.authenticate("google", (err, user, info) => {
+      if (err) {
+        console.error("OAuth error:", err);
+        return res.redirect(`${CLIENT_URL}?login=failed`);
+      }
+      if (!user) {
+        console.warn("OAuth no user:", info);
+        return res.redirect(`${CLIENT_URL}?login=failed`);
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("req.logIn error:", err);
+          return res.redirect(`${CLIENT_URL}?login=failed`);
+        }
+        return res.redirect(CLIENT_URL);
+      });
+    })(req, res, next);
+  }
 );
+
+app.use((err, req, res, _next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "internal_error", message: err?.message });
+});
+
 
 app.get("/session", (req, res) => res.json({ user: req.user ?? null }));
 
