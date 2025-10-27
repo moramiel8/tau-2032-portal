@@ -18,7 +18,7 @@ const {
   SESSION_SECRET,
   CLIENT_URL = ALLOWED_ORIGIN,
   BASE_URL = `https://tau-2032-portal-server.vercel.app`,
-  ALLOWED_DOMAIN = "tau.ac.il",
+  ALLOWED_DOMAIN = "mail.tau.ac.il",
 } = process.env;
 
 if (!SESSION_SECRET) { console.error("Missing SESSION_SECRET"); process.exit(1); }
