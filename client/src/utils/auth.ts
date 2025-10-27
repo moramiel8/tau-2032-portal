@@ -2,12 +2,7 @@ export type User = { email: string; inTauGroup: boolean };
 
 // כתובת השרת: בפרודקשן מוגדר ב־Vercel כ-VITE_API_URL,
 // בלוקאל נשתמש ב-3001.
-const API =
-  import.meta.env.VITE_API_URL ||
-  (location.hostname === "localhost" ? "http://localhost:3001" : "");
-
-  console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
-
+const API = import.meta.env.VITE_API_URL; // https://tau-2032-portal-server.vercel.app
 // --- API calls ---
 
 export async function fetchSession(): Promise<User | null> {
@@ -22,7 +17,7 @@ export async function fetchSession(): Promise<User | null> {
 }
 
 export function startGoogleLogin() {
-  // נווט ישירות לשרת (לא /api בפרונט)
+  // נכון: רק לנתיב /auth/google בשרת
   window.location.href = `${API}/auth/google`;
 }
 
