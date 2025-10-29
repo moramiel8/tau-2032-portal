@@ -48,15 +48,21 @@ app.use(passport.session());
 passport.serializeUser((u, d) => d(null, u));
 passport.deserializeUser((o, d) => d(null, o));
 
+// לפני new GoogleStrategy
+const CALLBACK = `${BASE_URL}/api/auth/google/callback`;
+console.log("[server] BASE_URL =", BASE_URL);
+console.log("[server] GOOGLE CALLBACK =", CALLBACK);
+
 // Google OAuth
 passport.use(new GoogleStrategy(
   {
     clientID: GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
-    callbackURL: `${BASE_URL}/auth/google/callback`,
-  },
+    callbackURL: CALLBACK,
+    },
   (accessToken, refreshToken, profile, done) => {
     const email = profile.emails?.[0]?.value || "";
+    console.log("[server] Google profile email =", email);
     const domain = email.split("@")[1]?.toLowerCase() || "";
     if (!email || (ALLOWED_DOMAIN && domain !== ALLOWED_DOMAIN.toLowerCase())) {
       return done(null, false, { message: "domain_not_allowed" });
@@ -92,12 +98,12 @@ app.get(
         if (err) {
           console.error("req.logIn error:", err);
           return res.redirect(`${CLIENT_URL}?login=failed`);
-        }
-        return res.redirect(CLIENT_URL);
-      });
-    })(req, res, next);
-  }
-);
+    }
+      console.log("[server] req.user after login:", req.user);
+      return res.redirect(CLIENT_URL);
+    });
+  })(req, res, next);
+});
 
 app.use((err, req, res, _next) => {
   console.error("Unhandled error:", err);
