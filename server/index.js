@@ -106,4 +106,4 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => console.log(`Auth server listening on ${PORT}; 
+//app.listen(PORT, () => console.log(`Auth server listening on ${PORT});
