@@ -28,8 +28,8 @@ a {
   text-decoration: none;
 }
 
-a, button, [role="button"], .clickable {
+/* client/src/index.css (או ה־globals שלך) */
+a, button, .clickable, [role="button"] {
   cursor: pointer;
 }
-
 

@@ -1,30 +1,37 @@
-export type User = { email: string; inTauGroup: boolean };
+// client/src/utils/auth.ts
+export type User = { email: string; inTauGroup?: boolean } | null;
 
-// כתובת השרת: בפרודקשן מוגדר ב־Vercel כ-VITE_API_URL,
-// בלוקאל נשתמש ב-3001.
-const API = import.meta.env.VITE_API_URL; // https://tau-2032-portal-server.vercel.app
-// --- API calls ---
+// PROD => "" (נתיב יחסי), DEV => VITE_API_URL אם קיים (לא חובה)
+const API_BASE = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || "");
+const api = (path: string) => `${API_BASE}${path}`;
 
-export async function fetchSession(): Promise<User | null> {
-  try {
-    const res = await fetch(`${API}/session`, { credentials: "include" });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.user || null;
-  } catch {
-    return null;
-  }
+export function getDomain(email: string) {
+  return (email.split("@")[1] || "").toLowerCase();
+}
+export function isTauEmail(email: string) {
+  const d = getDomain(email);
+  return d === "mail.tau.ac.il" || d === "tauex.tau.ac.il";
 }
 
+async function fetchJson<T = any>(input: RequestInfo | URL, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(input, { credentials: "include", ...init, headers: { Accept: "application/json", ...(init.headers || {}) }});
+  let data: any = null; try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return data as T;
+}
+
+export async function fetchSession(): Promise<User> {
+  const data = await fetchJson<{ user: User }>(api("/api/session"));
+  return data?.user ?? null;
+}
 export function startGoogleLogin() {
-  // נכון: רק לנתיב /auth/google בשרת
-  window.location.href = `${API}/auth/google`;
+  window.location.assign(api("/api/auth/google?prompt=select_account"));
 }
 
-// --- Utils ---
 
-export const getDomain = (email?: string) => (email || "").split("@")[1] || "";
-
-// עדיף לאכוף tau.ac.il (ככה גם השרת שלך מוגדר)
-export const isTauEmail = (email?: string) =>
-  ["tau.ac.il", "mail.tau.ac.il", "tauex.tau.ac.il"].includes(getDomain(email));
+export async function logout() {
+  await fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include',
+  });
+}

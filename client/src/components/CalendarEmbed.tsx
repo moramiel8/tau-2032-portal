@@ -1,45 +1,55 @@
 // client/src/components/CalendarEmbed.tsx
 
-// אפשר להשתמש בשני מצבים:
-// 1) מקור ישיר: <CalendarEmbed src="https://calendar.google.com/calendar/embed?..."/>
-// 2) בנייה מ-id: <CalendarEmbed calendarId="...@group.calendar.google.com" mode="MONTH" tz="Asia/Jerusalem" />
-
-type CalendarEmbedFromSrc = {
-  src: string;
-  height?: number;
+type CalendarItem = {
+  id: string;       // calendarId
+  color?: string;   // "#RRGGBB" או "RRGGBB"
 };
 
-type CalendarEmbedFromId = {
-  calendarId: string;               // למשל: "...@group.calendar.google.com"
+type Props = {
+  calendars: CalendarItem[];     // רשימת היומנים
   mode?: "WEEK" | "MONTH" | "AGENDA";
-  tz?: string;                      // ברירת מחדל: "Asia/Jerusalem"
-  height?: number;                  // ברירת מחדל: 600
-  showTitle?: 0 | 1;                // ברירות מחדל ידידותיות ל-embed
+  tz?: string;                   // אזור זמן
+  hl?: string;                   // שפה בממשק (למשל "he")
+  height?: number;               // גובה ה־iframe
+  showTitle?: 0 | 1;
   showTabs?: 0 | 1;
-  showCalendars?: 0 | 1;
   showDate?: 0 | 1;
   showNav?: 0 | 1;
-  src?: never;                      // כדי למנוע העברה כפולה של src ו-id ביחד
 };
 
-type CalendarEmbedProps = CalendarEmbedFromSrc | CalendarEmbedFromId;
+function CalendarEmbed({
+  calendars,
+  mode = "WEEK",
+  tz = "Asia/Jerusalem",
+  hl = "he",
+  height = 380,
+  showTitle = 0,
+  showTabs = 0,
+  showDate = 1,
+  showNav = 1,
+}: Props) {
+  const base = new URLSearchParams({
+    hl,
+    mode,
+    ctz: tz,
+    showTitle: String(showTitle),
+    showTabs: String(showTabs),
+    showDate: String(showDate),
+    showNav: String(showNav),
+  });
 
-export default function CalendarEmbed(props: CalendarEmbedProps) {
-  const height = "height" in props && props.height ? props.height : 600;
+  // הוסף src (+ color אם קיים) על כל יומן
+  const parts: string[] = [`https://calendar.google.com/calendar/embed?${base.toString()}`];
+  for (const cal of calendars) {
+    parts.push(`src=${encodeURIComponent(cal.id)}`);
+    if (cal.color) {
+      // חשוב: # -> %23
+      const hex = cal.color.startsWith("#") ? cal.color.replace("#", "%23") : `%23${cal.color}`;
+      parts.push(`color=${hex}`);
+    }
+  }
 
-  const src =
-    "src" in props
-      ? props.src
-      : buildSrc({
-          calendarId: props.calendarId,
-          mode: props.mode ?? "MONTH",
-          tz: props.tz ?? "Asia/Jerusalem",
-          showTitle: props.showTitle ?? 0,
-          showTabs: props.showTabs ?? 0,
-          showCalendars: props.showCalendars ?? 0,
-          showDate: props.showDate ?? 1,
-          showNav: props.showNav ?? 1,
-        });
+  const src = parts.join("&");
 
   return (
     <div className="border rounded-2xl overflow-hidden">
@@ -47,32 +57,11 @@ export default function CalendarEmbed(props: CalendarEmbedProps) {
         title="Google Calendar"
         src={src}
         style={{ border: 0, width: "100%", height }}
-        referrerPolicy="no-referrer-when-downgrade"
         loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
       />
     </div>
   );
 }
 
-function buildSrc(opts: {
-  calendarId: string;
-  mode: "WEEK" | "MONTH" | "AGENDA";
-  tz: string;
-  showTitle: 0 | 1;
-  showTabs: 0 | 1;
-  showCalendars: 0 | 1;
-  showDate: 0 | 1;
-  showNav: 0 | 1;
-}) {
-  const params = new URLSearchParams({
-    src: opts.calendarId,
-    ctz: opts.tz,
-    mode: opts.mode,
-    showTitle: String(opts.showTitle),
-    showTabs: String(opts.showTabs),
-    showCalendars: String(opts.showCalendars),
-    showDate: String(opts.showDate),
-    showNav: String(opts.showNav),
-  });
-  return `https://calendar.google.com/calendar/embed?${params.toString()}`;
-}
+export default CalendarEmbed;

@@ -4,106 +4,159 @@ import CourseList from "./components/CourseList";
 import CoursePage from "./components/CoursePage";
 import { YEARS } from "./data/years";
 import type { Course } from "./data/years";
-import { fetchSession, isTauEmail, startGoogleLogin, getDomain } from "./utils/auth";
+import {
+  fetchSession,
+  isTauEmail,
+  startGoogleLogin,
+  getDomain,
+  logout, // ← כבר אצלך
+} from "./utils/auth";
 import type { User } from "./utils/auth";
 import CalendarEmbed from "./components/CalendarEmbed";
 
-
-/**
- * CONFIG
- * - AUTH_ENABLED: אם false => מסתירים את כפתור ההתחברות ומציגים את התוכן ללא בדיקה.
- * - MOCK_USER: אם מוגדר ומשמש כאשר AUTH_ENABLED=false, מאפשר לבדוק את תצוגת 'משתמש מחובר'.
- */
-const AUTH_ENABLED = true; // <-- הפוך ל־true כדי להפעיל את מסך ההתחברות
-const MOCK_USER: User | null = {
-  // אם תרצה שממש יהיה "משתמש מחובר" בזמן פיתוח, תכניס כאן את המייל והדגל inTauGroup
-  email: "demo@mail.tau.ac.il",
-  inTauGroup: true,
-};
+const AUTH_ENABLED = true;
 
 export default function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [user, setUser] = useState<User | null>(AUTH_ENABLED ? null : MOCK_USER);
+  const [user, setUser] = useState<User | null>(AUTH_ENABLED ? null : { email: "demo@mail.tau.ac.il" });
   const [loadingUser, setLoadingUser] = useState(AUTH_ENABLED ? true : false);
+
+  // Toast state
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string, ms = 2200) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), ms);
+  };
 
   useEffect(() => {
     if (!AUTH_ENABLED) {
-      // אין אימות — כבר מכוייל ל־MOCK_USER או null
       setLoadingUser(false);
       return;
     }
-
     (async () => {
-      const u = await fetchSession();
-      setUser(u);
-      setLoadingUser(false);
+      try {
+        const u = await fetchSession();
+        setUser(u);
+      } finally {
+        setLoadingUser(false);
+      }
     })();
   }, []);
 
   const handleSignIn = () => startGoogleLogin();
 
+  // התנתקות + הודעת הצלחה
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      showToast("התנתקת בהצלחה!");
+    } catch (e) {
+      showToast("בעיה בהתנתקות, נסה שוב");
+      console.warn("[App] logout error", e);
+    } finally {
+      // רענון רך אם תרצה לוודא ניקוי cookie:
+      // window.location.reload();
+    }
+  };
+
+  // Debug overlay (אופציונלי)
+  {/*const DebugBar = () => (
+    <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
+      <div>VITE_API_URL: {import.meta.env.VITE_API_URL as string}</div>
+      <div>user? {user ? user.email : "null"}</div>
+      <div>loadingUser? {String(loadingUser)}</div>
+    </div>
+  );*/}
+
+  // Toast component
+  const Toast = () =>
+    toast ? (
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-4 py-2 rounded-xl shadow-lg">
+        {toast}
+      </div>
+    ) : null;
+
   return (
-    
     <div className="min-h-screen bg-white text-black" dir="rtl">
-      <header className="sticky top-0 bg-white/80 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">MedTAU</div>
-            <div>
-              <div className="text-base font-semibold">אתר מחזור 2032 - תל אביב</div>
-              <div className="text-xs text-neutral-500">אתר עזר לסטודנטים לרפואה שש שנתי</div>
-            </div>
-          </div>
+     
+     <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-40">
+  <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <div className="w-22 h-8 rounded-xl border flex items-center justify-center">MedTAU</div>
+      <div>
+        <div className="text-base font-semibold">אתר מחזור 2032 - תל אביב</div>
+        <div className="text-xs text-neutral-500">אתר עזר לסטודנטים לרפואה שש שנתי</div>
+      </div>
+    </div>
 
-          {/* כפתור ההתחברות/שם משתמש — מוסתרים כאשר AUTH_ENABLED=false */}
-          <div className="flex items-center gap-2">
-            {AUTH_ENABLED ? (
-              <>
-                {user ? (
-                  <span className="text-xs text-neutral-600 hidden sm:inline">{user.email}</span>
-                ) : null}
-                {!user && (
-                  <button onClick={handleSignIn} className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50">
-                    התחברות עם Google
-                  </button>
-                )}
-              </>
-            ) : (
-              // מצב פיתוח — אפשר להראות סימון קטן שמצביע שהאימות כבוי
-              <div className="text-xs text-neutral-500">Dev: auth disabled</div>
-            )}
-          </div>
-        </div>
-      </header>
+    {/* ימין: אם מחובר — הצג מייל + התנתקות; אם לא — אל תציג שום דבר פה */}
+    <div className="flex items-center gap-2">
+      {user && (
+        <>
+          <span className="text-xs text-neutral-600 hidden sm:inline">{user.email}</span>
+          <button
+            onClick={handleLogout}
+            className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+            title="התנתקות"
+            aria-label="התנתקות"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span className="hidden sm:inline">התנתקות</span>
+          </button>
+        </>
+      )}
+    </div>
+  </div>
+</header>
 
-    <main className="max-w-6xl mx-auto px-4 py-6">
+<main className="max-w-6xl mx-auto px-4 py-6">
   {loadingUser ? (
     <div className="text-sm text-neutral-500">טוען…</div>
   ) : !user ? (
-    // לא מחובר עדיין
     <div className="border rounded-2xl p-6 text-sm">
       כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות בחר/י חשבון עם הדומיין
-      <b> mail.tau.ac.il</b> או <b>tauex.tau.ac.il</b>.
+      <b> mail.tau.ac.il</b>.
       <div className="mt-3">
-        <button onClick={handleSignIn} className="border rounded-xl px-3 py-2 hover:bg-neutral-50">
+        <button
+          onClick={handleSignIn}
+          className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
+        >
           התחברות עם Google
         </button>
       </div>
     </div>
   ) : !isTauEmail(user.email) ? (
-    // מחובר אבל לא דומיין TAU
     <div className="border rounded-2xl p-6 text-sm text-red-600">
       הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור חשבון TAU.
     </div>
   ) : (
     <>
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
-        <CalendarEmbed
-          // כתובת EMBED (לא ה־/u/0) של היומן הדומייני
-          src="https://calendar.google.com/calendar/embed?src=9262262e11cd55d3077a1e75df9a5fe8236eb60e76f681dfb74f2b4530fd35eb%40group.calendar.google.com&ctz=Asia%2FJerusalem&showPrint=0&showTabs=0&mode=MONTH"
-        />
-      </section>
+      {/* 2) הקלנדר יוצג רק בעמוד הראשי (כשלא נפתחה כרטיסיית קורס) */}
+      {!selectedCourse && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
+          <CalendarEmbed
+            mode="WEEK"
+            calendars={[
+              { id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com" },
+              { id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com" },
+            ]}
+          />
+        </section>
+      )}
 
       {!selectedCourse ? (
         <CourseList years={YEARS} onOpenCourse={setSelectedCourse} />
@@ -114,10 +167,16 @@ export default function App() {
   )}
 </main>
 
-
       <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
         נבנה ע"י מור עמיאל רבייב
+        תלונות/בעיות/השגות/תהיות morrabaev@tauex.tau.ac.il
+        עודכן לאחרונה 28/10/2025 20:21
       </footer>
+
+      <Toast />
+
+     {/*  <DebugBar /> */}
+
     </div>
   );
 }
