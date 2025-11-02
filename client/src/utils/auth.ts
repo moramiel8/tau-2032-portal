@@ -1,44 +1,40 @@
-// client/src/utils/auth.ts
 export type User = { email: string } | null;
 
-// כתובת השרת מתוך משתנה הסביבה
-const API = import.meta.env.VITE_API_URL as string; // לדוגמה: "https://tau-2032-portal-server.vercel.app"
+// ⚠️ נפילה שקטה כשאין env גורמת לבקשות יחסיות. נשתמש בגיבוי קשיח.
+const API =
+  (import.meta.env.VITE_API_URL as string) ||
+  "https://tau-2032-portal-server.vercel.app";
 
-// ---------- פונקציות עזר לדומיין ----------
+console.log("[auth] VITE_API_URL =", import.meta.env.VITE_API_URL, "→ using API:", API);
+
+// ---------- helpers ----------
 export function getDomain(email: string) {
   return (email.split("@")[1] || "").toLowerCase();
 }
-
 export function isTauEmail(email: string) {
-  const d = getDomain(email);
-  return d === "mail.tau.ac.il";
+  return getDomain(email) === "mail.tau.ac.il";
 }
 
 // ---------- API ----------
-
-// שליפת session (בודק אם מחובר)
 export async function fetchSession(): Promise<User> {
   try {
-    const res = await fetch(`${API}/api/session`, {
-      credentials: "include",
-    });
+    const res = await fetch(`${API}/api/session`, { credentials: "include" });
     if (!res.ok) return null;
     const data = await res.json();
     return data.user ?? null;
-  } catch {
+  } catch (e) {
+    console.warn("[auth] fetchSession failed:", e);
     return null;
   }
 }
 
-// התחברות עם גוגל
 export function startGoogleLogin() {
-  window.location.href = `${API}/api/auth/google?prompt=select_account`;
+  const url = `${API}/api/auth/google?prompt=select_account`;
+  console.log("[auth] redirecting to:", url);
+  window.location.href = url;
 }
 
-// התנתקות
 export async function logout() {
-  await fetch(`${API}/api/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+  console.log("[auth] POST", `${API}/api/logout`);
+  await fetch(`${API}/api/logout`, { method: "POST", credentials: "include" });
 }
