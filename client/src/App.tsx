@@ -14,7 +14,7 @@ import {
 import type { User } from "./utils/auth";
 import CalendarEmbed from "./components/CalendarEmbed";
 
-const AUTH_ENABLED = true;
+const AUTH_ENABLED = false;
 
 export default function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
