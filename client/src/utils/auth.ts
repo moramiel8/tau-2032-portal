@@ -19,35 +19,13 @@ export function isTauEmail(email: string) {
 }
 
 // ---------- API ----------
-export async function fetchSession(): Promise<User> {
-  try {
-    const res = await fetch(`${API_URL}/api/session`, {
-      credentials: "include",
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.user ?? null;
-  } catch (e) {
-    console.warn("[auth] fetchSession failed:", e);
-    return null;
-  }
+export async function fetchSession() {
+  const res = await fetch(`/api/session`, { credentials: 'include' });
+  return res.ok ? (await res.json()).user ?? null : null;
 }
-
-// התחברות – מפנה לשרת (חשוב!)
 export function startGoogleLogin() {
-  const url = `${API_URL}/api/auth/google?prompt=select_account`;
-  console.debug("[auth] redirecting to:", url);
-  window.location.href = url;
+  window.location.href = `/api/auth/google?prompt=select_account`;
 }
-
-// התנתקות
 export async function logout() {
-  try {
-    const url = `${API_URL}/api/logout`;
-    console.debug("[auth] POST", url);
-    await fetch(url, { method: "POST", credentials: "include" });
-  } catch (e) {
-    console.warn("[auth] logout failed:", e);
-  }
+  await fetch(`/api/logout`, { method: 'POST', credentials: 'include' });
 }
