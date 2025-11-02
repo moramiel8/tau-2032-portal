@@ -79,13 +79,15 @@ passport.use(new GoogleStrategy(
 // --------------------------------------------------------------------
 // שלב 1 – התחלה של ההתחברות
 app.get("/api/auth/google", (req, res, next) => {
+  console.log("[srv] Initiating Google login flow...");
   passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
     hd: ALLOWED_DOMAIN,
     prompt: "select_account",
-    callbackURL: CALLBACK,
+    callbackURL: `${BASE_URL}/api/auth/google/callback`, // ✅ מפורש!
   })(req, res, next);
 });
+
 
 // שלב 2 – callback מהשרת (כאן נוצר session ונשלח cookie)
 app.get("/api/auth/google/callback", (req, res, next) => {

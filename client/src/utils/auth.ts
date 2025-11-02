@@ -1,12 +1,9 @@
 export type User = { email: string } | null;
 
+
 // ⚠️ נפילה שקטה כשאין env גורמת לבקשות יחסיות. נשתמש בגיבוי קשיח.
-const API =
-  (import.meta.env.VITE_API_URL as string) ||
-  "https://tau-2032-portal-server.vercel.app";
-
-console.log("[auth] VITE_API_URL =", import.meta.env.VITE_API_URL, "→ using API:", API);
-
+const API_URL = import.meta.env.VITE_API_URL ||
+ "https://tau-2032-portal-server.vercel.app";
 // ---------- helpers ----------
 export function getDomain(email: string) {
   return (email.split("@")[1] || "").toLowerCase();
@@ -28,10 +25,14 @@ export async function fetchSession(): Promise<User> {
   }
 }
 
-export function startGoogleLogin() {
+/*export function startGoogleLogin() {
   const url = `${API}/api/auth/google?prompt=select_account`;
   console.log("[auth] redirecting to:", url);
   window.location.href = url;
+}*/
+
+export function startGoogleLogin() {
+  window.location.href = `${API_URL}/api/auth/google`; // ✅ מפנה לשרת
 }
 
 export async function logout() {
