@@ -1,4 +1,3 @@
-// api/index.js
 import express from "express";
 import cors from "cors";
 import passport from "passport";
@@ -18,25 +17,28 @@ const {
   ALLOWED_DOMAIN = "mail.tau.ac.il",
 } = process.env;
 
+// --------------------------------------------------------------------
+
 const app = express();
 app.set("trust proxy", 1);
 
-// CORS
-app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
+// ✅ לאפשר credentials בין דומיינים (חשוב מאוד)
+app.use(cors({
+  origin: ALLOWED_ORIGIN,
+  credentials: true,
+}));
 
-// cookie-session לכל ריקווסט (ידידותי ל-serverless)
-app.use(
-  cookieSession({
-    name: "sid",
-    keys: [SESSION_SECRET],
-    maxAge: 1000 * 60 * 60 * 24 * 7,
-    sameSite: "none",
-    secure: true,
-    httpOnly: true,
-  })
-);
+// ✅ cookie-session – חובה secure+sameSite:none כדי לעבוד עם cross-domain
+app.use(cookieSession({
+  name: "sid",
+  keys: [SESSION_SECRET],
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+  sameSite: "none",
+  secure: true,
+  httpOnly: true,
+}));
 
-// שימּים ל-passport עם cookie-session
+// shim עבור cookie-session (דרוש בסביבת Vercel)
 app.use((req, _res, next) => {
   if (req.session && typeof req.session.regenerate !== "function") {
     req.session.regenerate = (cb) => cb && cb();
@@ -47,62 +49,84 @@ app.use((req, _res, next) => {
   next();
 });
 
+// --------------------------------------------------------------------
+
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((u, d) => d(null, u));
-passport.deserializeUser((o, d) => d(null, o));
+passport.serializeUser((u, done) => done(null, u));
+passport.deserializeUser((o, done) => done(null, o));
 
 const CALLBACK = `${BASE_URL}/api/auth/google/callback`;
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: CALLBACK,
-    },
-    (accessToken, refreshToken, profile, done) => {
-      const email = profile.emails?.[0]?.value || "";
-      const domain = email.split("@")[1]?.toLowerCase() || "";
-      if (!email || domain !== ALLOWED_DOMAIN) {
-        return done(null, false, { message: "domain_not_allowed" });
-      }
-      return done(null, { email });
+passport.use(new GoogleStrategy(
+  {
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    callbackURL: CALLBACK,
+  },
+  (accessToken, refreshToken, profile, done) => {
+    const email = profile.emails?.[0]?.value || "";
+    const domain = email.split("@")[1]?.toLowerCase() || "";
+    console.log("[srv] Google login for:", email);
+    if (!email || domain !== ALLOWED_DOMAIN) {
+      return done(null, false, { message: "domain_not_allowed" });
     }
-  )
-);
+    return done(null, { email });
+  }
+));
 
-// ראוטים – כולם תחת /api
-app.get(
-  "/api/auth/google",
-  passport.authenticate("google", {
-    scope: ["email", "profile", "openid"],
-    hd: ALLOWED_DOMAIN,
-    prompt: "select_account",
-  })
-);
-
+// --------------------------------------------------------------------
+// שלב 1 – התחלה של ההתחברות
 app.get("/api/auth/google", (req, res, next) => {
   passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
     hd: ALLOWED_DOMAIN,
     prompt: "select_account",
-    callbackURL: `${BASE_URL}/api/auth/google/callback`,  // ✅ הוסף שורה זו
+    callbackURL: CALLBACK,
   })(req, res, next);
 });
 
+// שלב 2 – callback מהשרת (כאן נוצר session ונשלח cookie)
+app.get("/api/auth/google/callback", (req, res, next) => {
+  passport.authenticate("google", { callbackURL: CALLBACK }, (err, user, info) => {
+    console.log("[srv] callback reached:", { err, user, info });
+    if (err || !user) {
+      console.error("[srv] Auth failed:", err || info);
+      return res.redirect(`${CLIENT_URL}?login=failed`);
+    }
 
-app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
+    // ✅ צור session בפועל ושמור cookie
+    req.logIn(user, (e) => {
+      if (e) {
+        console.error("[srv] req.logIn error:", e);
+        return res.redirect(`${CLIENT_URL}?login=failed`);
+      }
 
+      console.log("[srv] Logged in user:", user);
+      res.redirect(CLIENT_URL);
+      // חשוב – סיום תגובה כדי ש־Vercel ישלח את ה־Set-Cookie
+      res.end();
+    });
+  })(req, res, next);
+});
+
+// --------------------------------------------------------------------
+// בדיקת session
+app.get("/api/session", (req, res) => {
+  console.log("[srv] /api/session -> req.user:", req.user);
+  res.json({ user: req.user ?? null });
+});
+
+// יציאה
 app.post("/api/logout", (req, res) => {
   req.logout?.();
   req.session = null;
   res.json({ ok: true });
 });
 
-// ⚠️ אין app.listen ב-Vercel!
-// במקום זאת מייצאים handler שעוטף את Express:
+// --------------------------------------------------------------------
+// ייצוא ל־Vercel
 export default function handler(req, res) {
   return app(req, res);
 }
