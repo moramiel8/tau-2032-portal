@@ -21,61 +21,62 @@ const {
 const app = express();
 app.set("trust proxy", 1);
 
-// 🟡 1) shim לפני הכל
-app.use((req, _res, next) => {
-  if (!req.session) req.session = {};
-  if (typeof req.session.regenerate !== "function") req.session.regenerate = (cb) => cb && cb();
-  if (typeof req.session.save !== "function") req.session.save = (cb) => cb && cb();
-  next();
-});
-
-// 2) cookie-session
-app.use(cookieSession({
-  name: "sid",
-  keys: [SESSION_SECRET],
-  maxAge: 1000 * 60 * 60 * 24 * 7,
-  sameSite: "none",
-  secure: true,
-  httpOnly: true,
-}));
-
-// 3) CORS
+// --- Middlewares ---
 app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
 
-// 4) Passport
+app.use(
+  cookieSession({
+    name: "sid",
+    keys: [SESSION_SECRET],
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    sameSite: "none",
+    secure: true,
+    httpOnly: true,
+  })
+);
+
 app.use(passport.initialize());
 app.use(passport.session());
 
+// ---- Passport Config ----
 const CALLBACK_URL = `${BASE_URL}/api/auth/google/callback`;
-console.log("[srv] CLIENT_URL =", CLIENT_URL);
-console.log("[srv] BASE_URL   =", BASE_URL);
-console.log("[srv] CALLBACK   =", CALLBACK_URL);
+console.log("[srv] CALLBACK_URL =", CALLBACK_URL);
 
 passport.serializeUser((u, d) => d(null, u));
 passport.deserializeUser((o, d) => d(null, o));
 
-passport.use(new GoogleStrategy(
-  {
-    clientID: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET,
-    callbackURL: CALLBACK_URL,
-  },
-  (accessToken, refreshToken, profile, done) => {
-    // 🟡 דיבאג מלא של הפרופיל
-    const email = profile.emails?.[0]?.value || "";
-    const domain = email.split("@")[1]?.toLowerCase() || "";
-    console.log("[srv] Google email:", email, "domain:", domain);
-    if (!email) return done(new Error("No email returned from Google"));
-    if (ALLOWED_DOMAIN && domain !== ALLOWED_DOMAIN) {
-      return done(null, false, { message: "domain_not_allowed", domain });
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: GOOGLE_CLIENT_ID,
+      clientSecret: GOOGLE_CLIENT_SECRET,
+      callbackURL: CALLBACK_URL,
+    },
+    (accessToken, refreshToken, profile, done) => {
+      const email = profile.emails?.[0]?.value || "";
+      const domain = email.split("@")[1]?.toLowerCase() || "";
+      if (!email || domain !== ALLOWED_DOMAIN) {
+        return done(null, false, { message: "domain_not_allowed" });
+      }
+      return done(null, { email });
     }
-    return done(null, { email });
-  }
-));
+  )
+);
 
-// --- Routes ---
+// ✅ פונקציה שמוסיפה regenerate/save בכל בקשה לפני passport
+function ensureSession(req) {
+  if (!req.session) req.session = {};
+  if (typeof req.session.regenerate !== "function")
+    req.session.regenerate = (cb) => cb && cb();
+  if (typeof req.session.save !== "function")
+    req.session.save = (cb) => cb && cb();
+}
+
+// ---- Routes ----
+
+// שלב 1: redirect לגוגל
 app.get("/api/auth/google", (req, res, next) => {
-  console.log("[srv] /api/auth/google → callbackURL:", CALLBACK_URL);
+  ensureSession(req); // ✅ shim כאן
   passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
     hd: ALLOWED_DOMAIN,
@@ -84,48 +85,37 @@ app.get("/api/auth/google", (req, res, next) => {
   })(req, res, next);
 });
 
-// 🟡 callback עם טעינת שגיאה שקופה
+// שלב 2: callback
 app.get("/api/auth/google/callback", (req, res, next) => {
-  console.log("[srv] HIT callback:", req.originalUrl);
+  ensureSession(req); // ✅ shim גם כאן
   passport.authenticate(
     "google",
     { callbackURL: CALLBACK_URL, keepSessionInfo: true },
     (err, user, info) => {
-      // אם משהו נפל — תחזיר טקסט ברור כדי שנראה מה קורה בדפדפן/לוגים
       if (err) {
-        console.error("[srv callback] ERROR:", err);
+        console.error("OAuth error:", err);
         return res
           .status(500)
           .type("text/plain")
-          .send(
-            `OAuth error:\n${err?.stack || err?.message || err}\n\n` +
-            `info: ${JSON.stringify(info)}\n` +
-            `cookies? ${JSON.stringify(req.headers.cookie || null)}\n` +
-            `sid? ${JSON.stringify(req.session || null)}\n`
-          );
+          .send("OAuth error:\n" + (err?.stack || err));
       }
       if (!user) {
-        console.warn("[srv callback] No user. info:", info);
-        return res
-          .status(401)
-          .type("text/plain")
-          .send(`No user from Google. info=${JSON.stringify(info)}`);
+        console.warn("No user:", info);
+        return res.redirect(`${CLIENT_URL}?login=failed`);
       }
       req.logIn(user, (e) => {
         if (e) {
-          console.error("[srv callback] req.logIn error:", e);
-          return res
-            .status(500)
-            .type("text/plain")
-            .send(`login error: ${e?.stack || e}`);
+          console.error("Login error:", e);
+          return res.redirect(`${CLIENT_URL}?login=failed`);
         }
-        // הצלחה
+        console.log("[srv] Logged in:", user);
         return res.redirect(CLIENT_URL);
       });
     }
   )(req, res, next);
 });
 
+// ---- Misc ----
 app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
