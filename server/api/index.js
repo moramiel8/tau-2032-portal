@@ -79,39 +79,29 @@ passport.use(new GoogleStrategy(
 // --------------------------------------------------------------------
 // שלב 1 – התחלה של ההתחברות
 app.get("/api/auth/google", (req, res, next) => {
-  console.log("[srv] Initiating Google login flow...");
+  console.log("[srv] Initiating Google login...");
   passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
     hd: ALLOWED_DOMAIN,
     prompt: "select_account",
-    callbackURL: `${BASE_URL}/api/auth/google/callback`, // ✅ מפורש!
+    callbackURL: `${BASE_URL}/api/auth/google/callback`, // ✅ חובה
   })(req, res, next);
 });
 
-
-// שלב 2 – callback מהשרת (כאן נוצר session ונשלח cookie)
 app.get("/api/auth/google/callback", (req, res, next) => {
-  passport.authenticate("google", { callbackURL: CALLBACK }, (err, user, info) => {
-    console.log("[srv] callback reached:", { err, user, info });
-    if (err || !user) {
-      console.error("[srv] Auth failed:", err || info);
-      return res.redirect(`${CLIENT_URL}?login=failed`);
-    }
-
-    // ✅ צור session בפועל ושמור cookie
+  passport.authenticate("google", {
+    callbackURL: `${BASE_URL}/api/auth/google/callback`, // ✅ גם כאן חובה
+    keepSessionInfo: true,
+  }, (err, user, info) => {
+    console.log("[srv callback] err:", err, "user:", user, "info:", info);
+    if (err || !user) return res.redirect(`${CLIENT_URL}?login=failed`);
     req.logIn(user, (e) => {
-      if (e) {
-        console.error("[srv] req.logIn error:", e);
-        return res.redirect(`${CLIENT_URL}?login=failed`);
-      }
-
-      console.log("[srv] Logged in user:", user);
-      res.redirect(CLIENT_URL);
-      // חשוב – סיום תגובה כדי ש־Vercel ישלח את ה־Set-Cookie
-      res.end();
+      if (e) return res.redirect(`${CLIENT_URL}?login=failed`);
+      return res.redirect(CLIENT_URL);
     });
   })(req, res, next);
 });
+
 
 // --------------------------------------------------------------------
 // בדיקת session
