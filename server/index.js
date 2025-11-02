@@ -15,7 +15,7 @@ const {
   GOOGLE_CLIENT_SECRET,
   SESSION_SECRET,
   CLIENT_URL = ALLOWED_ORIGIN,
-  BASE_URL = "https://tau-2032-portal-server.vercel.app",
+  BASE_URL = "https://tau-2032-portal.vercel.app",
   ALLOWED_DOMAIN = "mail.tau.ac.il",
 } = process.env;
 
