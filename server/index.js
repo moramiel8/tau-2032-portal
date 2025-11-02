@@ -105,6 +105,4 @@ app.post("/api/logout", (req, res) => {
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // ----- Export handler (Vercel style) -----
-export default function handler(req, res) {
-  return app(req, res);
-}
+export default app; // ← חשוב!
