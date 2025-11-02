@@ -14,7 +14,7 @@ const {
   GOOGLE_CLIENT_SECRET,
   SESSION_SECRET,
   CLIENT_URL = ALLOWED_ORIGIN,
-  BASE_URL = "https://tau-2032-portal.vercel.app", // << אם זה הפרויקט הנוכחי
+  BASE_URL = "https://tau-2032-portal.vercel.app", // ה-BASE של הפרויקט הזה
   ALLOWED_DOMAIN = "mail.tau.ac.il",
 } = process.env;
 
@@ -49,12 +49,15 @@ passport.use(new GoogleStrategy(
 ));
 
 app.get("/api/auth/google", passport.authenticate("google", {
-  scope: ["email", "profile", "openid"], hd: ALLOWED_DOMAIN, prompt: "select_account", callbackURL: CALLBACK_URL,
+  scope: ["email", "profile", "openid"],
+  hd: ALLOWED_DOMAIN,
+  prompt: "select_account",
+  callbackURL: CALLBACK_URL,
 }));
 
 app.get("/api/auth/google/callback",
   passport.authenticate("google", { callbackURL: CALLBACK_URL, failureRedirect: `${CLIENT_URL}?login=failed` }),
-  (req, res) => res.redirect(CLIENT_URL)
+  (_req, res) => res.redirect(CLIENT_URL)
 );
 
 app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
