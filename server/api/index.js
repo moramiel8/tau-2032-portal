@@ -21,10 +21,15 @@ const {
 const app = express();
 app.set("trust proxy", 1);
 
-// ---- CORS ----
-app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
+// ----- CORS -----
+app.use(
+  cors({
+    origin: [ALLOWED_ORIGIN],
+    credentials: true,
+  })
+);
 
-// ---- ✅ express-session במקום cookie-session ----
+// ----- ✅ express-session במקום cookie-session -----
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -34,12 +39,12 @@ app.use(
       secure: true,
       sameSite: "none",
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // שבוע
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     },
   })
 );
 
-// ---- Passport ----
+// ----- Passport -----
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -68,7 +73,7 @@ passport.use(
   )
 );
 
-// ---- Routes ----
+// ----- Routes -----
 app.get("/api/auth/google", passport.authenticate("google", {
   scope: ["email", "profile", "openid"],
   hd: ALLOWED_DOMAIN,
@@ -98,6 +103,7 @@ app.post("/api/logout", (req, res) => {
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+// ----- Export handler (Vercel style) -----
 export default function handler(req, res) {
   return app(req, res);
 }
