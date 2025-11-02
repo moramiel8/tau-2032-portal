@@ -9,79 +9,75 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const {
-  ALLOWED_ORIGIN = "https://tau-2032-portal.vercel.app", // ה-Frontend
+  ALLOWED_ORIGIN = "https://tau-2032-portal.vercel.app",
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
   SESSION_SECRET,
-  CLIENT_URL = ALLOWED_ORIGIN,                            // לאן לחזור אחרי התחברות
-  BASE_URL = "https://tau-2032-portal-server.vercel.app", // הדומיין של השרת הזה!
+  CLIENT_URL = ALLOWED_ORIGIN,
+  BASE_URL = "https://tau-2032-portal-server.vercel.app",
   ALLOWED_DOMAIN = "mail.tau.ac.il",
 } = process.env;
-
-if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !SESSION_SECRET) {
-  console.error("[srv] Missing envs"); process.exit(1);
-}
 
 const app = express();
 app.set("trust proxy", 1);
 
-// 1) CORS – לאפשר cookies cross-site
-app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
-
-// 2) cookie-session – חייב לפני passport.session()
-app.use(cookieSession({
-  name: "sid",
-  keys: [SESSION_SECRET],
-  maxAge: 1000 * 60 * 60 * 24 * 7,
-  sameSite: "none",
-  secure: true,        // חובה בפרודקשן/Vercel
-  httpOnly: true,
-}));
-
-// 3) ✨ SHIM ל-passport@0.6 עם cookie-session
+// --- middleware סדר מדויק ---
+// 1) shim לפני הכל — כולל cookieSession
 app.use((req, _res, next) => {
-  if (req.session && typeof req.session.regenerate !== "function") {
+  if (!req.session) req.session = {};
+  if (typeof req.session.regenerate !== "function") {
     req.session.regenerate = (cb) => cb && cb();
   }
-  if (req.session && typeof req.session.save !== "function") {
+  if (typeof req.session.save !== "function") {
     req.session.save = (cb) => cb && cb();
   }
   next();
 });
 
-// 4) passport init + session (אחרי cookie-session + shim)
+// 2) cookie-session
+app.use(
+  cookieSession({
+    name: "sid",
+    keys: [SESSION_SECRET],
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    sameSite: "none",
+    secure: true,
+    httpOnly: true,
+  })
+);
+
+// 3) CORS
+app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
+
+// 4) Passport init
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ---- Google OAuth ----
 const CALLBACK_URL = `${BASE_URL}/api/auth/google/callback`;
-console.log("[srv] CLIENT_URL =", CLIENT_URL);
-console.log("[srv] BASE_URL   =", BASE_URL);
-console.log("[srv] CALLBACK   =", CALLBACK_URL);
+console.log("[srv] CALLBACK_URL:", CALLBACK_URL);
 
 passport.serializeUser((u, d) => d(null, u));
 passport.deserializeUser((o, d) => d(null, o));
 
-passport.use(new GoogleStrategy(
-  {
-    clientID: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET,
-    callbackURL: CALLBACK_URL,
-  },
-  (accessToken, refreshToken, profile, done) => {
-    const email = profile.emails?.[0]?.value || "";
-    const domain = email.split("@")[1]?.toLowerCase() || "";
-    console.log("[srv] Google email:", email, "domain:", domain);
-    if (!email || domain !== ALLOWED_DOMAIN) {
-      return done(null, false, { message: "domain_not_allowed" });
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: GOOGLE_CLIENT_ID,
+      clientSecret: GOOGLE_CLIENT_SECRET,
+      callbackURL: CALLBACK_URL,
+    },
+    (accessToken, refreshToken, profile, done) => {
+      const email = profile.emails?.[0]?.value || "";
+      const domain = email.split("@")[1]?.toLowerCase() || "";
+      if (!email || domain !== ALLOWED_DOMAIN)
+        return done(null, false, { message: "domain_not_allowed" });
+      return done(null, { email });
     }
-    return done(null, { email });
-  }
-));
+  )
+);
 
-// 5) שלב 1 – הפניה לגוגל (עם אותו callbackURL)
+// --- Routes ---
 app.get("/api/auth/google", (req, res, next) => {
-  console.log("[srv] /api/auth/google → callbackURL:", CALLBACK_URL);
   passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
     hd: ALLOWED_DOMAIN,
@@ -90,29 +86,26 @@ app.get("/api/auth/google", (req, res, next) => {
   })(req, res, next);
 });
 
-// 6) שלב 2 – callback (keepSessionInfo חשוב לשימור ה-session)
 app.get("/api/auth/google/callback", (req, res, next) => {
-  console.log("[srv] HIT callback:", req.originalUrl);
-  passport.authenticate("google", {
-    callbackURL: CALLBACK_URL,
-    keepSessionInfo: true,
-  }, (err, user, info) => {
-    console.log("[srv callback] err:", err, "user:", user, "info:", info);
-    if (err || !user) return res.redirect(`${CLIENT_URL}?login=failed`);
-    req.logIn(user, (e) => {
-      if (e) return res.redirect(`${CLIENT_URL}?login=failed`);
-      return res.redirect(CLIENT_URL);
-    });
-  })(req, res, next);
+  passport.authenticate(
+    "google",
+    { callbackURL: CALLBACK_URL, keepSessionInfo: true },
+    (err, user) => {
+      if (err || !user) return res.redirect(`${CLIENT_URL}?login=failed`);
+      req.logIn(user, (e) => {
+        if (e) return res.redirect(`${CLIENT_URL}?login=failed`);
+        return res.redirect(CLIENT_URL);
+      });
+    }
+  )(req, res, next);
 });
 
-// עזר
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 app.post("/api/logout", (req, res) => {
   req.logout?.();
-  req.session = null; // cookie-session
+  req.session = null;
   res.json({ ok: true });
 });
 
