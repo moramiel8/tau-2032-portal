@@ -1,5 +1,4 @@
 // index.js (שרת)
-/*
 import express from "express";
 import cors from "cors";
 import passport from "passport";
@@ -111,4 +110,3 @@ export default function handler(req, res) {
   return app(req, res);
 }
 //app.listen(PORT, () => console.log(`Auth server listening on ${PORT});
-*/

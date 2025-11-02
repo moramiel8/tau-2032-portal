@@ -1,4 +1,5 @@
 // api/index.js
+/*
 import express from "express";
 import cors from "cors";
 import passport from "passport";
@@ -107,3 +108,4 @@ app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 export default function handler(req, res) {
   return app(req, res);
 }
+*/
