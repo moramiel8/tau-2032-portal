@@ -1,9 +1,11 @@
 // client/src/constants/icons.ts
-export const IMG_MOODLE =
-  "https://cdn-1.webcatalog.io/catalog/moodle/moodle-icon-filled-256.webp?v=1758849859717";
-export const IMG_DRIVE =
-  "https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png";
-export const IMG_WHATSAPP =
-  "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg";
-export const IMG_PDF =
-  "https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg";
+
+import MoodleImg from "../assets/react.svg";
+import DriveImg from "../assets/drive.svg";
+import PdfImg from "../assets/pdf.svg";
+import WhatsappImg from "../assets/whatsapp.svg";
+
+export const IMG_MOODLE = MoodleImg;
+export const IMG_DRIVE = DriveImg;
+export const IMG_WHATSAPP = WhatsappImg;
+export const IMG_PDF = PdfImg;

@@ -168,9 +168,9 @@ export default function App() {
 </main>
 
       <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
-        נבנה ע"י מור עמיאל רבייב
-        תלונות/בעיות/השגות/תהיות morrabaev@tauex.tau.ac.il
-        עודכן לאחרונה 28/10/2025 20:21
+        נבנה ע"י מור עמיאל רבייב &nbsp
+        תלונות/בעיות/השגות/תהיות morrabaev@tauex.tau.ac.il &nbsp
+        עודכן לאחרונה 02/11/2025 16:22
       </footer>
 
       <Toast />
