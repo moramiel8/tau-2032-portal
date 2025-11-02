@@ -83,15 +83,15 @@ app.get(
   })
 );
 
-app.get("/api/auth/google/callback", (req, res, next) => {
-  passport.authenticate("google", (err, user, info) => {
-    if (err || !user) return res.redirect(`${CLIENT_URL}?login=failed`);
-    req.logIn(user, (e) => {
-      if (e) return res.redirect(`${CLIENT_URL}?login=failed`);
-      return res.redirect(CLIENT_URL);
-    });
+app.get("/api/auth/google", (req, res, next) => {
+  passport.authenticate("google", {
+    scope: ["email", "profile", "openid"],
+    hd: ALLOWED_DOMAIN,
+    prompt: "select_account",
+    callbackURL: `${BASE_URL}/api/auth/google/callback`,  // ✅ הוסף שורה זו
   })(req, res, next);
 });
+
 
 app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
 
