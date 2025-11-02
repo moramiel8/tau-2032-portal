@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import cookieSession from "cookie-session";
+import session from "express-session";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -21,32 +21,33 @@ const {
 const app = express();
 app.set("trust proxy", 1);
 
+// ---- CORS ----
+app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
+
+// ---- ✅ express-session במקום cookie-session ----
 app.use(
-  cors({
-    origin: [ALLOWED_ORIGIN],
-    credentials: true,
+  session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: true,
+      sameSite: "none",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // שבוע
+    },
   })
 );
 
-app.use(
-  cookieSession({
-    name: "sid",
-    keys: [SESSION_SECRET],
-    maxAge: 1000 * 60 * 60 * 24 * 7,
-    sameSite: "none",
-    secure: true,
-    httpOnly: true,
-  })
-);
-
+// ---- Passport ----
 app.use(passport.initialize());
 app.use(passport.session());
 
 const CALLBACK_URL = `${BASE_URL}/api/auth/google/callback`;
 console.log("[srv] CALLBACK_URL =", CALLBACK_URL);
 
-passport.serializeUser((u, d) => d(null, u));
-passport.deserializeUser((o, d) => d(null, o));
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
 
 passport.use(
   new GoogleStrategy(
@@ -58,7 +59,7 @@ passport.use(
     (accessToken, refreshToken, profile, done) => {
       const email = profile.emails?.[0]?.value || "";
       const domain = email.split("@")[1]?.toLowerCase() || "";
-      console.log("[srv] login email:", email);
+      console.log("[srv] Google login:", email);
       if (!email || domain !== ALLOWED_DOMAIN) {
         return done(null, false, { message: "domain_not_allowed" });
       }
@@ -67,74 +68,32 @@ passport.use(
   )
 );
 
-// פונקציה שמוסיפה regenerate/save אם חסר
-function patchSession(req) {
-  if (!req.session) req.session = {};
-  if (typeof req.session.regenerate !== "function")
-    req.session.regenerate = (cb) => cb && cb();
-  if (typeof req.session.save !== "function")
-    req.session.save = (cb) => cb && cb();
-}
+// ---- Routes ----
+app.get("/api/auth/google", passport.authenticate("google", {
+  scope: ["email", "profile", "openid"],
+  hd: ALLOWED_DOMAIN,
+  prompt: "select_account",
+  callbackURL: CALLBACK_URL,
+}));
 
-// --- ROUTES ---
-app.get("/api/auth/google", (req, res, next) => {
-  patchSession(req);
+app.get(
+  "/api/auth/google/callback",
   passport.authenticate("google", {
-    scope: ["email", "profile", "openid"],
-    hd: ALLOWED_DOMAIN,
-    prompt: "select_account",
     callbackURL: CALLBACK_URL,
-  })(req, res, next);
-});
-
-app.get("/api/auth/google/callback", (req, res, next) => {
-  // 🟢 דריסה מיידית לפני כל דבר:
-  patchSession(req);
-
-  try {
-    passport.authenticate(
-      "google",
-      { callbackURL: CALLBACK_URL, keepSessionInfo: true },
-      (err, user, info) => {
-        patchSession(req); // 🟢 לוודא שוב בתוך הקולבק
-        if (err) {
-          console.error("[srv callback] ERROR:", err);
-          return res.status(500).type("text/plain").send(err.message);
-        }
-        if (!user) {
-          console.warn("[srv callback] No user, info:", info);
-          return res.redirect(`${CLIENT_URL}?login=failed`);
-        }
-
-        // 🟢 עוטפים גם את req.logIn כדי למנוע קריסה
-        if (typeof req.logIn !== "function") {
-          req.logIn = (u, cb) => cb && cb();
-        }
-
-        req.logIn(user, (e) => {
-          if (e) {
-            console.error("[srv callback] logIn error:", e);
-            return res.redirect(`${CLIENT_URL}?login=failed`);
-          }
-          console.log("[srv] Logged in:", user.email);
-          return res.redirect(CLIENT_URL);
-        });
-      }
-    )(req, res, next);
-  } catch (e) {
-    console.error("CRASH in callback:", e);
-    res.status(500).send(e?.stack || String(e));
+    failureRedirect: `${CLIENT_URL}?login=failed`,
+  }),
+  (req, res) => {
+    console.log("[srv] Logged in:", req.user);
+    res.redirect(CLIENT_URL);
   }
-});
+);
 
-app.get("/api/session", (req, res) => {
-  res.json({ user: req.user ?? null });
-});
+app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
 
 app.post("/api/logout", (req, res) => {
-  req.logout?.();
-  req.session = null;
-  res.json({ ok: true });
+  req.logout?.(() => {
+    req.session.destroy?.(() => res.json({ ok: true }));
+  });
 });
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
