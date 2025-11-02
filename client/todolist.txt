@@ -1,0 +1,9 @@
+//TODOLIST: 
+
+1. change moodle svg icon
+2. change site icon from react default to uni icon
+3. fix calendar blocked? iframe
+4. make all text clickable 
+5. change site design 
+6. fill all info 
+7. save my place if i'm on general chemistry don't throw me back to the homepage!
