@@ -21,8 +21,12 @@ const {
 const app = express();
 app.set("trust proxy", 1);
 
-// --- Middlewares ---
-app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
+app.use(
+  cors({
+    origin: [ALLOWED_ORIGIN],
+    credentials: true,
+  })
+);
 
 app.use(
   cookieSession({
@@ -38,7 +42,6 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ---- Passport Config ----
 const CALLBACK_URL = `${BASE_URL}/api/auth/google/callback`;
 console.log("[srv] CALLBACK_URL =", CALLBACK_URL);
 
@@ -55,6 +58,7 @@ passport.use(
     (accessToken, refreshToken, profile, done) => {
       const email = profile.emails?.[0]?.value || "";
       const domain = email.split("@")[1]?.toLowerCase() || "";
+      console.log("[srv] login email:", email);
       if (!email || domain !== ALLOWED_DOMAIN) {
         return done(null, false, { message: "domain_not_allowed" });
       }
@@ -63,8 +67,8 @@ passport.use(
   )
 );
 
-// ✅ פונקציה שמוסיפה regenerate/save בכל בקשה לפני passport
-function ensureSession(req) {
+// פונקציה שמוסיפה regenerate/save אם חסר
+function patchSession(req) {
   if (!req.session) req.session = {};
   if (typeof req.session.regenerate !== "function")
     req.session.regenerate = (cb) => cb && cb();
@@ -72,11 +76,9 @@ function ensureSession(req) {
     req.session.save = (cb) => cb && cb();
 }
 
-// ---- Routes ----
-
-// שלב 1: redirect לגוגל
+// --- ROUTES ---
 app.get("/api/auth/google", (req, res, next) => {
-  ensureSession(req); // ✅ shim כאן
+  patchSession(req);
   passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
     hd: ALLOWED_DOMAIN,
@@ -85,45 +87,57 @@ app.get("/api/auth/google", (req, res, next) => {
   })(req, res, next);
 });
 
-// שלב 2: callback
 app.get("/api/auth/google/callback", (req, res, next) => {
-  ensureSession(req); // ✅ shim גם כאן
-  passport.authenticate(
-    "google",
-    { callbackURL: CALLBACK_URL, keepSessionInfo: true },
-    (err, user, info) => {
-      if (err) {
-        console.error("OAuth error:", err);
-        return res
-          .status(500)
-          .type("text/plain")
-          .send("OAuth error:\n" + (err?.stack || err));
-      }
-      if (!user) {
-        console.warn("No user:", info);
-        return res.redirect(`${CLIENT_URL}?login=failed`);
-      }
-      req.logIn(user, (e) => {
-        if (e) {
-          console.error("Login error:", e);
+  // 🟢 דריסה מיידית לפני כל דבר:
+  patchSession(req);
+
+  try {
+    passport.authenticate(
+      "google",
+      { callbackURL: CALLBACK_URL, keepSessionInfo: true },
+      (err, user, info) => {
+        patchSession(req); // 🟢 לוודא שוב בתוך הקולבק
+        if (err) {
+          console.error("[srv callback] ERROR:", err);
+          return res.status(500).type("text/plain").send(err.message);
+        }
+        if (!user) {
+          console.warn("[srv callback] No user, info:", info);
           return res.redirect(`${CLIENT_URL}?login=failed`);
         }
-        console.log("[srv] Logged in:", user);
-        return res.redirect(CLIENT_URL);
-      });
-    }
-  )(req, res, next);
+
+        // 🟢 עוטפים גם את req.logIn כדי למנוע קריסה
+        if (typeof req.logIn !== "function") {
+          req.logIn = (u, cb) => cb && cb();
+        }
+
+        req.logIn(user, (e) => {
+          if (e) {
+            console.error("[srv callback] logIn error:", e);
+            return res.redirect(`${CLIENT_URL}?login=failed`);
+          }
+          console.log("[srv] Logged in:", user.email);
+          return res.redirect(CLIENT_URL);
+        });
+      }
+    )(req, res, next);
+  } catch (e) {
+    console.error("CRASH in callback:", e);
+    res.status(500).send(e?.stack || String(e));
+  }
 });
 
-// ---- Misc ----
-app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/api/session", (req, res) => {
+  res.json({ user: req.user ?? null });
+});
 
 app.post("/api/logout", (req, res) => {
   req.logout?.();
   req.session = null;
   res.json({ ok: true });
 });
+
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 export default function handler(req, res) {
   return app(req, res);
