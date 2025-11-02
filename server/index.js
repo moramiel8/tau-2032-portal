@@ -15,10 +15,11 @@ const {
   GOOGLE_CLIENT_SECRET,
   SESSION_SECRET,
   CLIENT_URL = "https://tau-2032-portal.vercel.app",
+  BASE_URL = "https://tau-2032-portal-server.vercel.app", 
 } = process.env;
 
 const ALLOWED_DOMAIN = "mail.tau.ac.il";
-const CALLBACK_URL = `${CLIENT_URL}/api/auth/google/callback`; // ← קבוע, תואם ל-Google Console
+const CALLBACK_URL = `${BASE_URL}/api/auth/google/callback`;
 
 const app = express();
 app.set("trust proxy", 1);
