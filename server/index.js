@@ -109,5 +109,4 @@ app.post("/api/logout", (req, res) => {
 export default function handler(req, res) {
   return app(req, res);
 }
-
 //app.listen(PORT, () => console.log(`Auth server listening on ${PORT});

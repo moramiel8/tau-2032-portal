@@ -1,8 +1,8 @@
 // client/src/utils/auth.ts
 export type User = { email: string } | null;
 
-// תמיד נקבע כתובת שרת אמינה (ENV או ברירת מחדל)
 const API_URL = import.meta.env.VITE_API_URL || "https://tau-2032-portal-server.vercel.app";
+
 // ---------- helpers ----------
 export function getDomain(email: string) {
   return (email.split("@")[1] || "").toLowerCase();
