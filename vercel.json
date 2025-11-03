@@ -1,0 +1,26 @@
+{
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "rootDirectory": "client", 
+        "outputDirectory": "dist" 
+      }
+    },
+    {
+      "src": "api/index.js", 
+      "use": "@vercel/node" 
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index" 
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/client/dist/index.html" 
+    }
+  ]
+}
