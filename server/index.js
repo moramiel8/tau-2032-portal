@@ -1,13 +1,10 @@
-// index.js (שרת)
+// server/index.js (שרת)
 
 import express from "express";
 import cors from "cors";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const {
   ALLOWED_ORIGIN = "https://tau-2032-portal.vercel.app",
