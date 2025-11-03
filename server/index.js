@@ -102,4 +102,4 @@ app.post("/api/logout", (req, res) => {
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // ----- Export handler (Vercel style) -----
-export default app; // ← חשוב!
+module.exports = app; // השתמש ב-CommonJS
