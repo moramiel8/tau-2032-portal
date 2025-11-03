@@ -1,66 +1,48 @@
-// api/[[...all]].js
 import express from "express";
 import cors from "cors";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
-const {
-  ALLOWED_ORIGIN = "https://tau-2032-portal.vercel.app",
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  SESSION_SECRET,
-  CLIENT_URL = ALLOWED_ORIGIN,
-  BASE_URL = "https://tau-2032-portal.vercel.app",
-  ALLOWED_DOMAIN = "mail.tau.ac.il",
-} = process.env;
-
 const app = express();
 app.set("trust proxy", 1);
-
 app.use(cors({ origin: true, credentials: true }));
-
 app.use(session({
-  secret: SESSION_SECRET,
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { secure: true, sameSite: "none", httpOnly: true, maxAge: 1000*60*60*24*7 },
 }));
-
 app.use(passport.initialize());
 app.use(passport.session());
 
-const CALLBACK_URL = `${BASE_URL}/api/auth/google/callback`;
+// === הגדר נתיבים בלי /api בתחילה ===
+const router = express.Router();
 
-passport.serializeUser((u, d) => d(null, u));
-passport.deserializeUser((o, d) => d(null, o));
-
-passport.use(new GoogleStrategy(
-  { clientID: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET, callbackURL: CALLBACK_URL },
-  (accessToken, refreshToken, profile, done) => {
-    const email = profile.emails?.[0]?.value || "";
-    const domain = email.split("@")[1]?.toLowerCase() || "";
-    if (!email || domain !== ALLOWED_DOMAIN) return done(null, false, { message: "domain_not_allowed" });
-    return done(null, { email });
-  }
-));
-
-app.get("/api/auth/google", passport.authenticate("google", {
+router.get("/auth/google", passport.authenticate("google", {
   scope: ["email", "profile", "openid"],
-  hd: ALLOWED_DOMAIN,
+  hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
   prompt: "select_account",
-  callbackURL: CALLBACK_URL,
+  callbackURL: (process.env.BASE_URL || "https://tau-2032-portal.vercel.app") + "/api/auth/google/callback",
 }));
 
-app.get("/api/auth/google/callback",
-  passport.authenticate("google", { callbackURL: CALLBACK_URL, failureRedirect: `${CLIENT_URL}?login=failed` }),
-  (_req, res) => res.redirect(CLIENT_URL)
+router.get("/auth/google/callback",
+  passport.authenticate("google", {
+    callbackURL: (process.env.BASE_URL || "https://tau-2032-portal.vercel.app") + "/api/auth/google/callback",
+    failureRedirect: (process.env.CLIENT_URL || process.env.ALLOWED_ORIGIN || "https://tau-2032-portal.vercel.app") + "?login=failed",
+  }),
+  (_req, res) => res.redirect(process.env.CLIENT_URL || process.env.ALLOWED_ORIGIN || "/")
 );
 
-app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
-app.post("/api/logout", (req, res) => { req.logout?.(() => req.session.destroy?.(() => res.json({ ok: true })) ); });
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+router.get("/session", (req, res) => res.json({ user: req.user ?? null }));
+router.post("/logout", (req, res) => { req.logout?.(() => req.session.destroy?.(() => res.json({ ok: true })) ); });
+router.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+// === מיפוי גם בלי /api וגם עם /api ===
+app.use("/", router);
+app.use("/api", router);
+
+// יצוא ה-handler ל־Vercel
 export default function handler(req, res) {
   return app(req, res);
 }
