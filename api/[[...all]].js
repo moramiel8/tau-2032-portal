@@ -1,12 +1,9 @@
-// api/[[...all]].js
+// api/[[...all]].js   (קובץ יחיד שמטפל בכל /api/*)
 import express from "express";
 import cors from "cors";
+import session from "express-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import session from "express-session";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const {
   ALLOWED_ORIGIN = "https://tau-2032-portal.vercel.app",
@@ -14,7 +11,7 @@ const {
   GOOGLE_CLIENT_SECRET,
   SESSION_SECRET,
   CLIENT_URL = ALLOWED_ORIGIN,
-  BASE_URL = "https://tau-2032-portal.vercel.app", // ה-BASE של הפרויקט הזה
+  BASE_URL = "https://tau-2032-portal.vercel.app",
   ALLOWED_DOMAIN = "mail.tau.ac.il",
 } = process.env;
 
@@ -64,6 +61,7 @@ app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
 app.post("/api/logout", (req, res) => { req.logout?.(() => req.session.destroy?.(() => res.json({ ok: true })) ); });
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+// חשוב: זה ה־export הנכון ל־@vercel/node
 export default function handler(req, res) {
   return app(req, res);
 }

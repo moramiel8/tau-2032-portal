@@ -3,24 +3,11 @@
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
-      "config": {
-        "rootDirectory": "client", 
-        "outputDirectory": "dist" 
-      }
+      "config": { "outputDirectory": "dist" }
     },
-    {
-      "src": "api/*.js", 
-      "use": "@vercel/node" 
-    }
+    { "src": "api/*.js", "use": "@vercel/node" }
   ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index" 
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/client/dist/index.html" 
-    }
+    { "source": "/(.*)", "destination": "/client/dist/index.html" }
   ]
 }
