@@ -20,12 +20,19 @@ export function isTauEmail(email: string) {
 
 // ---------- API ----------
 export async function fetchSession() {
-  const res = await fetch(`/api/session`, { credentials: 'include' });
-  return res.ok ? (await res.json()).user ?? null : null;
+  const res = await fetch("/api/session", {
+    credentials: "include",
+  });
+  return res.json();
 }
+
 export function startGoogleLogin() {
   window.location.href = `/api/auth/google?prompt=select_account`;
 }
 export async function logout() {
-  await fetch(`/api/logout`, { method: 'POST', credentials: 'include' });
+  const res = await fetch("/api/logout", {
+    method: "POST",
+    credentials: "include", // ← חשוב
+  });
+  return res.json();
 }

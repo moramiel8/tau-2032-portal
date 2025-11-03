@@ -1,4 +1,4 @@
-// api/[[...all]].js   (קובץ יחיד שמטפל בכל /api/*)
+// api/[[...all]].js
 import express from "express";
 import cors from "cors";
 import session from "express-session";
@@ -18,7 +18,7 @@ const {
 const app = express();
 app.set("trust proxy", 1);
 
-app.use(cors({ origin: [ALLOWED_ORIGIN], credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 
 app.use(session({
   secret: SESSION_SECRET,
@@ -61,7 +61,6 @@ app.get("/api/session", (req, res) => res.json({ user: req.user ?? null }));
 app.post("/api/logout", (req, res) => { req.logout?.(() => req.session.destroy?.(() => res.json({ ok: true })) ); });
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
-// חשוב: זה ה־export הנכון ל־@vercel/node
 export default function handler(req, res) {
   return app(req, res);
 }
