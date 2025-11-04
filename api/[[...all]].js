@@ -8,6 +8,12 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(cors({ origin: true, credentials: true }));
 
+app.set('etag', false);                       // לא לחשב ETag → לא יחזור 304
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');       // אל תאפשר קאשינג על תשובות ה-API
+  next();
+});
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -72,7 +78,12 @@ router.get("/auth/google/callback",
   (_req, res) => res.redirect(CLIENT_URL)
 );
 
-router.get("/session", (req, res) => res.json({ user: req.user ?? null }));
+router.get("/session", (req, res) => {
+  res.set('Cache-Control', 'no-store');       // כדי שלא יחזור 304
+  res.status(200).json({ user: req.user ?? null });
+});
+
+
 router.post("/logout", (req, res) => {
   req.logout?.(() => req.session.destroy?.(() => res.json({ ok: true })));
 });
