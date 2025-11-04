@@ -63,20 +63,31 @@ passport.use(
 //
 const router = express.Router();
 
-router.get("/auth/google", passport.authenticate("google", {
-  scope: ["email", "profile", "openid"],
-  hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
-  prompt: "select_account",
-  callbackURL: STATIC_CALLBACK,
-}));
+router.get("/auth/google",
+  (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  },
+  passport.authenticate("google", {
+    scope: ["email", "profile", "openid"],
+    hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
+    prompt: "select_account",
+    callbackURL: STATIC_CALLBACK,
+  })
+);
 
 router.get("/auth/google/callback",
+  (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  },
   passport.authenticate("google", {
     callbackURL: STATIC_CALLBACK,
     failureRedirect: CLIENT_URL + "?login=failed",
   }),
   (_req, res) => res.redirect(CLIENT_URL)
 );
+
 
 router.get("/session", (req, res) => {
   res.set('Cache-Control', 'no-store');       // כדי שלא יחזור 304
