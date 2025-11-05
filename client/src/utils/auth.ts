@@ -28,9 +28,10 @@ export async function fetchSession() {
 }
 
 export function startGoogleLogin() {
-  const nc = Date.now(); // cache-buster ליתר ביטחון
-  window.location.href = `/api/auth/google/login?_nc=${nc}&prompt=select_account`;
+  const cb = crypto?.randomUUID?.() || Date.now();
+  window.location.href = `/api/v2/auth/google?prompt=select_account&_cb=${cb}`;
 }
+
 
 
 export async function logout() {
