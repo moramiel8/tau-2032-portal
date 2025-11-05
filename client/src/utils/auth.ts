@@ -17,18 +17,16 @@ export function getDomain(email: string | null | undefined) {
   // אל תשתמש יותר ב-VITE_API_URL — נשארים same-origin
   const API = (p: string) => p; // פשוט מחזיר את הנתיב כמו שהוא
 
-  export async function fetchSession() {
-    const res = await fetch(API("/api/session"), {
-      credentials: "include",
-      cache: "no-store",
-    });
+export async function fetchSession(): Promise<User> {
+  const res = await fetch("/api/session", { credentials: "include", cache: "no-store" });
+  const ct = res.headers.get("content-type") || "";
+  if (!res.ok) throw new Error(`session ${res.status}`);
+  if (!ct.includes("application/json")) return null;
 
-    const ct = res.headers.get("content-type") || "";
-    if (!res.ok) throw new Error(`session ${res.status}`);
-    if (!ct.includes("application/json")) return null;
+  const data = await res.json();
+  return (data?.user ?? null) as User;  // ← החזר רק את user
+}
 
-    return res.json();
-  }
 
   export function startGoogleLogin() {
     const cb = crypto?.randomUUID?.() || Date.now();
