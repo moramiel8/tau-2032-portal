@@ -94,22 +94,15 @@ passport.use(
 
 const router = express.Router();
 
-// ✅ התחברות עם Google
-router.get(
-  "/auth/google",
-  (req, res, next) => {
-    console.log("[api] /auth/google start");
-    res.set("Cache-Control", "no-store");
-    next();
-  },
+router.get("/auth/google", (req, res, next) => {
+  console.log("[api] /auth/google redirecting to Google...");
   passport.authenticate("google", {
     scope: ["openid", "profile", "email"],
     prompt: "select_account",
     callbackURL: STATIC_CALLBACK,
-  } as any)
-);
+  } as any)(req, res, next);
+});
 
-// ✅ callback מה-Google
 router.get(
   "/auth/google/callback",
   passport.authenticate("google", {
