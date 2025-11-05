@@ -3,13 +3,16 @@
   export type User = { email: string } | null;
 
   // החזר את שתי הפונקציות האלו ↓
-  export function getDomain(email: string) {
-    return (email.split("@")[1] || "").toLowerCase();
-  }
+export function getDomain(email: string | null | undefined) {
+  if (!email) return "";
+  return (email.split("@")[1] || "").toLowerCase();
+}
 
-  export function isTauEmail(email: string) {
-    return getDomain(email) === "mail.tau.ac.il";
-  }
+
+ export function isTauEmail(email: string | null | undefined) {
+  return getDomain(email) === "mail.tau.ac.il";
+}
+
 
   // אל תשתמש יותר ב-VITE_API_URL — נשארים same-origin
   const API = (p: string) => p; // פשוט מחזיר את הנתיב כמו שהוא
