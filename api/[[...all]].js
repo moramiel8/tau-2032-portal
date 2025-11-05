@@ -8,6 +8,12 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(cors({ origin: true, credentials: true }));
 
+app.use((req, _res, next) => {
+  console.log("[api] hit:", req.method, req.url);
+  next();
+});
+
+
 app.set('etag', false);                       // לא לחשב ETag → לא יחזור 304
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');       // אל תאפשר קאשינג על תשובות ה-API
@@ -87,15 +93,17 @@ router.get("/auth/google/login",
 );
 
 
-router.get("/v2/auth/google",
-  (req, res, next) => { res.set("Cache-Control", "no-store"); next(); },
-  passport.authenticate("google", {
-    scope: ["email","profile","openid"],
+router.get("/v2/auth/google", (req, res, next) => {
+  console.log("[api] /v2/auth/google start");
+  res.set("Cache-Control", "no-store");
+  return passport.authenticate("google", {
+    scope: ["email", "profile", "openid"],
     hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
     prompt: "select_account",
     callbackURL: STATIC_CALLBACK,
-  })
-);
+  })(req, res, next);
+});
+
 
 router.get("/session", (req, res) => {
   res.set('Cache-Control', 'no-store');      
