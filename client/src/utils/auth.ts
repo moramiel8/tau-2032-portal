@@ -28,7 +28,7 @@ export async function fetchSession() {
 }
 
 export function startGoogleLogin() {
-  window.location.href = "/api/auth/google?prompt=select_account";
+  window.location.href = `/api/auth/google/login?prompt=select_account`;
 }
 
 

@@ -76,6 +76,18 @@ router.get("/auth/google",
   })
 );
 
+// api/[[...all]].js – הוסף ליד הראוט הקיים
+router.get("/auth/google/login",
+  (req, res, next) => { res.set('Cache-Control','no-store'); next(); },
+  passport.authenticate("google", {
+    scope: ["email","profile","openid"],
+    hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
+    prompt: "select_account",
+    callbackURL: STATIC_CALLBACK,
+  })
+);
+
+
 router.get("/auth/google/callback",
   (req, res, next) => {
     res.set('Cache-Control', 'no-store');
