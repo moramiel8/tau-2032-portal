@@ -28,7 +28,8 @@ export async function fetchSession() {
 }
 
 export function startGoogleLogin() {
-  window.location.href = `/api/auth/google/login?prompt=select_account`;
+  const nc = Date.now(); // cache-buster ליתר ביטחון
+  window.location.href = `/api/auth/google/login?_nc=${nc}&prompt=select_account`;
 }
 
 

@@ -7,15 +7,16 @@
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/client/index.html" }
   ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0, must-revalidate" },
-        { "key": "Pragma", "value": "no-cache" },
-        { "key": "Expires", "value": "0" },
-        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
-      ]
-    }
-  ]
+"headers": [
+  {
+    "source": "/api/(.*)",
+    "headers": [
+      { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0, must-revalidate" },
+      { "key": "Pragma", "value": "no-cache" },
+      { "key": "Expires", "value": "0" },
+      { "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
+    ]
+  }
+]
+
 }
