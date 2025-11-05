@@ -61,13 +61,13 @@ export default function App() {
   };
 
   // Debug overlay (אופציונלי)
-  {/*const DebugBar = () => (
+  const DebugBar = () => (
     <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
       <div>VITE_API_URL: {import.meta.env.VITE_API_URL as string}</div>
       <div>user? {user ? user.email : "null"}</div>
       <div>loadingUser? {String(loadingUser)}</div>
     </div>
-  );*/}
+  );
 
   // Toast component
   const Toast = () =>
@@ -175,7 +175,7 @@ export default function App() {
 
       <Toast />
 
-     {/*  <DebugBar /> */}
+     <DebugBar /> 
 
     </div>
   );
