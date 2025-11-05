@@ -1,5 +1,4 @@
 // api/[[...path]].ts
-
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import session from "express-session";
@@ -8,10 +7,12 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app: Express = express();
 app.set("trust proxy", 1);
-app.use(cors({
-  origin: process.env.CLIENT_URL || "https://tau-2032-portal.vercel.app",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "https://tau-2032-portal.vercel.app",
+    credentials: true,
+  })
+);
 
 app.use((req, _res, next) => {
   console.log("[api] hit:", req.method, req.url);
@@ -29,7 +30,12 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev_secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true, sameSite: "none", httpOnly: true, maxAge: 1000 * 60 * 60 * 24 * 7 }
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    },
   })
 );
 
@@ -47,6 +53,7 @@ const STATIC_CALLBACK =
 
 passport.serializeUser((user, done) => done(null, user as any));
 passport.deserializeUser((obj, done) => done(null, obj as any));
+
 passport.use(
   new GoogleStrategy(
     {
@@ -57,29 +64,41 @@ passport.use(
     },
     (_accessToken, _refreshToken, profile, done) => {
       try {
-        const email = profile.emails?.[0]?.value || "";
+        console.log("[GoogleStrategy] profile:", profile);
+
+        // 🔧 יש מקרים שבהם Google לא מחזיר emails אם scope לא נכון
+        const email =
+          profile.emails?.[0]?.value ||
+          (profile._json?.email ?? ""); // fallback נוסף
+
         const domain = email.split("@")[1]?.toLowerCase() || "";
         const allowed = (process.env.ALLOWED_DOMAIN || "mail.tau.ac.il").toLowerCase();
 
-        if (!email || domain !== allowed) {
+        if (!email) {
+          console.warn("[GoogleStrategy] no email found in profile");
+          return done(null, false, { message: "no_email" });
+        }
+
+        if (domain !== allowed) {
+          console.warn("[GoogleStrategy] forbidden domain", domain);
           return done(null, false, { message: "domain_not_allowed" });
         }
 
-        // החזר אובייקט משתמש מינימלי שישמר בסשן
+        console.log("[GoogleStrategy] success:", email);
         return done(null, { email });
       } catch (e) {
+        console.error("[GoogleStrategy] error:", e);
         return done(e as Error);
       }
     }
   )
 );
 
+// ✅ סוגרים את הפונקציה כאן ↑
 
-// הוספת domain באופן קבוע ל-authorization URL:
-(GoogleStrategy as any).prototype.authorizationParams = function() {
+(GoogleStrategy as any).prototype.authorizationParams = function () {
   return { hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il" };
 };
-
 
 const router = express.Router();
 
@@ -90,16 +109,12 @@ router.get(
     res.set("Cache-Control", "no-store");
     next();
   },
-  passport.authenticate(
-    "google",
-    {
-      scope: ["email", "profile", "openid"],
-      prompt: "select_account",
-      callbackURL: STATIC_CALLBACK,
-    } as any 
-  )
+  passport.authenticate("google", {
+    scope: ["openid", "profile", "email"], // ✅ חשוב
+    prompt: "select_account",
+    callbackURL: STATIC_CALLBACK,
+  } as any)
 );
-
 
 router.get(
   "/auth/google/callback",
@@ -112,14 +127,14 @@ router.get(
   }
 );
 
-
 router.get("/session", (req, res) => {
   res.status(200).json({ user: (req as any).user ?? null });
 });
 
 router.post("/logout", (req, res) => {
-  // טיפוסים של passport לפעמים לא כוללים את overloading הזה
-  (req as any).logout?.(() => (req.session as any).destroy?.(() => res.json({ ok: true })));
+  (req as any).logout?.(() =>
+    (req.session as any).destroy?.(() => res.json({ ok: true }))
+  );
 });
 
 router.get("/health", (_req, res) => res.json({ status: "ok" }));
