@@ -103,8 +103,8 @@ router.get("/auth/google/login",
 );
 
 
-router.get("/v2/auth/google", (req, res, next) => {
-  console.log("[api] /v2/auth/google start");
+router.get("/auth/google", (req, res, next) => {
+  console.log("[api] /auth/google start");
   res.set("Cache-Control", "no-store");
   return passport.authenticate("google", {
     scope: ["email", "profile", "openid"],
