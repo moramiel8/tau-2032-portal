@@ -8,7 +8,10 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app: Express = express();
 app.set("trust proxy", 1);
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  origin: process.env.CLIENT_URL || "https://tau-2032-portal.vercel.app",
+  credentials: true,
+}));
 
 app.use((req, _res, next) => {
   console.log("[api] hit:", req.method, req.url);
@@ -100,18 +103,15 @@ router.get(
 
 router.get(
   "/auth/google/callback",
-  (req, res, next) => {
-    res.set("Cache-Control", "no-store");
-    next();
-  },
   passport.authenticate("google", {
     failureRedirect: CLIENT_URL + "?login=failed",
-    session: true
+    session: true,
   }),
   (_req, res) => {
     res.redirect(CLIENT_URL);
   }
 );
+
 
 router.get("/session", (req, res) => {
   res.status(200).json({ user: (req as any).user ?? null });

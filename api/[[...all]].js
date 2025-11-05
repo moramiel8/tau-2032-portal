@@ -6,7 +6,10 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app = express();
 app.set("trust proxy", 1);
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  origin: process.env.CLIENT_URL || "https://tau-2032-portal.vercel.app",
+  credentials: true,
+}));
 
 app.use((req, _res, next) => {
   console.log("[api] hit:", req.method, req.url);
@@ -25,12 +28,13 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production",  // true ב-production בלבד
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   },
 }));
+
 
 
 app.use(passport.initialize());
