@@ -94,12 +94,21 @@ passport.use(
 
 const router = express.Router();
 
-router.get("/auth/google", (req, res, next) => {
-  console.log("[api] /auth/google → redirecting to Google OAuth");
-  return passport.authenticate("google", {
-    scope: ["openid", "email", "profile"], 
+// 🔧 בדיקה: הפניה ידנית ל-Google ללא Passport (כדי לוודא שה-route וה-routing ב-Vercel תקינים)
+router.get("/auth/google", (req, res) => {
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID as string,
+    redirect_uri: `${process.env.BASE_URL || "https://tau-2032-portal.vercel.app"}/api/auth/google/callback`,
+    response_type: "code",
+    scope: "openid email profile",
     prompt: "select_account",
-  })(req, res, next);
+    access_type: "online",
+    include_granted_scopes: "true",
+    hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
+  });
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  console.log("[api] manual redirect to:", url);
+  res.redirect(302, url);
 });
 
 
