@@ -94,15 +94,14 @@ passport.use(
 
 const router = express.Router();
 
-// ✅ /api/auth/google → תמיד מפנה ל-Google
 router.get("/auth/google", (req, res, next) => {
   console.log("[api] /auth/google → redirecting to Google OAuth");
   return passport.authenticate("google", {
-    scope: ["openid", "email", "profile"],
+    scope: ["openid", "email", "profile"], 
     prompt: "select_account",
-    callbackURL: STATIC_CALLBACK, // חייב להיות זהה בדיוק לזה שב-Google Console
   })(req, res, next);
 });
+
 
 
 router.get(
