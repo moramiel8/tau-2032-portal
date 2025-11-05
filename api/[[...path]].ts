@@ -103,9 +103,9 @@ passport.use(
 const router = express.Router();
 
 router.get(
-  "/v2/auth/google",
+  "/auth/google",
   (req, res, next) => {
-    console.log("[api] /v2/auth/google start");
+    console.log("[api] /auth/google start");
     res.set("Cache-Control", "no-store");
     next();
   },

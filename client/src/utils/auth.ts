@@ -32,7 +32,7 @@ export function getDomain(email: string | null | undefined) {
 
   export function startGoogleLogin() {
     const cb = crypto?.randomUUID?.() || Date.now();
-    window.location.href = `/api/v2/auth/google?prompt=select_account&_cb=${cb}`;
+    window.location.href = `/api/auth/google?prompt=select_account&_cb=${cb}`;
   }
 
 
