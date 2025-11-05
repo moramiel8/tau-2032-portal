@@ -130,12 +130,11 @@ export default function App() {
       כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות בחר/י חשבון עם הדומיין
       <b> mail.tau.ac.il</b>.
       <div className="mt-3">
-        <button
-          onClick={handleSignIn}
-          className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
-        >
-          התחברות עם Google
-        </button>
+      <button onclick="window.location.assign('/api/google')">
+  התחבר עם Google
+</button>
+
+
       </div>
     </div>
   ) : !isTauEmail(user.email) ? (
