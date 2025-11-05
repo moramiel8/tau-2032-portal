@@ -28,15 +28,15 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev_secret",
     resave: false,
     saveUninitialized: false,
-    proxy: true,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production", // רק בפרודקשן
       httpOnly: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // לא לחסום בלוקלי
       maxAge: 1000 * 60 * 60 * 24 * 7,
     },
   })
 );
+
 
 app.use(passport.initialize());
 app.use(passport.session());
