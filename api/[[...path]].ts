@@ -4,11 +4,10 @@ import cors from "cors";
 import cookieSession from "cookie-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import type { NextFunction } from "express";
-
 
 const app: Express = express();
 app.set("trust proxy", 1);
+
 app.use(cors({
   origin: process.env.CLIENT_URL || "https://tau-2032-portal.vercel.app",
   credentials: true,
@@ -25,33 +24,24 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.use(
-  cookieSession({
-    name: "tau_sess",
-    keys: [process.env.SESSION_SECRET!], // make sure this is set in Vercel
-    secure: true,                        // prod on Vercel is HTTPS
-    httpOnly: true,
-    sameSite: "lax",                     // good for OAuth top-level redirects
-    maxAge: 1000 * 60 * 60 * 24 * 7,
-  })
-);
+app.use(cookieSession({
+  name: "tau_sess",
+  keys: [process.env.SESSION_SECRET!],
+  secure: true,
+  httpOnly: true,
+  sameSite: "lax",
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+}));
 
-
+// Polyfill for passport 0.6 when using cookie-session
 app.use((req, _res, next) => {
-  if (req.session && typeof (req.session as any).regenerate !== "function") {
-    (req.session as any).regenerate = (cb: (err?: any) => void) => cb();
-  }
-  if (req.session && typeof (req.session as any).save !== "function") {
-    (req.session as any).save = (cb: (err?: any) => void) => cb();
-  }
+  if (req.session && !(req.session as any).regenerate) (req.session as any).regenerate = (cb: any) => cb();
+  if (req.session && !(req.session as any).save) (req.session as any).save = (cb: any) => cb();
   next();
 });
 
-
 app.use(passport.initialize());
 app.use(passport.session());
-
-
 
 const CLIENT_URL =
   process.env.CLIENT_URL ||
@@ -78,46 +68,28 @@ passport.use(
         const domain = email.split("@")[1]?.toLowerCase() || "";
         const allowed = (process.env.ALLOWED_DOMAIN || "mail.tau.ac.il").toLowerCase();
 
-        if (!email) {
-          console.warn("[GoogleStrategy] no email found");
-          return done(null, false, { message: "no_email" });
-        }
-        if (domain !== allowed) {
-          console.warn("[GoogleStrategy] forbidden domain", domain);
-          return done(null, false, { message: "domain_not_allowed" });
-        }
+        if (!email) return done(null, false, { message: "no_email" });
+        if (domain !== allowed) return done(null, false, { message: "domain_not_allowed" });
 
-        console.log("[GoogleStrategy] success:", email);
         return done(null, { email });
       } catch (e) {
-        console.error("[GoogleStrategy] error:", e);
         return done(e as Error);
       }
     }
   )
 );
 
-// --- חובה: כדי להגביל לדומיין של TAU ---
+// Restrict account chooser to TAU (advisory; enforcement is above)
 (GoogleStrategy as any).prototype.authorizationParams = function () {
-  return {
-    prompt: "select_account",
-    hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il",
-  };
+  return { prompt: "select_account", hd: process.env.ALLOWED_DOMAIN || "mail.tau.ac.il" };
 };
 
-
-// --- הראוטים עצמם ---
-
+// ---- Routes ----
 const router = express.Router();
 
-router.get("/auth/google", (req, res, next) => {
-  console.log("[api] /auth/google → passport redirect");
-  return passport.authenticate("google", {
-    scope: ["openid", "email", "profile"], 
-  })(req, res, next);
-});
-
-
+router.get("/auth/google", (req, res, next) =>
+  passport.authenticate("google", { scope: ["openid", "email", "profile"] })(req, res, next)
+);
 
 router.get(
   "/auth/google/callback",
@@ -126,55 +98,39 @@ router.get(
     session: true,
     keepSessionInfo: true,
   }),
-  (_req, res) => {
-    res.redirect(CLIENT_URL);
-  }
+  (_req, res) => res.redirect(CLIENT_URL)
 );
 
-// ✅ בדיקת סשן
 router.get("/session", (req, res) => {
   res.status(200).json({ user: (req as any).user ?? null });
 });
 
-// ✅ התנתקות
 router.post("/logout", (req, res) => {
   req.logout?.(() => {
-    (req as any).session = null;   // cookie-session: clear cookie
+    (req as any).session = null;
     res.json({ ok: true });
   });
 });
 
-
-// ✅ בדיקת בריאות
 router.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("[API ERROR]", (err as any)?.stack || err);
-  res.status(500).json({ error: String((err as any)?.message || err) });
-});
-
-app.use("/api", router);
-
-export default function handler(req: Request, res: Response) {
-  return app(req, res);
-}
-
+// Optional: probe to verify cookie-session
 router.get("/check-session", (req, res) => {
   (req as any).session = (req as any).session || {};
   (req.session as any).t = Date.now();
   res.json({ ok: true });
 });
 
+// Mount router ONCE
 app.use("/api", router);
 
+// Single error handler (typed) AFTER routes
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error("[API ERROR]", (err as any)?.stack || err);
   res.status(500).json({ error: String((err as any)?.message || err) });
 });
 
-// vercel handler
+// Vercel handler (export ONCE)
 export default function handler(req: Request, res: Response) {
   return app(req, res);
 }
-
-
