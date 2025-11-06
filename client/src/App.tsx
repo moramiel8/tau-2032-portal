@@ -4,6 +4,8 @@ import CourseList from "./components/CourseList";
 import CoursePage from "./components/CoursePage";
 import { YEARS } from "./data/years";
 import type { Course } from "./data/years";
+import { useNavigate } from "react-router-dom";
+
 import {
   fetchSession,
   isTauEmail,
@@ -21,6 +23,8 @@ export default function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [user, setUser] = useState<User | null>(() => getCachedUser());
   const [loadingUser, setLoadingUser] = useState<boolean>(false);
+  const nav = useNavigate();
+  const openCourse = (course: Course) => nav(`/client/course/${course.id}`);
 
   // Toast state
   const [toast, setToast] = useState<string | null>(null);
