@@ -13,13 +13,14 @@ import {
 } from "./utils/auth";
 import type { User } from "./utils/auth";
 import CalendarEmbed from "./components/CalendarEmbed";
+import { getCachedUser } from "./utils/sessionCache";
 
 const AUTH_ENABLED = true;
 
 export default function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [user, setUser] = useState<User | null>(AUTH_ENABLED ? null : { email: "demo@mail.tau.ac.il" });
-  const [loadingUser, setLoadingUser] = useState(AUTH_ENABLED ? true : false);
+  const [user, setUser] = useState<User | null>(() => getCachedUser());
+  const [loadingUser, setLoadingUser] = useState<boolean>(false);
 
   // Toast state
   const [toast, setToast] = useState<string | null>(null);
@@ -29,18 +30,18 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!AUTH_ENABLED) {
-      setLoadingUser(false);
-      return;
-    }
+    if (!AUTH_ENABLED) return;
+    // רענון ברקע – לא “נועל” את ה-UI
+    let cancelled = false;
     (async () => {
       try {
-        const u = await fetchSession();
-        setUser(u);
+        const fresh = await fetchSession();
+        if (!cancelled) setUser(fresh);
       } finally {
-        setLoadingUser(false);
+        if (!cancelled) setLoadingUser(false);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSignIn = () => startGoogleLogin();
