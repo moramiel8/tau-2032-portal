@@ -157,3 +157,10 @@ app.use((err: any, _req: Request, res: Response, _next) => {
   res.status(500).json({ error: String(err?.message || err) });
 });
 
+router.get("/check-session", (req, res) => {
+  req.session ||= {};
+  (req.session as any).t = Date.now();
+  res.json({ ok: true });
+});
+
+
