@@ -1,7 +1,7 @@
 // api/[[...path]].ts
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
-import session from "express-session";
+import cookieSession from "cookie-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
@@ -24,23 +24,24 @@ app.use((_req, res, next) => {
 });
 
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "dev_secret",
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production", // רק בפרודקשן
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // לא לחסום בלוקלי
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-    },
+  cookieSession({
+    name: "tau_sess",
+    // keep this strong & set in Vercel env vars
+    keys: [process.env.SESSION_SECRET || "dev_secret"],
+    // secure cookies in production, required if you ever use SameSite=None
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
+    maxAge: 1000 * 60 * 60 * 24 * 7,
   })
 );
 
 
+
 app.use(passport.initialize());
 app.use(passport.session());
+
+
 
 const CLIENT_URL =
   process.env.CLIENT_URL ||
@@ -51,8 +52,8 @@ const STATIC_CALLBACK =
   (process.env.BASE_URL || "https://tau-2032-portal.vercel.app") +
   "/api/auth/google/callback";
 
-passport.serializeUser((user, done) => done(null, user as any));
-passport.deserializeUser((obj, done) => done(null, obj as any));
+passport.serializeUser((user: any, done) => done(null, { email: user.email }));
+passport.deserializeUser((obj: any, done) => done(null, obj));
 
 passport.use(
   new GoogleStrategy(
@@ -126,8 +127,12 @@ router.get("/session", (req, res) => {
 
 // ✅ התנתקות
 router.post("/logout", (req, res) => {
-  (req as any).logout?.(() => (req.session as any).destroy?.(() => res.json({ ok: true })));
+  req.logout?.(() => {
+    (req as any).session = null;   // cookie-session: clear cookie
+    res.json({ ok: true });
+  });
 });
+
 
 // ✅ בדיקת בריאות
 router.get("/health", (_req, res) => res.json({ status: "ok" }));

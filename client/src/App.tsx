@@ -1,3 +1,4 @@
+// client/src/App.tsx
 import { useEffect, useState } from "react";
 import CourseList from "./components/CourseList";
 import { YEARS } from "./data/years";
