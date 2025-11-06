@@ -1,10 +1,15 @@
-// client/src/App.tsx
+// client/src/main.tsx
+import { createRoot } from "react-dom/client";
+import { HashRouter, Routes, Route } from "react-router-dom";
+import App from "./App";
+import CourseRoute from "./routes/CoursePageRoute";
+import "./index.css";
 
-import { createRoot } from 'react-dom/client'
-import { HashRouter } from "react-router-dom";
-import './index.css';
-import App from './App.tsx'
-
-createRoot(document.getElementById('root')!).render(
-  <HashRouter><App /></HashRouter>
-)
+createRoot(document.getElementById("root")!).render(
+  <HashRouter>
+    <Routes>
+      <Route path="/" element={<App />} />
+      <Route path="/course/:id" element={<CourseRoute />} />
+    </Routes>
+  </HashRouter>
+);
