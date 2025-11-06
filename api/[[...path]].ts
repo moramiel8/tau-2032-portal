@@ -35,6 +35,15 @@ app.use(
 );
 
 
+app.use((req, _res, next) => {
+  if (req.session && typeof (req.session as any).regenerate !== "function") {
+    (req.session as any).regenerate = (cb: (err?: any) => void) => cb();
+  }
+  if (req.session && typeof (req.session as any).save !== "function") {
+    (req.session as any).save = (cb: (err?: any) => void) => cb();
+  }
+  next();
+});
 
 
 app.use(passport.initialize());
