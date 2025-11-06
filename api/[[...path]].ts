@@ -113,6 +113,7 @@ router.get(
   passport.authenticate("google", {
     failureRedirect: CLIENT_URL + "?login=failed",
     session: true,
+    keepSessionInfo: true,
   }),
   (_req, res) => {
     res.redirect(CLIENT_URL);
