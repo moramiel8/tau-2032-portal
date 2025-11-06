@@ -4,7 +4,9 @@
     "module": "commonjs",
     "esModuleInterop": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "cookie-session"],
+    "typeRoots": ["./types", "./node_modules/@types"]
   },
-  "include": ["api/**/*"]
+  "include": ["api/**/*.ts", "types/**/*.d.ts"]
 }
