@@ -14,8 +14,6 @@ export function getDomain(email: string | null | undefined) {
   return getDomain(email) === "mail.tau.ac.il";
 }
 
-  const API = (p: string) => p; 
-
 export async function fetchSession(): Promise<User> {
   const res = await fetch("/api/session", { credentials: "include", cache: "no-store" });
   const ct = res.headers.get("content-type") || "";
