@@ -4,6 +4,8 @@ import cors from "cors";
 import cookieSession from "cookie-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import type { NextFunction } from "express";
+
 
 const app: Express = express();
 app.set("trust proxy", 1);
@@ -145,6 +147,11 @@ router.post("/logout", (req, res) => {
 
 // ✅ בדיקת בריאות
 router.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("[API ERROR]", (err as any)?.stack || err);
+  res.status(500).json({ error: String((err as any)?.message || err) });
+});
 
 app.use("/api", router);
 
