@@ -13,9 +13,11 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[[...path]].ts" },
+
     { "src": "/assets/(.*)", "dest": "/client/dist/assets/$1" },
     { "src": "/vite.svg", "dest": "/client/dist/vite.svg" },
     { "src": "/check.txt", "dest": "/client/dist/check.txt" },
+
     { "src": "/", "dest": "/client/dist/index.html" },
     { "src": "/(.*)", "dest": "/client/dist/index.html" }
   ]
