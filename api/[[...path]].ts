@@ -26,15 +26,14 @@ app.use((_req, res, next) => {
 app.use(
   cookieSession({
     name: "tau_sess",
-    // keep this strong & set in Vercel env vars
-    keys: [process.env.SESSION_SECRET || "dev_secret"],
-    // secure cookies in production, required if you ever use SameSite=None
-    secure: process.env.NODE_ENV === "production",
+    keys: [process.env.SESSION_SECRET!], // make sure this is set in Vercel
+    secure: true,                        // prod on Vercel is HTTPS
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
+    sameSite: "lax",                     // good for OAuth top-level redirects
     maxAge: 1000 * 60 * 60 * 24 * 7,
   })
 );
+
 
 
 
@@ -142,3 +141,9 @@ app.use("/api", router);
 export default function handler(req: Request, res: Response) {
   return app(req, res);
 }
+
+app.use((err: any, _req: Request, res: Response, _next) => {
+  console.error("[API ERROR]", err?.stack || err);
+  res.status(500).json({ error: String(err?.message || err) });
+});
+
