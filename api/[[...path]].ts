@@ -1,5 +1,5 @@
 // api/[[...path]].ts
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import cookieSession from "cookie-session";
 import passport from "passport";
@@ -159,15 +159,22 @@ export default function handler(req: Request, res: Response) {
   return app(req, res);
 }
 
-app.use((err: any, _req: Request, res: Response, _next) => {
-  console.error("[API ERROR]", err?.stack || err);
-  res.status(500).json({ error: String(err?.message || err) });
-});
-
 router.get("/check-session", (req, res) => {
-  req.session ||= {};
+  (req as any).session = (req as any).session || {};
   (req.session as any).t = Date.now();
   res.json({ ok: true });
 });
+
+app.use("/api", router);
+
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("[API ERROR]", (err as any)?.stack || err);
+  res.status(500).json({ error: String((err as any)?.message || err) });
+});
+
+// vercel handler
+export default function handler(req: Request, res: Response) {
+  return app(req, res);
+}
 
 
