@@ -212,4 +212,9 @@ export const YEARS: Year[] = [
       ],
     } as Year;
   }),
-];
+]; // ←←← כאן סוגרים את המערך של YEARS!
+
+// אחרי שסגרנו את YEARS, אפשר לייצר אוסף קורסים נוח
+export const ALL_COURSES = YEARS
+  .flatMap(y => y.semesters)
+  .flatMap(s => s.courses);
