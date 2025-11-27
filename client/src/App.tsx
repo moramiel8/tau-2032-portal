@@ -18,6 +18,7 @@ import type { User } from "./utils/auth";
 import CalendarEmbed from "./components/CalendarEmbed";
 import { getCachedUser } from "./utils/sessionCache";
 import CourseRoute from "./routes/CoursePageRoute";
+import AdminPanel from "./routes/AdminPanel"; // 👈 חדש
 
 const AUTH_ENABLED = true;
 
@@ -46,11 +47,15 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => getCachedUser());
-  const [loadingUser, setLoadingUser] = useState<boolean>(false);
+  const [loadingUser, setLoadingUser] = useState(false);
 
   const nav = useNavigate();
   const openCourse = (course: Course) => nav(`/course/${course.id}`);
 
+  // מי נחשב אדמין / ועד
+  const isAdminLike = user?.role === "admin" || user?.role === "vaad";
+
+  // Toast
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string, ms = 2200) => {
     setToast(msg);
@@ -125,6 +130,16 @@ export default function App() {
                 <span className="text-xs text-neutral-600 hidden sm:inline">
                   {user.email}
                 </span>
+
+                {isAdminLike && (
+                  <button
+                    onClick={() => nav("/admin")}
+                    className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                  >
+                    פאנל מנהל
+                  </button>
+                )}
+
                 <button
                   onClick={handleLogout}
                   className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
@@ -166,9 +181,16 @@ export default function App() {
             <Route path="/" element={<HomeContent openCourse={openCourse} />} />
             <Route path="/course/:id" element={<CourseRoute />} />
             <Route
-              path="*"
-              element={<HomeContent openCourse={openCourse} />}
+              path="/admin"
+              element={
+                isAdminLike && user ? (
+                  <AdminPanel user={user} />
+                ) : (
+                  <HomeContent openCourse={openCourse} />
+                )
+              }
             />
+            <Route path="*" element={<HomeContent openCourse={openCourse} />} />
           </Routes>
         )}
       </main>
