@@ -20,7 +20,7 @@ import { getCachedUser } from "./utils/sessionCache";
 import CourseRoute from "./routes/CoursePageRoute";
 import AdminPanel from "./routes/AdminPanel";
 
-const AUTH_ENABLED = false;
+const AUTH_ENABLED = true;
 
 function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   return (
@@ -53,12 +53,11 @@ export default function App() {
   const openCourse = (course: Course) => nav(`/course/${course.id}`);
 
   // מי נחשב אדמין / ועד
-const isAdminLike =
-  !!user &&
+  const isAdminLike =
   (
-    user.role === "admin" ||
-    user.role === "vaad" ||
-    user.email === "morrabaev@mail.tau.ac.il" 
+    user?.role === "admin" ||
+    user?.role === "vaad" ||
+    user?.email === "morrabaev@mail.tau.ac.il" 
   );
 
   // Toast
@@ -193,12 +192,11 @@ const isAdminLike =
             <Route path="/" element={<HomeContent openCourse={openCourse} />} />
             <Route path="/course/:id" element={<CourseRoute />} />
             <Route
-              path="/admin"
-              element={
-                isAdminLike && user ? (
-                  <AdminPanel user={user} />
-                ) : (
-                  <HomeContent openCourse={openCourse} />
+             element={
+             isAdminLike && user ? (
+             <AdminPanel user={user!} />   // 👈 non-null assertion
+            ) : (
+      <HomeContent openCourse={openCourse} />
                 )
               }
             />

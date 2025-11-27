@@ -9,6 +9,7 @@ type Props = {
   user: User | null;
 };
 
+
 type CourseVaadEntry = {
   id: string;
   email: string;
@@ -77,6 +78,11 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
 
 // ---------- main component ----------
 export default function AdminPanel({ user }: Props) {
+  // הגנה – אם מסיבה כלשהי הגיע null, לא מציירים כלום
+  if (!user) {
+    return null;
+  }
+
   const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [editingCourseVaadId, setEditingCourseVaadId] = useState<string | null>(
