@@ -1,6 +1,13 @@
 // client/src/data/years.ts
 import { IMG_DRIVE, IMG_PDF } from "../constants/icons";
 
+export type AssessmentItem = {
+  title: string;   // שם המטלה / בחינה
+  date?: string;   // תאריך (טקסט חופשי)
+  weight?: string; // משקל, למשל "10%" או "Pass/Fail"
+  notes?: string;  // הערות נוספות
+};
+
 export type Course = {
   id: string;
   name: string;
@@ -12,6 +19,8 @@ export type Course = {
   syllabus?: string;
   links?: { drive?: string; moodle?: string; whatsapp?: string };
   externalMaterials?: { label: string; href: string; icon?: string }[];
+  assignments?: AssessmentItem[];
+  exams?: AssessmentItem[];
 };
 
 export type Semester = { id: string; title: string; courses: Course[] };
@@ -42,6 +51,32 @@ export const YEARS: Year[] = [
               moodle: "https://moodle.tau.ac.il/course/view.php?id=111121201",
               whatsapp: "https://chat.whatsapp.com/DDTXpj3IheGGI9nSYITeW7",
             },
+            assignments: [
+    {
+      title: "מטלת בית 1 – גזים",
+      date: "10.12.2025",
+      weight: "5%",
+      notes: "הגשה במודל עד 23:59",
+    },
+    {
+      title: "מטלת בית 2 – תרמודינמיקה",
+      date: "24.12.2025",
+      weight: "5%",
+    },
+  ],
+  exams: [
+    {
+      title: "בחן אמצע",
+      date: "15.01.2026",
+      weight: "20%",
+    },
+    {
+      title: "מבחן סיום",
+      date: "10.03.2026",
+      weight: "70%",
+      notes: "חומר מצטבר, כולל כל המטלות",
+    },
+  ],
             externalMaterials: [],
           },
           {
