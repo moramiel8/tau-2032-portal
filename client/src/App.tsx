@@ -1,9 +1,10 @@
 // client/src/App.tsx
 import { useEffect, useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
+
 import CourseList from "./components/CourseList";
 import { YEARS } from "./data/years";
 import type { Course } from "./data/years";
-import { useNavigate } from "react-router-dom";
 
 import {
   fetchSession,
@@ -13,10 +14,36 @@ import {
   logout,
 } from "./utils/auth";
 import type { User } from "./utils/auth";
+
 import CalendarEmbed from "./components/CalendarEmbed";
 import { getCachedUser } from "./utils/sessionCache";
+import CourseRoute from "./routes/CoursePageRoute";
 
 const AUTH_ENABLED = true;
+
+function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
+  return (
+    <>
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
+        <CalendarEmbed
+          mode="WEEK"
+          calendars={[
+            {
+              id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com",
+            },
+            {
+              id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com",
+            },
+          ]}
+        />
+      </section>
+
+      {/* רשימת הקורסים — עוברת ל־/course/:id */}
+      <CourseList years={YEARS} onOpenCourse={openCourse} />
+    </>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => getCachedUser());
@@ -43,7 +70,9 @@ export default function App() {
         if (!cancelled) setLoadingUser(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSignIn = () => startGoogleLogin();
@@ -74,28 +103,36 @@ export default function App() {
     ) : null;
 
   return (
-    <div className="min-ה-screen bg-white text-black" dir="rtl">
+    <div className="min-h-screen bg-white text-black" dir="rtl">
+      {/* --- toolbar שנשאר בכל העמודים --- */}
       <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">MedTAU</div>
+            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
+              MedTAU
+            </div>
             <div>
-              <div className="text-base font-semibold">אתר מחזור 2032 - תל אביב</div>
-              <div className="text-xs text-neutral-500">אתר עזר לסטודנטים לרפואה שש שנתי</div>
+              <div className="text-base font-semibold">
+                אתר מחזור 2032 - תל אביב
+              </div>
+              <div className="text-xs text-neutral-500">
+                אתר עזר לסטודנטים לרפואה שש שנתי
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {user && (
               <>
-                <span className="text-xs text-neutral-600 hidden sm:inline">{user.email}</span>
+                <span className="text-xs text-neutral-600 hidden sm:inline">
+                  {user.email}
+                </span>
                 <button
                   onClick={handleLogout}
                   className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
                   title="התנתקות"
                   aria-label="התנתקות"
                 >
-                  {/* איקון... */}
                   <span className="hidden sm:inline">התנתקות</span>
                 </button>
               </>
@@ -109,7 +146,8 @@ export default function App() {
           <div className="text-sm text-neutral-500">טוען…</div>
         ) : !user ? (
           <div className="border rounded-2xl p-6 text-sm">
-            כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות בחר/י חשבון עם הדומיין
+            כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
+            בחר/י חשבון עם הדומיין
             <b> mail.tau.ac.il</b>.
             <div className="mt-3">
               <button
@@ -122,29 +160,23 @@ export default function App() {
           </div>
         ) : !isTauEmail(user.email) ? (
           <div className="border rounded-2xl p-6 text-sm text-red-600">
-            הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור חשבון TAU.
+            הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
+            חשבון TAU.
           </div>
         ) : (
-          <>
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
-              <CalendarEmbed
-                mode="WEEK"
-                calendars={[
-                  { id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com" },
-                  { id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com" },
-                ]}
-              />
-            </section>
-
-            {/* רשימת הקורסים — עוברת ל־/course/:id */}
-            <CourseList years={YEARS} onOpenCourse={openCourse} />
-          </>
+          // כאן כבר יש משתמש מאומת → מציגים את ה-Routes של האתר
+          <Routes>
+            <Route path="/" element={<HomeContent openCourse={openCourse} />} />
+            <Route path="/course/:id" element={<CourseRoute />} />
+            {/* fallback: אם משהו לא מתאים, להחזיר לעמוד הבית */}
+            <Route path="*" element={<HomeContent openCourse={openCourse} />} />
+          </Routes>
         )}
       </main>
 
       <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
-        נבנה ע"י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה 02/11/2025 22:01
+        נבנה ע"י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה
+        02/11/2025 22:01
       </footer>
 
       <Toast />
