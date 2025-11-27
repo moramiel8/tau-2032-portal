@@ -20,7 +20,7 @@ import { getCachedUser } from "./utils/sessionCache";
 import CourseRoute from "./routes/CoursePageRoute";
 import AdminPanel from "./routes/AdminPanel";
 
-const AUTH_ENABLED = true;
+const AUTH_ENABLED = false;
 
 function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   return (
@@ -58,7 +58,7 @@ const isAdminLike =
   (
     user.role === "admin" ||
     user.role === "vaad" ||
-    user.email === "morrabaev@mail.tau.ac.il" // 👈 אתה
+    user.email === "morrabaev@mail.tau.ac.il" 
   );
 
   // Toast
