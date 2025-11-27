@@ -189,19 +189,21 @@ export default function App() {
           </div>
         ) : (
           <Routes>
-            <Route path="/" element={<HomeContent openCourse={openCourse} />} />
-            <Route path="/course/:id" element={<CourseRoute />} />
-            <Route
-             element={
-             isAdminLike && user ? (
-             <AdminPanel user={user} />   
-            ) : (
-      <HomeContent openCourse={openCourse} />
-                )
-              }
-            />
-            <Route path="*" element={<HomeContent openCourse={openCourse} />} />
-          </Routes>
+  <Route path="/" element={<HomeContent openCourse={openCourse} />} />
+  <Route path="/course/:id" element={<CourseRoute />} />
+  <Route
+    path="/admin"
+    element={
+      isAdminLike && user ? (
+        <AdminPanel user={user} />
+      ) : (
+        <HomeContent openCourse={openCourse} />
+      )
+    }
+  />
+  <Route path="*" element={<HomeContent openCourse={openCourse} />} />
+</Routes>
+
         )}
       </main>
 
