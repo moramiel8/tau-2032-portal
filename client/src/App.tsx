@@ -1,6 +1,6 @@
 // client/src/App.tsx
 import { useEffect, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Link } from "react-router-dom";
 
 import CourseList from "./components/CourseList";
 import { YEARS } from "./data/years";
@@ -114,21 +114,27 @@ const isAdminLike =
   return (
     <div className="min-h-screen bg-white text-black" dir="rtl">
       {/* toolbar קבוע */}
-      <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-40">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
-              MedTAU
-            </div>
-            <div>
-              <div className="text-base font-semibold">
-                אתר מחזור 2032 - תל אביב
-              </div>
-              <div className="text-xs text-neutral-500">
-                אתר עזר לסטודנטים לרפואה שש שנתי
-              </div>
-            </div>
-          </div>
+    <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-40">
+  <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    {/* צד שמאל – לוגו וכו׳ */}
+    <Link
+      to="/"
+      className="flex items-center gap-3 cursor-pointer select-none"
+      aria-label="חזרה לעמוד הבית"
+    >
+      <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
+        MedTAU
+      </div>
+      <div>
+        <div className="text-base font-semibold">
+          אתר מחזור 2032 - תל אביב
+        </div>
+        <div className="text-xs text-neutral-500">
+          אתר עזר לסטודנטים לרפואה שש שנתי
+        </div>
+      </div>
+    </Link>
+
 
           <div className="flex items-center gap-2">
             {user && (
