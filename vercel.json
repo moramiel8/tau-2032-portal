@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "builds": [
     {
       "src": "client/package.json",
@@ -13,6 +13,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[[...path]].ts" },
+    
 
     { "src": "/assets/(.*)", "dest": "/client/assets/$1" },
     { "src": "/vite.svg", "dest": "/client/vite.svg" },

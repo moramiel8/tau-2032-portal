@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 import adminRouter, {
   requireAuth,
   requireAdminLike,
-} from "./adminRoutes.js";
+} from "../api/adminRoutes.js";
 
 dotenv.config();
 

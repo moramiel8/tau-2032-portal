@@ -13,7 +13,9 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import adminRouter, {
   requireAuth,
   requireAdminLike,
+  getEffectiveRole,
 } from "./adminRoutes";
+
 
 // -------- יצירת האפליקציה --------
 const app: Express = express();
@@ -145,8 +147,23 @@ router.get(
 
 // session – מה שהפרונט קורא via fetchSession()
 router.get("/session", (req: Request, res: Response) => {
-  res.status(200).json({ user: (req as any).user ?? null });
+  const raw = (req as any).user;
+
+  if (!raw?.email) {
+    return res.status(200).json({ user: null });
+  }
+
+  const email = raw.email;
+  const role = getEffectiveRole(email);
+
+  return res.status(200).json({
+    user: {
+      email,
+      role,
+    }
+  });
 });
+
 
 // logout
 router.post("/logout", (req: any, res: Response) => {

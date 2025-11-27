@@ -15,9 +15,31 @@ export type GlobalRoleEntry = {
 
 const router = Router();
 
-// "DB" בזיכרון (עד שיהיה לך בסיס נתונים אמיתי)
 let COURSE_VAAD: CourseVaadEntry[] = [];
 let GLOBAL_ROLES: GlobalRoleEntry[] = [];
+
+const HARD_ADMINS = (process.env.ADMIN_EMAILS || "morrabaev@mail.tau.ac.il")
+  .split(",")
+  .map((x) => x.trim().toLowerCase())
+  .filter(Boolean);
+
+export function getEffectiveRole(email: string): "admin" | "vaad" | "student" {
+  const lower = email.toLowerCase();
+
+  const HARD_ADMINS = (process.env.ADMIN_EMAILS || "morrabaev@mail.tau.ac.il")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (HARD_ADMINS.includes(lower)) return "admin";
+
+  const global = GLOBAL_ROLES.find(
+    (r) => r.email.toLowerCase() === lower
+  );
+
+  return global?.role ?? "student";
+}
+
 
 // -------- middlewares --------
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -30,19 +52,8 @@ export function requireAdminLike(req: Request, res: Response, next: NextFunction
   const user = (req as any).user as { email?: string } | undefined;
   if (!user?.email) return res.status(401).json({ error: "not_authenticated" });
 
-  const email = user.email.toLowerCase();
-
-  // אפשר להגדיר ברמת ENV: ADMIN_EMAILS="a@mail.tau.ac.il,b@mail.tau.ac.il"
-  const HARD_ADMINS = (process.env.ADMIN_EMAILS || "morrabaev@mail.tau.ac.il")
-    .split(",")
-    .map((x) => x.trim().toLowerCase())
-    .filter(Boolean);
-
-  const isHardAdmin = HARD_ADMINS.includes(email);
-  const globalRole = GLOBAL_ROLES.find((r) => r.email.toLowerCase() === email);
-  const isVaadOrAdmin = globalRole && (globalRole.role === "admin" || globalRole.role === "vaad");
-
-  if (!isHardAdmin && !isVaadOrAdmin) {
+  const role = getEffectiveRole(user.email);
+  if (role === "student") {
     return res.status(403).json({ error: "forbidden" });
   }
 
