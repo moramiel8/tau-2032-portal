@@ -194,7 +194,7 @@ export default function App() {
             <Route
              element={
              isAdminLike && user ? (
-             <AdminPanel user={user!} />   // 👈 non-null assertion
+             <AdminPanel user={user} />   
             ) : (
       <HomeContent openCourse={openCourse} />
                 )
