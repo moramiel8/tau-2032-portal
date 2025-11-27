@@ -39,7 +39,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
         />
       </section>
 
-      {/* רשימת הקורסים — עוברת ל־/course/:id */}
       <CourseList years={YEARS} onOpenCourse={openCourse} />
     </>
   );
@@ -52,7 +51,6 @@ export default function App() {
   const nav = useNavigate();
   const openCourse = (course: Course) => nav(`/course/${course.id}`);
 
-  // Toast
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string, ms = 2200) => {
     setToast(msg);
@@ -104,7 +102,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white text-black" dir="rtl">
-      {/* --- toolbar שנשאר בכל העמודים --- */}
+      {/* toolbar קבוע */}
       <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -164,12 +162,13 @@ export default function App() {
             חשבון TAU.
           </div>
         ) : (
-          // כאן כבר יש משתמש מאומת → מציגים את ה-Routes של האתר
           <Routes>
             <Route path="/" element={<HomeContent openCourse={openCourse} />} />
             <Route path="/course/:id" element={<CourseRoute />} />
-            {/* fallback: אם משהו לא מתאים, להחזיר לעמוד הבית */}
-            <Route path="*" element={<HomeContent openCourse={openCourse} />} />
+            <Route
+              path="*"
+              element={<HomeContent openCourse={openCourse} />}
+            />
           </Routes>
         )}
       </main>
