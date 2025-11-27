@@ -18,7 +18,7 @@ import type { User } from "./utils/auth";
 import CalendarEmbed from "./components/CalendarEmbed";
 import { getCachedUser } from "./utils/sessionCache";
 import CourseRoute from "./routes/CoursePageRoute";
-import AdminPanel from "./routes/AdminPanel"; // 👈 חדש
+import AdminPanel from "./routes/AdminPanel";
 
 const AUTH_ENABLED = true;
 
@@ -53,7 +53,13 @@ export default function App() {
   const openCourse = (course: Course) => nav(`/course/${course.id}`);
 
   // מי נחשב אדמין / ועד
-  const isAdminLike = user?.role === "admin" || user?.role === "vaad";
+const isAdminLike =
+  !!user &&
+  (
+    user.role === "admin" ||
+    user.role === "vaad" ||
+    user.email === "morrabaev@mail.tau.ac.il" // 👈 אתה
+  );
 
   // Toast
   const [toast, setToast] = useState<string | null>(null);
