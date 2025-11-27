@@ -5,7 +5,7 @@ import CourseRoute from './routes/CoursePageRoute';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
-  <BrowserRouter basename="/client">
+  <BrowserRouter>
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/course/:id" element={<CourseRoute />} />
