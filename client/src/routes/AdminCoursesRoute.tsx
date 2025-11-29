@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// client/src/routes/AdminCoursesRoute.tsx
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { YEARS, type Course, type Year } from "../data/years";
 
@@ -12,12 +13,11 @@ type FlatCourse = Course & {
 export default function AdminCoursesRoute() {
   const nav = useNavigate();
   const [search, setSearch] = useState("");
-
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
 
-  // טעינת overrides מהשרת (אותו API כמו בעמוד הבית)
+  // לטעון overrides מה־DB
   useEffect(() => {
     (async () => {
       try {
@@ -26,8 +26,9 @@ export default function AdminCoursesRoute() {
         const data = (await res.json()) as {
           items: { courseId: string; content: Partial<Course> }[];
         };
+
         const map: Record<string, Partial<Course>> = {};
-        for (const item of data.items || []) {
+        for (const item of data.items) {
           map[item.courseId] = item.content;
         }
         setOverrides(map);
@@ -42,8 +43,8 @@ export default function AdminCoursesRoute() {
     YEARS.forEach((year: Year) => {
       year.semesters.forEach((sem) => {
         sem.courses.forEach((c) => {
-          const override = overrides[c.id];
-          const merged: Course = override ? { ...c, ...override } : c;
+          const override = overrides[c.id] || {};
+          const merged: Course = { ...c, ...override };
           out.push({
             ...merged,
             yearId: year.id,
@@ -84,13 +85,13 @@ export default function AdminCoursesRoute() {
         </Link>
       </div>
 
-      <div className="mb-4 flex gap-2 items-center">
+      <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="חיפוש לפי שם קורס / מספר קורס / שנה..."
-          className="border rounded-xl px-3 py-2 text-sm flex-1"
+          className="border rounded-xl px-3 py-2 text-sm flex-1 w-full"
         />
         <span className="text-xs text-neutral-500">
           נמצאו {filtered.length} קורסים
@@ -112,7 +113,7 @@ export default function AdminCoursesRoute() {
             {filtered.map((c) => (
               <tr
                 key={`${c.yearId}-${c.semesterId}-${c.id}`}
-                className="border-t hover:bg-neutral-50/60"
+                className="border-t hover:bg-neutral-50/70"
               >
                 <td className="py-2 px-3 align-top text-xs">{c.yearTitle}</td>
                 <td className="py-2 px-3 align-top text-xs">

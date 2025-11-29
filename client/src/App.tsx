@@ -5,11 +5,9 @@ import { Routes, Route, useNavigate, Link } from "react-router-dom";
 import CourseList from "./components/CourseList";
 import { YEARS, type Course, type AssessmentItem } from "./data/years";
 
-
 import AdminCoursesRoute from "./routes/AdminCoursesRoute";
 import EditCourseRoute from "./routes/EditCourseRoute";
-
-
+import EditHomepageRoute from "./routes/EditHomepageRoute";
 
 import {
   fetchSession,
@@ -36,24 +34,20 @@ type AnnouncementPublic = {
   createdAt?: string;
 };
 
-type UpcomingRow = {
-  id: string;
-  title: string;
-  dateText: string;
-  date: Date;
-  weight?: string;
-  courseId: string;
-  courseName: string;
-  semesterTitle: string;
-  yearTitle: string;
+// ---- תוכן עמוד הבית (ממסך עריכת homepage) ----
+type HomepageContent = {
+  heroTitle?: string;
+  heroSubtitle?: string;
+  introText?: string;
 };
 
-// ---- HomeContent עם overrides + מודעות + מטלות ----
+// ---- HomeContent עם overrides + מודעות + מטלות + homepage ----
 function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
   const [announcements, setAnnouncements] = useState<AnnouncementPublic[]>([]);
+  const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
@@ -66,7 +60,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
         };
 
         const map: Record<string, Partial<Course>> = {};
-        for (const item of data.items || []) {
+        for (const item of data.items) {
           map[item.courseId] = item.content;
         }
         setOverrides(map);
@@ -90,6 +84,23 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     })();
   }, []);
 
+  // טעינת תוכן עמוד הבית (ציבורי)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/homepage");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          exists: boolean;
+          content: HomepageContent;
+        };
+        setHomepage(data.content || null);
+      } catch (e) {
+        console.warn("[HomeContent] failed to load homepage content", e);
+      }
+    })();
+  }, []);
+
   // YEARS אחרי merge עם overrides
   const yearsWithOverrides = useMemo(() => {
     if (!Object.keys(overrides).length) return YEARS;
@@ -106,77 +117,70 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     }));
   }, [overrides]);
 
-  // מפה נוחה courseId -> Course
-  const courseMap = useMemo(() => {
-    const map: Record<string, Course> = {};
-    yearsWithOverrides.forEach((year) => {
-      year.semesters.forEach((sem) => {
-        sem.courses.forEach((c) => {
-          map[c.id] = c;
-        });
-      });
-    });
-    return map;
-  }, [yearsWithOverrides]);
-
-  // parse תאריך בסגנון DD.MM.YYYY / DD/MM/YY
-  const parseDate = (txt?: string): Date | null => {
-    if (!txt) return null;
-    const m = txt.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/);
-    if (!m) return null;
-    const d = Number(m[1]);
-    const mo = Number(m[2]);
-    let y = Number(m[3]);
-    if (y < 100) y += 2000;
-    const date = new Date(y, mo - 1, d);
-    if (isNaN(date.getTime())) return null;
-    return date;
-  };
-
-  // בניית רשימת מטלות קרובות
-  const upcoming = useMemo<UpcomingRow[]>(() => {
-    const rows: UpcomingRow[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // מטלות קרובות מכל הקורסים
+  const latestAssignments = useMemo(() => {
+    const items: {
+      courseId: string;
+      courseName: string;
+      title: string;
+      date: string;
+      notes?: string;
+    }[] = [];
 
     yearsWithOverrides.forEach((year) => {
       year.semesters.forEach((sem) => {
         sem.courses.forEach((course) => {
-          const list = (course.assignments || []) as AssessmentItem[];
-          list.forEach((a, idx) => {
-            const parsed = parseDate(a.date);
-            if (!parsed) return;
-            // נציג רק מטלות מהשבוע האחרון והלאה
-            const diffDays =
-              (parsed.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-            if (diffDays < -7) return;
-
-            rows.push({
-              id: `${course.id}-${idx}`,
-              title: a.title || "",
-              dateText: a.date || "",
-              date: parsed,
-              weight: a.weight,
+          const assignments = (course.assignments || []) as AssessmentItem[];
+          assignments.forEach((a) => {
+            if (!a.date) return;
+            const d = new Date(a.date);
+            if (isNaN(d.getTime())) return;
+            items.push({
               courseId: course.id,
               courseName: course.name,
-              semesterTitle: sem.title,
-              yearTitle: year.title,
+              title: a.title || "",
+              date: a.date,
+              notes: a.notes,
             });
           });
         });
       });
     });
 
-    return rows
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .slice(0, 10);
+    // מיון לפי תאריך – מהקרוב לרחוק
+    items.sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      return da - db;
+    });
+
+    // נציג בערך 8 הקרובות
+    return items.slice(0, 8);
   }, [yearsWithOverrides]);
 
   return (
     <>
+      {/* HERO מתוך עמוד הבית */}
+      {homepage && (
+        <section className="mb-6 border rounded-2xl p-5 bg-gradient-to-l from-blue-50 to-cyan-50 shadow-sm">
+          <h1 className="text-2xl font-bold mb-1">
+            {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
+          </h1>
+          <h2 className="text-sm text-neutral-600 mb-3">
+            {homepage.heroSubtitle ||
+              "כל המידע, הקישורים והחומרים במקום אחד"}
+          </h2>
+          {homepage.introText && (
+            <p className="text-sm text-neutral-700 whitespace-pre-line">
+              {homepage.introText}
+            </p>
+          )}
+        </section>
+      )}
+
       {/* לוח מודעות */}
       {announcements.length > 0 && (
-        <section className="mb-6 border rounded-2xl p-4 bg-gradient-to-b from-neutral-50 to-white shadow-sm">
+        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm">
           <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
           <ul className="space-y-2 text-sm">
             {announcements.map((a) => (
@@ -196,61 +200,40 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
         </section>
       )}
 
-      {/* מטלות קרובות */}
-      {upcoming.length > 0 && (
+      {/* טבלת מטלות קרובות */}
+      {latestAssignments.length > 0 && (
         <section className="mb-8 border rounded-2xl p-4 bg-white shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">מטלות קרובות</h2>
-            <span className="text-xs text-neutral-500">
-              מציג {upcoming.length} הקרובות ביותר
-            </span>
-          </div>
+          <h2 className="text-lg font-semibold mb-3">מטלות קרובות</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
+            <table className="w-full text-xs sm:text-sm border-collapse">
               <thead className="bg-neutral-50 text-[11px] text-neutral-500">
                 <tr>
-                  <th className="text-right py-2 px-2">תאריך</th>
-                  <th className="text-right py-2 px-2">שם המטלה</th>
                   <th className="text-right py-2 px-2">קורס</th>
-                  <th className="text-right py-2 px-2">משקל</th>
-                  <th className="text-right py-2 px-2 w-20">פעולה</th>
+                  <th className="text-right py-2 px-2">מטלה</th>
+                  <th className="text-right py-2 px-2">תאריך</th>
+                  <th className="text-right py-2 px-2 hidden sm:table-cell">
+                    הערות
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {upcoming.map((row) => {
-                  const course = courseMap[row.courseId];
-                  return (
-                    <tr
-                      key={row.id}
-                      className="border-t hover:bg-neutral-50/80 transition-colors"
-                    >
-                      <td className="py-2 px-2 whitespace-nowrap">
-                        {row.dateText}
-                      </td>
-                      <td className="py-2 px-2">{row.title}</td>
-                      <td className="py-2 px-2">
-                        <div className="font-medium text-[11px]">
-                          {row.courseName}
-                        </div>
-                        <div className="text-[10px] text-neutral-500">
-                          {row.yearTitle} · {row.semesterTitle}
-                        </div>
-                      </td>
-                      <td className="py-2 px-2">{row.weight || "—"}</td>
-                      <td className="py-2 px-2">
-                        {course && (
-                          <button
-                            type="button"
-                            onClick={() => openCourse(course)}
-                            className="border rounded-xl px-2 py-1 text-[10px] hover:bg-neutral-50"
-                          >
-                            לעמוד הקורס
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {latestAssignments.map((a) => (
+                  <tr
+                    key={`${a.courseId}-${a.title}-${a.date}`}
+                    className="border-t"
+                  >
+                    <td className="py-2 px-2 align-top">
+                      <span className="font-medium">{a.courseName}</span>
+                    </td>
+                    <td className="py-2 px-2 align-top">{a.title}</td>
+                    <td className="py-2 px-2 align-top whitespace-nowrap">
+                      {new Date(a.date).toLocaleDateString("he-IL")}
+                    </td>
+                    <td className="py-2 px-2 align-top text-neutral-500 hidden sm:table-cell">
+                      {a.notes || "—"}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -273,6 +256,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
         />
       </section>
 
+      {/* רשימת קורסים */}
       <CourseList years={yearsWithOverrides} onOpenCourse={openCourse} />
     </>
   );
@@ -293,7 +277,6 @@ export default function App() {
     window.setTimeout(() => setToast(null), ms);
   };
 
-  // טעינת session
   useEffect(() => {
     if (!AUTH_ENABLED) return;
     let cancelled = false;
@@ -329,6 +312,13 @@ export default function App() {
     })();
   }, [user?.email]);
 
+  // תפקידי הרשאות
+  const isAdmin =
+    user?.role === "admin" || user?.email === "morrabaev@mail.tau.ac.il";
+  const isGlobalVaad = user?.role === "vaad";
+  const isCourseVaad = myCourseVaadIds.length > 0;
+  const canSeeAdminPanel = !!user && (isAdmin || isGlobalVaad || isCourseVaad);
+
   const handleSignIn = () => startGoogleLogin();
 
   const handleLogout = async () => {
@@ -341,14 +331,6 @@ export default function App() {
       console.warn("[App] logout error", e);
     }
   };
-
-  // חישוב תפקידים
-  const isAdmin = user?.role === "admin";
-  const isGlobalVaad = user?.role === "vaad";
-  const isCourseVaad = myCourseVaadIds.length > 0;
-
-  // מי בכלל רואה כפתור /admin
-  const canSeeAdminPanel = !!(isAdmin || isGlobalVaad || isCourseVaad);
 
   const DebugBar = () => (
     <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
@@ -448,16 +430,16 @@ export default function App() {
             />
             <Route path="/course/:id" element={<CourseRoute />} />
 
-            {/* admin routes – הגנה גם בפרונט */}
+            {/* admin routes */}
             <Route
               path="/admin"
               element={
-                canSeeAdminPanel && user ? (
+                canSeeAdminPanel ? (
                   <AdminPanel
                     user={user}
-                    isAdmin={!!isAdmin}
-                    isGlobalVaad={!!isGlobalVaad}
-                    isCourseVaad={!!isCourseVaad}
+                    isAdmin={isAdmin}
+                    isGlobalVaad={isGlobalVaad}
+                    isCourseVaad={isCourseVaad}
                     myCourseVaadIds={myCourseVaadIds}
                   />
                 ) : (
@@ -466,21 +448,32 @@ export default function App() {
               }
             />
 
-            {/* עריכת דפי קורסים – נגיש לכל מי שרואה פאנל, השרת יבדוק הרשאה ברמת הקורס */}
+            <Route
+              path="/admin/home"
+              element={
+                isAdmin || isGlobalVaad ? (
+                  <EditHomepageRoute />
+                ) : (
+                  <HomeContent openCourse={openCourse} />
+                )
+              }
+            />
+
             <Route
               path="/admin/courses"
               element={
-                canSeeAdminPanel && user ? (
+                isAdmin || isGlobalVaad ? (
                   <AdminCoursesRoute />
                 ) : (
                   <HomeContent openCourse={openCourse} />
                 )
               }
             />
+
             <Route
               path="/admin/course/:id/edit"
               element={
-                canSeeAdminPanel && user ? (
+                canSeeAdminPanel ? (
                   <EditCourseRoute />
                 ) : (
                   <HomeContent openCourse={openCourse} />
