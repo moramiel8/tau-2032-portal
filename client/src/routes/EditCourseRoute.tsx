@@ -339,19 +339,19 @@ export default function EditCourseRoute() {
                     }
                   />
                   <input
+                    type="date"
                     className="border rounded-lg px-2 py-1 w-32"
-                    placeholder="תאריך (לדוגמה 10.12.2025)"
-                    inputMode="numeric"
+                    placeholder="תאריך"
                     value={a.date || ""}
                     onChange={(e) =>
-                      updateArrayItem(
-                        "assignments",
-                        idx,
-                        "date",
-                        sanitizeDate(e.target.value)
+                     updateArrayItem(
+                      "assignments",
+                       idx, 
+                       "date", 
+                       e.target.value
                       )
-                    }
-                  />
+                      }
+                    />
                   <input
                     className="border rounded-lg px-2 py-1 w-24"
                     placeholder="משקל"
@@ -424,20 +424,16 @@ export default function EditCourseRoute() {
                       updateArrayItem("exams", idx, "title", e.target.value)
                     }
                   />
-                  <input
-                    className="border rounded-lg px-2 py-1 w-32"
-                    placeholder="תאריך"
-                    inputMode="numeric"
-                    value={ex.date || ""}
-                    onChange={(e) =>
-                      updateArrayItem(
-                        "exams",
-                        idx,
-                        "date",
-                        sanitizeDate(e.target.value)
-                      )
-                    }
-                  />
+                <input
+  type="date"   // ⬅️ וזה
+  className="border rounded-lg px-2 py-1 w-32"
+  placeholder="תאריך"
+  value={ex.date || ""}
+  onChange={(e) =>
+    updateArrayItem("exams", idx, "date", e.target.value)
+  }
+/>
+
                   <input
                     className="border rounded-lg px-2 py-1 w-24"
                     placeholder="משקל"

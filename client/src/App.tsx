@@ -118,23 +118,31 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   }, [overrides]);
 
   // מטלות קרובות מכל הקורסים
-  const latestAssignments = useMemo(() => {
-    const items: {
-      courseId: string;
-      courseName: string;
-      title: string;
-      date: string;
-      notes?: string;
-    }[] = [];
+  // בתוך HomeContent ב־App.tsx
+const latestAssignments = useMemo(() => {
+  const items: {
+    courseId: string;
+    courseName: string;
+    title: string;
+    date: string;
+    notes?: string;
+  }[] = [];
 
-    yearsWithOverrides.forEach((year) => {
-      year.semesters.forEach((sem) => {
-        sem.courses.forEach((course) => {
-          const assignments = (course.assignments || []) as AssessmentItem[];
-          assignments.forEach((a) => {
-            if (!a.date) return;
-            const d = new Date(a.date);
-            if (isNaN(d.getTime())) return;
+  const now = new Date();
+  const weekFromNow = new Date();
+  weekFromNow.setDate(now.getDate() + 7);
+
+  yearsWithOverrides.forEach((year) => {
+    year.semesters.forEach((sem) => {
+      sem.courses.forEach((course) => {
+        const assignments = (course.assignments || []) as AssessmentItem[];
+        assignments.forEach((a) => {
+          if (!a.date) return;
+          const d = new Date(a.date);
+          if (isNaN(d.getTime())) return;
+
+          // רק אם התאריך בין היום לשבוע קדימה
+          if (d >= now && d <= weekFromNow) {
             items.push({
               courseId: course.id,
               courseName: course.name,
@@ -142,21 +150,21 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
               date: a.date,
               notes: a.notes,
             });
-          });
+          }
         });
       });
     });
+  });
 
-    // מיון לפי תאריך – מהקרוב לרחוק
-    items.sort((a, b) => {
-      const da = new Date(a.date).getTime();
-      const db = new Date(b.date).getTime();
-      return da - db;
-    });
+  items.sort((a, b) => {
+    const da = new Date(a.date).getTime();
+    const db = new Date(b.date).getTime();
+    return da - db;
+  });
 
-    // נציג בערך 8 הקרובות
-    return items.slice(0, 8);
-  }, [yearsWithOverrides]);
+  return items.slice(0, 8);
+}, [yearsWithOverrides]);
+
 
   return (
     <>

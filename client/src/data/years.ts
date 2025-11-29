@@ -24,7 +24,7 @@ export type Course = {
 };
 
 export type Semester = { id: string; title: string; courses: Course[] };
-export type Year = { id: string; title: string; semesters: Semester[] };
+export type Year = { id: string; title: string;  semesters: Semester[] };
 
 export const YEARS: Year[] = [
   {

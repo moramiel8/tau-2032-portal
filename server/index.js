@@ -11,6 +11,7 @@ import { query } from "./db.js";
 import adminRouter, {
   requireAuth,
   requireAdminLike, // כרגע לא בשימוש ישיר כאן, אבל נשאיר ליתר ביטחון
+    getEffectiveRole, 
 } from "../api/adminRoutes.js";
 
 dotenv.config();
@@ -76,6 +77,7 @@ console.log("[srv] BOOT:", { CLIENT_URL, BASE_URL, CALLBACK_URL });
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
+// במקום הפונקציה הקודמת בתוך new GoogleStrategy(...)
 passport.use(
   new GoogleStrategy(
     {
@@ -83,18 +85,24 @@ passport.use(
       clientSecret: GOOGLE_CLIENT_SECRET,
       callbackURL: CALLBACK_URL,
     },
-    (accessToken, refreshToken, profile, done) => {
-      const email = profile.emails?.[0]?.value || "";
-      const domain = email.split("@")[1]?.toLowerCase() || "";
+    // ⬅️ הופכים את הפונקציה ל-async ומשתמשים ב-DB
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value || "";
+        const domain = email.split("@")[1]?.toLowerCase() || "";
 
-      if (!email || domain !== ALLOWED_DOMAIN) {
-        return done(null, false, { message: "domain_not_allowed" });
+        if (!email || domain !== ALLOWED_DOMAIN) {
+          return done(null, false, { message: "domain_not_allowed" });
+        }
+
+        // תפקיד אמיתי – גם HARD_ADMINS וגם global_roles
+        const role = await getEffectiveRole(email);
+
+        return done(null, { email, role });
+      } catch (err) {
+        console.error("[GoogleStrategy] failed to resolve role", err);
+        return done(err);
       }
-
-      const role = getRole(email);
-
-      // מה שנשמר ב-session ומוחזר ללקוח
-      return done(null, { email, role });
     }
   )
 );
