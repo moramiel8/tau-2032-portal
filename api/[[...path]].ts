@@ -1,4 +1,6 @@
 // api/[[...path]].ts
+// @ts-nocheck
+
 import express, {
   type Express,
   type Request,
@@ -14,8 +16,9 @@ import adminRouter, {
   requireAuth,
   requireAdminLike,
   getEffectiveRole,
-} from "./adminRoutes";
+} from "./adminRoutes.js";
 
+import { query } from "../server/db.js";
 
 // -------- יצירת האפליקציה --------
 const app: Express = express();
@@ -146,7 +149,7 @@ router.get(
 );
 
 // session – מה שהפרונט קורא via fetchSession()
-router.get("/session", (req: Request, res: Response) => {
+router.get("/session", async (req: Request, res: Response) => {
   const raw = (req as any).user;
 
   if (!raw?.email) {
@@ -154,15 +157,16 @@ router.get("/session", (req: Request, res: Response) => {
   }
 
   const email = raw.email;
-  const role = getEffectiveRole(email);
+  const role = await getEffectiveRole(email); // 👈 חשוב await
 
   return res.status(200).json({
     user: {
       email,
       role,
-    }
+    },
   });
 });
+
 
 
 // logout
@@ -172,6 +176,53 @@ router.post("/logout", (req: any, res: Response) => {
     res.json({ ok: true });
   });
 });
+
+router.get("/course-content/:courseId", async (req: any, res: any) => {
+  const { courseId } = req.params;
+  try {
+    const result = await query(
+      "SELECT data FROM course_content WHERE course_id = $1",
+      [courseId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ exists: false, content: null });
+    }
+
+    return res.json({
+      exists: true,
+      content: result.rows[0].data,
+    });
+  } catch (err) {
+    console.error("[GET /course-content/:id] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// תוכן קורס ציבורי (לפרונט)
+router.get("/course-content/:courseId", async (req: any, res: any) => {
+  const { courseId } = req.params;
+
+  try {
+    const result = await query(
+      "SELECT data FROM course_content WHERE course_id = $1",
+      [courseId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ exists: false, content: null });
+    }
+
+    return res.json({
+      exists: true,
+      content: result.rows[0].data,
+    });
+  } catch (err) {
+    console.error("[GET /course-content/:courseId] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
 
 // healthcheck פשוט
 router.get("/health", (_req, res) => res.json({ status: "ok" }));

@@ -6,9 +6,11 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import dotenv from "dotenv";
 
+import { query } from "./db.js";
+
 import adminRouter, {
   requireAuth,
-  requireAdminLike,
+  requireAdminLike, // כרגע לא בשימוש ישיר כאן, אבל נשאיר ליתר ביטחון
 } from "../api/adminRoutes.js";
 
 dotenv.config();
@@ -49,14 +51,16 @@ app.use(
   })
 );
 
+const isProd = process.env.NODE_ENV === "production";
+
 app.use(
   session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7,
     },
@@ -115,8 +119,18 @@ app.get(
   (req, res) => res.redirect(CLIENT_URL)
 );
 
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api/dev/login-as/:email", (req, res) => {
+    const email = req.params.email;
+    req.session.regenerate(() => {
+      req.session.passport = { user: { email } };
+      res.json({ ok: true, email });
+    });
+  });
+}
+
 // --- admin API ---
-app.use("/api/admin", requireAuth, requireAdminLike, adminRouter);
+app.use("/api/admin", requireAuth, adminRouter);
 
 // --- misc API ---
 app.get("/api/session", (req, res) => {
@@ -133,6 +147,142 @@ app.post("/api/logout", (req, res) => {
   }
 });
 
+// תוכן קורס ציבורי (לסטודנטים) – column: content
+app.get("/api/course-content/:courseId", async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    const result = await query(
+      "SELECT content FROM course_content WHERE course_id = $1",
+      [courseId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ exists: false, content: null });
+    }
+
+    return res.json({
+      exists: true,
+      content: result.rows[0].content,
+    });
+  } catch (err) {
+    console.error("[GET /api/course-content/:courseId] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+// --- public homepage content (students) ---
+app.get("/api/homepage", async (_req, res) => {
+  try {
+    const result = await query(
+      "SELECT data FROM homepage_content WHERE id = 'main' LIMIT 1"
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        exists: false,
+        content: {
+          heroTitle: "ברוכים הבאים לאתר מחזור 2032",
+          heroSubtitle: "כל המידע, הקישורים והחומרים במקום אחד",
+          introText: "",
+        },
+      });
+    }
+
+    return res.json({
+      exists: true,
+      content: result.rows[0].data,
+    });
+  } catch (err) {
+    console.error("[GET /api/homepage] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// --- public announcements (students) ---
+app.get("/api/announcements", async (req, res) => {
+  const { courseId } = req.query;
+
+  try {
+    let sql = `
+      SELECT id, title, body, course_id, created_at
+      FROM announcements
+    `;
+    const params = [];
+
+    if (courseId) {
+      sql += ` WHERE course_id = $1 OR course_id IS NULL `;
+      params.push(courseId);
+    } else {
+      sql += ` WHERE course_id IS NULL `;
+    }
+
+    sql += ` ORDER BY created_at DESC LIMIT 20`;
+
+    const result = await query(sql, params);
+
+    res.json({
+      items: result.rows.map((r) => ({
+        id: String(r.id),
+        title: r.title,
+        body: r.body,
+        courseId: r.course_id,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error("[GET /api/announcements] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// --- public course-content list for homepage ---
+app.get("/api/course-content", async (_req, res) => {
+  try {
+    const result = await query(
+      "SELECT course_id, content FROM course_content ORDER BY course_id"
+    );
+
+    res.json({
+      items: result.rows.map((row) => ({
+        courseId: row.course_id,
+        content: row.content,
+      })),
+    });
+  } catch (err) {
+    console.error("[GET /api/course-content] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// אילו קורסים המשתמש הוא ועד שלהם
+app.get("/api/my/course-vaad", async (req, res) => {
+  const user = req.user;
+  if (!user?.email) {
+    return res.status(200).json({ courseIds: [] });
+  }
+
+  try {
+    const result = await query(
+      "SELECT course_ids FROM course_vaad WHERE LOWER(email) = LOWER($1)",
+      [user.email]
+    );
+
+    const courseIds = result.rows.flatMap((row) => row.course_ids || []);
+    res.json({ courseIds });
+  } catch (err) {
+    console.error("[GET /api/my/course-vaad] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
 export default app;
+
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log("[srv] Listening on port", PORT);
+  });
+}

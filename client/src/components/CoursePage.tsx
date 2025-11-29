@@ -1,104 +1,219 @@
 // client/src/components/CoursePage.tsx
-import type { Course } from "../data/years";
-import LinkCard from "./LinkCard";
-import { IMG_DRIVE, IMG_MOODLE, IMG_PDF, IMG_WHATSAPP } from "../constants/icons";
-import Chip from "./Chip";
+import { useEffect, useMemo, useState } from "react";
+import type { Course, AssessmentItem } from "../data/years";
 
-function AssessmentTable({
-  title,
-  items,
-}: {
+type Props = {
+  course: Course;
+  onBack?: () => void;
+};
+
+type CourseAnnouncement = {
+  id: string;
   title: string;
-  items?: Course["assignments"]; // אותו טייפ
-}) {
-  if (!items || !items.length) return null;
+  body: string;
+  courseId?: string | null;
+  createdAt?: string;
+};
+
+export default function CoursePage({ course, onBack }: Props) {
+  const [override, setOverride] = useState<Partial<Course> | null>(null);
+  const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
+
+  const effectiveCourse = useMemo<Course>(() => {
+    return {
+      ...course,
+      ...(override || {}),
+    };
+  }, [course, override]);
+
+  // טעינת override ספציפי לקורס
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/course-content/${course.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.exists && data.content) {
+          setOverride(data.content as Partial<Course>);
+        } else {
+          setOverride(null);
+        }
+      } catch (e) {
+        console.warn("[CoursePage] failed to load override", e);
+      }
+    })();
+  }, [course.id]);
+
+  // טעינת מודעות לקורס
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/announcements?courseId=${course.id}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { items: CourseAnnouncement[] };
+        setAnnouncements(data.items || []);
+      } catch (e) {
+        console.warn("[CoursePage] failed to load announcements", e);
+      }
+    })();
+  }, [course.id]);
+
+  const { name, note, coordinator, reps, courseNumber, place, syllabus, links } =
+    effectiveCourse;
+
+  const assignments: AssessmentItem[] = effectiveCourse.assignments || [];
+  const exams: AssessmentItem[] = effectiveCourse.exams || [];
 
   return (
-    <section className="mt-8">
-      <h2 className="text-lg font-medium mb-2">{title}</h2>
-      <div className="overflow-x-auto border rounded-2xl">
-        <table className="min-w-full text-sm">
-          <thead className="bg-neutral-50">
-            <tr className="text-right">
-              <th className="px-3 py-2 font-medium">שם</th>
-              <th className="px-3 py-2 font-medium">תאריך</th>
-              <th className="px-3 py-2 font-medium">משקל</th>
-              <th className="px-3 py-2 font-medium">הערות</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i} className="border-t">
-                <td className="px-3 py-2">{item.title}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{item.date || "—"}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{item.weight || "—"}</td>
-                <td className="px-3 py-2 text-neutral-600">{item.notes || "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
+    <div className="max-w-3xl mx-auto pb-10">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs mb-3 underline text-neutral-600"
+        >
+          ← חזרה לרשימת הקורסים
+        </button>
+      )}
 
-export default function CoursePage({ course, onBack }: { course: Course; onBack: () => void }) {
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <button onClick={onBack} className="mb-6 text-sm underline">
-        חזרה
-      </button>
+      <h1 className="text-2xl font-semibold mb-1">{name}</h1>
 
-      <h1 className="text-2xl font-semibold mb-2 flex items-center gap-2">
-        {course.name}
-        {course.note && <Chip>{course.note}</Chip>}
-      </h1>
-
-      <div className="space-y-2 text-sm">
-        <div>
-          <span className="font-medium">מרכז/ת הקורס/מרצה:</span> {course.coordinator}
-        </div>
-        <div>
-          <span className="font-medium">ועד קורס מטעמנו:</span> {course.reps}
-        </div>
-        <div>
-          <span className="font-medium">מספר קורס:</span> {course.courseNumber}
-        </div>
-
-        {course.place && (
-          <div className="flex items-center gap-2">
-            <span className="font-medium">כיתה:</span>
-            <Chip>{course.place}</Chip>
-          </div>
-        )}
+      <div className="text-sm text-neutral-600 mb-2">
+        {courseNumber && <span className="ml-2">מס׳ קורס: {courseNumber}</span>}
+        {place && <span> · מקום: {place}</span>}
       </div>
 
-      {/* כפתורי קישורים */}
-      <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <LinkCard href={course.syllabus} img={IMG_PDF} alt="סילבוס PDF" label="סילבוס (PDF)" />
-        <LinkCard href={course.links?.drive} img={IMG_DRIVE} alt="Google Drive" label="דרייב הקורס" />
-        <LinkCard href={course.links?.moodle} img={IMG_MOODLE} alt="Moodle" label="מודל הקורס" />
-        <LinkCard href={course.links?.whatsapp} img={IMG_WHATSAPP} alt="WhatsApp" label="קבוצת וואטסאפ" />
-      </div>
+      {note && (
+        <p className="text-sm text-neutral-700 mb-2 whitespace-pre-line">
+          {note}
+        </p>
+      )}
 
-      {/* 👇 חדש: מטלות + מבחנים מעל חומרים חיצוניים */}
-      <AssessmentTable title="מטלות" items={course.assignments} />
-      <AssessmentTable title="מבחנים / בחנים" items={course.exams} />
+      {(coordinator || reps) && (
+        <p className="text-xs text-neutral-600 mb-4">
+          {coordinator && <span>רכז/ת: {coordinator}</span>}
+          {coordinator && reps && <span> · </span>}
+          {reps && <span>נציגי ועד: {reps}</span>}
+        </p>
+      )}
 
-      <div className="mt-8">
-        <h2 className="text-lg font-medium mb-2">חומרים חיצוניים מומלצים</h2>
-        {course.externalMaterials?.length ? (
-          <ul className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {course.externalMaterials.map((x, i) => (
-              <li key={i}>
-                <LinkCard href={x.href} img={x.icon || IMG_DRIVE} alt={x.label} label={x.label} />
+      {announcements.length > 0 && (
+        <section className="mb-4 border rounded-2xl p-3">
+          <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
+          <ul className="text-xs space-y-2">
+            {announcements.map((a) => (
+              <li key={a.id} className="border-b last:border-b-0 pb-2">
+                <div className="font-semibold">{a.title}</div>
+                <div className="text-neutral-700 whitespace-pre-line">
+                  {a.body}
+                </div>
+                {a.createdAt && (
+                  <div className="text-[10px] text-neutral-400 mt-1">
+                    {new Date(a.createdAt).toLocaleString("he-IL")}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
-        ) : (
-          <div className="text-sm text-neutral-500">—</div>
-        )}
-      </div>
+        </section>
+      )}
+
+      {/* קישורים */}
+      {links && (
+        <section className="mb-4">
+          <h2 className="text-sm font-medium mb-2">קישורים</h2>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {links.drive && (
+              <a
+                href={links.drive}
+                target="_blank"
+                rel="noreferrer"
+                className="border rounded-xl px-3 py-1 hover:bg-neutral-50"
+              >
+                כונן משותף
+              </a>
+            )}
+            {links.moodle && (
+              <a
+                href={links.moodle}
+                target="_blank"
+                rel="noreferrer"
+                className="border rounded-xl px-3 py-1 hover:bg-neutral-50"
+              >
+                Moodle
+              </a>
+            )}
+            {links.whatsapp && (
+              <a
+                href={links.whatsapp}
+                target="_blank"
+                rel="noreferrer"
+                className="border rounded-xl px-3 py-1 hover:bg-neutral-50"
+              >
+                קבוצת WhatsApp
+              </a>
+            )}
+            {syllabus && (
+              <a
+                href={syllabus}
+                target="_blank"
+                rel="noreferrer"
+                className="border rounded-xl px-3 py-1 hover:bg-neutral-50"
+              >
+                סילבוס
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* מטלות */}
+      {assignments.length > 0 && (
+        <section className="mb-4 border rounded-2xl p-3">
+          <h2 className="text-sm font-medium mb-2">מטלות / עבודות</h2>
+          <ul className="text-xs space-y-2">
+            {assignments.map((a, idx) => (
+              <li key={idx} className="border-b last:border-b-0 pb-2">
+                <div className="font-semibold">{a.title}</div>
+                <div className="text-neutral-700">
+                  {a.date && <span>תאריך: {a.date}</span>}
+                  {a.date && a.weight && <span> · </span>}
+                  {a.weight && <span>משקל: {a.weight}</span>}
+                </div>
+                {a.notes && (
+                  <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
+                    {a.notes}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* בחנים / מבחנים */}
+      {exams.length > 0 && (
+        <section className="mb-4 border rounded-2xl p-3">
+          <h2 className="text-sm font-medium mb-2">בחנים / מבחנים</h2>
+          <ul className="text-xs space-y-2">
+            {exams.map((ex, idx) => (
+              <li key={idx} className="border-b last:border-b-0 pb-2">
+                <div className="font-semibold">{ex.title}</div>
+                <div className="text-neutral-700">
+                  {ex.date && <span>תאריך: {ex.date}</span>}
+                  {ex.date && ex.weight && <span> · </span>}
+                  {ex.weight && <span>משקל: {ex.weight}</span>}
+                </div>
+                {ex.notes && (
+                  <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
+                    {ex.notes}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
