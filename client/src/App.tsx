@@ -623,7 +623,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
         <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
           נבנה ע&quot;י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה
-          28/11/2025 14:01
+          30/11/2025 10:45
         </footer>
 
         <Toast />
