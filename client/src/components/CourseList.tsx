@@ -1,80 +1,182 @@
 // client/src/components/CourseList.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Year, Course } from "../data/years";
-import Chip from "./Chip";
 
-export function nextOpenState(s: Record<string, boolean>, id: string) {
-  const n: Record<string, boolean> = Object.assign({}, s);
-  n[id] = !Boolean(s[id]);
-  return n;
+type Props = {
+  years: Year[];
+  onOpenCourse: (course: Course) => void;
+};
+
+type OpenYearsState = Record<string, boolean>;
+
+const STORAGE_KEY = "courseListState-v2";
+
+type PersistedState = {
+  openPre: boolean;
+  openClinical: boolean;
+  openYears: OpenYearsState;
+};
+
+function loadInitialState(): PersistedState {
+  if (typeof window === "undefined") {
+    return { openPre: true, openClinical: true, openYears: {} };
+  }
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return { openPre: true, openClinical: true, openYears: {} };
+    }
+    const parsed = JSON.parse(raw) as Partial<PersistedState>;
+    return {
+      openPre:
+        typeof parsed.openPre === "boolean" ? parsed.openPre : true,
+      openClinical:
+        typeof parsed.openClinical === "boolean"
+          ? parsed.openClinical
+          : true,
+      openYears:
+        parsed.openYears && typeof parsed.openYears === "object"
+          ? parsed.openYears
+          : {},
+    };
+  } catch (e) {
+    console.warn("[CourseList] failed to parse localStorage", e);
+    return { openPre: true, openClinical: true, openYears: {} };
+  }
 }
 
-export default function CourseList({
-  years,
-  onOpenCourse,
-}: {
-  years: Year[];
-  onOpenCourse: (c: Course) => void;
-}) {
-  const [open, setOpen] = useState<Record<string, boolean>>({});
-  const toggle = (id: string) => setOpen((s) => nextOpenState(s, id));
+export default function CourseList({ years, onOpenCourse }: Props) {
+  const [openPre, setOpenPre] = useState<boolean>(() => loadInitialState().openPre);
+  const [openClinical, setOpenClinical] = useState<boolean>(() => loadInitialState().openClinical);
+  const [openYears, setOpenYears] = useState<OpenYearsState>(
+    () => loadInitialState().openYears
+  );
+
+  // שמירה ל-localStorage בכל שינוי
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const state: PersistedState = {
+      openPre,
+      openClinical,
+      openYears,
+    };
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("[CourseList] failed to persist state", e);
+    }
+  }, [openPre, openClinical, openYears]);
+
+  // חלוקה לפרה־קליני / קליני
+  const preclinicalYears = years.filter((y) =>
+    ["y1", "y2", "y3"].includes(y.id)
+  );
+  const clinicalYears = years.filter((y) =>
+    ["y4", "y5", "y6"].includes(y.id)
+  );
+
+  const toggleYear = (yearId: string) => {
+    setOpenYears((prev) => {
+      const current = prev[yearId];
+      // אם undefined → נחשב כפתוח, לחיצה ראשונה תהפוך לסגור
+      const nextOpen = current === undefined ? false : !current;
+      return {
+        ...prev,
+        [yearId]: nextOpen,
+      };
+    });
+  };
+
+  const renderYears = (ys: Year[]) => (
+    <div className="space-y-4 mt-3">
+      {ys.map((year) => {
+        const isOpen = openYears[year.id] ?? true;
+
+        return (
+          <section
+            key={year.id}
+            className="border rounded-2xl p-4 bg-white shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base font-semibold">{year.title}</h3>
+              <button
+                type="button"
+                onClick={() => toggleYear(year.id)}
+                className="text-[11px] border rounded-xl px-2 py-1 hover:bg-neutral-50"
+              >
+                {isOpen ? "מזער שנה" : "הצג שנה"}
+              </button>
+            </div>
+
+            {isOpen && (
+              <div className="space-y-3">
+                {year.semesters.map((sem) => (
+                  <div key={sem.id}>
+                    <div className="text-xs font-medium text-neutral-500 mb-1">
+                      {sem.title}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {sem.courses.map((course) => (
+                        <button
+                          key={course.id}
+                          type="button"
+                          onClick={() => onOpenCourse(course)}
+                          className="text-xs sm:text-sm border rounded-xl px-3 py-2 hover:bg-neutral-50 text-right"
+                        >
+                          <div className="font-medium">{course.name}</div>
+                          {course.note && (
+                            <div className="text-[11px] text-neutral-500">
+                              {course.note}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <div className="grid grid-cols-1 gap-4">
-      {years.map((year) => (
-        <section key={year.id} className="border rounded-2xl">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <h2 className="text-lg font-medium">{year.title}</h2>
+    <div className="space-y-8">
+      {/* שנים פרה־קליניות */}
+      {preclinicalYears.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">שנים פרה־קליניות</h2>
+            <button
+              type="button"
+              onClick={() => setOpenPre((v) => !v)}
+              className="text-xs border rounded-xl px-2 py-1 hover:bg-neutral-50"
+            >
+              {openPre ? "הסתר" : "הצג"}
+            </button>
           </div>
-          <div className="divide-y">
-            {year.semesters.map((sem) => (
-              <div key={sem.id}>
-                <button
-                  type="button"
-                  onClick={() => toggle(sem.id)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50 clickable"
-                >
-                  <span className="text-sm">{sem.title}</span>
-                  <svg
-                    viewBox="0 0 24 24"
-                    className={`w-5 h-5 transition-transform ${open[sem.id] ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </button>
-                {open[sem.id] && (
-                  <div className="px-4 pb-4">
-                    {sem.courses.length ? (
-                      <ul className="text-sm divide-y border rounded-xl overflow-hidden">
-                        {sem.courses.map((c) => (
-                          <li key={c.id} className="hover:bg-neutral-50">
-                            <button
-                              type="button"
-                              onClick={() => onOpenCourse(c)}
-                              className="w-full text-right px-4 py-3 flex items-center justify-between clickable"
-                            >
-                              <span className="flex items-center gap-2">
-                                <span>{c.name}</span>
-                                {c.note && <Chip>{c.note}</Chip>}
-                              </span>
-                              <span className="text-xs text-neutral-500">פתיחת עמוד הקורס →</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="text-xs text-neutral-500">אין קורסים עדיין</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          {openPre && renderYears(preclinicalYears)}
         </section>
-      ))}
+      )}
+
+      {/* שנים קליניות */}
+      {clinicalYears.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">שנים קליניות</h2>
+            <button
+              type="button"
+              onClick={() => setOpenClinical((v) => !v)}
+              className="text-xs border rounded-xl px-2 py-1 hover:bg-neutral-50"
+            >
+              {openClinical ? "הסתר" : "הצג"}
+            </button>
+          </div>
+          {openClinical && renderYears(clinicalYears)}
+        </section>
+      )}
     </div>
   );
 }

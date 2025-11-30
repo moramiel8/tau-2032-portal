@@ -3,9 +3,15 @@ import { IMG_DRIVE, IMG_PDF } from "../constants/icons";
 
 export type AssessmentItem = {
   title: string;   // שם המטלה / בחינה
-  date?: string;   // תאריך (טקסט חופשי)
+  date?: string;   // תאריך (YYYY-MM-DD מומלץ)
   weight?: string; // משקל, למשל "10%" או "Pass/Fail"
   notes?: string;  // הערות נוספות
+};
+
+export type CourseLink = {
+  type: "whatsapp" | "drive" | "moodle" | "pdf" | "other";
+  label: string;
+  url: string;
 };
 
 export type Course = {
@@ -17,19 +23,28 @@ export type Course = {
   courseNumber?: string;
   place?: string;
   syllabus?: string;
+  // לינקים ישנים – עדיין תומך
   links?: { drive?: string; moodle?: string; whatsapp?: string };
+  // לינקים חדשים עם אייקונים וכו׳
   externalMaterials?: { label: string; href: string; icon?: string }[];
   assignments?: AssessmentItem[];
   exams?: AssessmentItem[];
 };
 
 export type Semester = { id: string; title: string; courses: Course[] };
-export type Year = { id: string; title: string;  semesters: Semester[] };
+
+export type Year = {
+  id: string;
+  title: string;
+  kind: "preclinical" | "clinical";   // ⬅️ כאן ההפרדה
+  semesters: Semester[];
+};
 
 export const YEARS: Year[] = [
   {
     id: "y1",
     title: "שנה א",
+    kind: "preclinical",   // ⬅️ שנה א׳ = פרה־קליני
     semesters: [
       {
         id: "y1s1",
@@ -52,31 +67,31 @@ export const YEARS: Year[] = [
               whatsapp: "https://chat.whatsapp.com/DDTXpj3IheGGI9nSYITeW7",
             },
             assignments: [
-    {
-      title: "מטלת בית 1 – גזים",
-      date: "10.12.2025",
-      weight: "5%",
-      notes: "הגשה במודל עד 23:59",
-    },
-    {
-      title: "מטלת בית 2 – תרמודינמיקה",
-      date: "24.12.2025",
-      weight: "5%",
-    },
-  ],
-  exams: [
-    {
-      title: "בחן אמצע",
-      date: "15.01.2026",
-      weight: "20%",
-    },
-    {
-      title: "מבחן סיום",
-      date: "10.03.2026",
-      weight: "70%",
-      notes: "חומר מצטבר, כולל כל המטלות",
-    },
-  ],
+              {
+                title: "מטלת בית 1 – גזים",
+                date: "2025-12-10",
+                weight: "5%",
+                notes: "הגשה במודל עד 23:59",
+              },
+              {
+                title: "מטלת בית 2 – תרמודינמיקה",
+                date: "2025-12-24",
+                weight: "5%",
+              },
+            ],
+            exams: [
+              {
+                title: "בחן אמצע",
+                date: "2026-01-15",
+                weight: "20%",
+              },
+              {
+                title: "מבחן סיום",
+                date: "2026-03-10",
+                weight: "70%",
+                notes: "חומר מצטבר, כולל כל המטלות",
+              },
+            ],
             externalMaterials: [],
           },
           {
@@ -206,9 +221,15 @@ export const YEARS: Year[] = [
   ...Array.from({ length: 5 }, (_, k) => {
     const idx = k + 2; // years 2..6
     const heb = "אבגדהו"[idx - 1];
+
+    // ⬅️ 2–3 פרה־קליניים, 4–6 קליניים
+    const kind: "preclinical" | "clinical" =
+      idx <= 3 ? "preclinical" : "clinical";
+
     return {
       id: `y${idx}`,
       title: `שנה ${heb}`,
+      kind,
       semesters: [
         {
           id: `y${idx}s1`,
@@ -247,9 +268,9 @@ export const YEARS: Year[] = [
       ],
     } as Year;
   }),
-]; // ←←← כאן סוגרים את המערך של YEARS!
+];
 
 // אחרי שסגרנו את YEARS, אפשר לייצר אוסף קורסים נוח
 export const ALL_COURSES = YEARS
-  .flatMap(y => y.semesters)
-  .flatMap(s => s.courses);
+  .flatMap((y) => y.semesters)
+  .flatMap((s) => s.courses);
