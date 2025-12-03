@@ -1,4 +1,3 @@
-// client/src/routes/EditHomepageRoute.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,9 +21,11 @@ export default function EditHomepageRoute() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/admin/homepage");
+        const res = await fetch("/api/admin/homepage", {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error("failed to load homepage");
-        const data = await res.json() as {
+        const data = (await res.json()) as {
           exists: boolean;
           content: HomepageContent;
         };
@@ -44,6 +45,7 @@ export default function EditHomepageRoute() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(content),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("save failed");
       await res.json();
@@ -57,7 +59,11 @@ export default function EditHomepageRoute() {
   };
 
   if (loading) {
-    return <div className="p-4 text-sm text-neutral-600">טוען תוכן עמוד הבית…</div>;
+    return (
+      <div className="p-4 text-sm text-neutral-600">
+        טוען תוכן עמוד הבית…
+      </div>
+    );
   }
 
   return (

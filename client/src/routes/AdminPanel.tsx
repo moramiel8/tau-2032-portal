@@ -121,12 +121,14 @@ export default function AdminPanel({
   );
 
   // טעינת הקצאות + תפקידי־על (רק לאדמין/ועד כללי)
-  useEffect(() => {
+   useEffect(() => {
     if (!isAdmin && !isGlobalVaad) return;
 
     (async () => {
       try {
-        const res = await fetch("/api/admin/assignments");
+        const res = await fetch("/api/admin/assignments", {
+          credentials: "include",
+        });
         if (!res.ok) return;
         const data = (await res.json()) as {
           courseVaad: CourseVaadEntry[];
@@ -146,7 +148,9 @@ export default function AdminPanel({
 
     (async () => {
       try {
-        const res = await fetch("/api/admin/announcements");
+        const res = await fetch("/api/admin/announcements", {
+          credentials: "include",
+        });
         if (!res.ok) return;
         const data = (await res.json()) as { items: Announcement[] };
         setAnnouncements(data.items || []);
@@ -162,6 +166,7 @@ export default function AdminPanel({
       const res = await fetch("/api/admin/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           title: newAnnTitle,
           body: newAnnBody,
@@ -182,23 +187,14 @@ export default function AdminPanel({
   const handleDeleteAnnouncement = async (id: string) => {
     if (!window.confirm("למחוק את המודעה?")) return;
     try {
-      await fetch(`/api/admin/announcements/${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/announcements/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
     } catch (e) {
       console.warn("[AdminPanel] delete announcement failed", e);
     }
-  };
-
-  const toggleCourse = (id: string) => {
-    setSelectedCourseIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const resetForm = () => {
-    setSelectedUserEmail("");
-    setSelectedCourseIds([]);
-    setEditingCourseVaadId(null);
   };
 
   const handleSaveCourseVaad = async () => {
@@ -219,6 +215,7 @@ export default function AdminPanel({
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("save failed");
 
@@ -238,17 +235,14 @@ export default function AdminPanel({
     }
   };
 
-  const handleEditCourseVaad = (entry: CourseVaadEntry) => {
-    setEditingCourseVaadId(entry.id);
-    setSelectedUserEmail(entry.email);
-    setSelectedCourseIds(entry.courseIds);
-  };
-
   const handleDeleteCourseVaad = async (id: string) => {
     if (!window.confirm("להסיר הרשאות ועד קורס מהסטודנט/ית?")) return;
 
     try {
-      await fetch(`/api/admin/course-vaad/${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/course-vaad/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       setCourseVaad((prev) => prev.filter((x) => x.id !== id));
     } catch (e) {
       console.warn("[AdminPanel] delete course vaad failed", e);
@@ -260,6 +254,7 @@ export default function AdminPanel({
       const res = await fetch("/api/admin/global-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, role }),
       });
       if (!res.ok) throw new Error("save failed");
@@ -273,7 +268,10 @@ export default function AdminPanel({
   const handleDeleteGlobalRole = async (id: string) => {
     if (!window.confirm("להסיר הרשאות גלובליות מהמשתמש/ת?")) return;
     try {
-      await fetch(`/api/admin/global-role/${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/global-role/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       setGlobalRoles((prev) => prev.filter((x) => x.id !== id));
     } catch (e) {
       console.warn("[AdminPanel] delete global role failed", e);
