@@ -121,7 +121,7 @@ export default function AdminPanel({
   );
 
   // טעינת הקצאות + תפקידי־על (רק לאדמין/ועד כללי)
-   useEffect(() => {
+  useEffect(() => {
     if (!isAdmin && !isGlobalVaad) return;
 
     (async () => {
@@ -197,6 +197,18 @@ export default function AdminPanel({
     }
   };
 
+  const toggleCourse = (id: string) => {
+    setSelectedCourseIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const resetForm = () => {
+    setSelectedUserEmail("");
+    setSelectedCourseIds([]);
+    setEditingCourseVaadId(null);
+  };
+
   const handleSaveCourseVaad = async () => {
     if (!selectedUserEmail || selectedCourseIds.length === 0) return;
     setSaving(true);
@@ -233,6 +245,12 @@ export default function AdminPanel({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditCourseVaad = (entry: CourseVaadEntry) => {
+    setEditingCourseVaadId(entry.id);
+    setSelectedUserEmail(entry.email);
+    setSelectedCourseIds(entry.courseIds);
   };
 
   const handleDeleteCourseVaad = async (id: string) => {
