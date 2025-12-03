@@ -1,3 +1,4 @@
+// client/src/routes/EditCourseRoute.tsx
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ALL_COURSES, type Course, type AssessmentItem } from "../data/years";
@@ -152,7 +153,7 @@ export default function EditCourseRoute() {
     });
   };
 
-  // רק ספרות + ./- בתאריך
+  // רק ספרות + ./- בתאריך (לא חובה אבל שומר על פורמט אם אי פעם תעברי ל-input רגיל)
   const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
 
   if (!id) {
@@ -383,7 +384,168 @@ export default function EditCourseRoute() {
         </section>
 
         {/* מטלות / עבודות */}
-        {/* ... שאר הקומפוננטה ללא שינוי לוגי ... */}
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60">
+          <h2 className="text-sm font-medium mb-2">
+            מטלות / עבודות (assignments)
+          </h2>
+
+          {assignments.length === 0 && (
+            <div className="text-xs text-neutral-500 mb-2">
+              אין מטלות מוגדרות. אפשר להוסיף.
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {assignments.map((a, idx) => (
+              <div
+                key={idx}
+                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white"
+              >
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px]"
+                    placeholder="שם המטלה"
+                    value={a.title || ""}
+                    onChange={(e) =>
+                      updateArrayItem("assignments", idx, "title", e.target.value)
+                    }
+                  />
+                  <input
+                    type="date"
+                    className="border rounded-lg px-2 py-1 w-32"
+                    placeholder="תאריך"
+                    value={a.date || ""}
+                    onChange={(e) =>
+                      updateArrayItem(
+                        "assignments",
+                        idx,
+                        "date",
+                        sanitizeDate(e.target.value)
+                      )
+                    }
+                  />
+                  <input
+                    className="border rounded-lg px-2 py-1 w-24"
+                    placeholder="משקל"
+                    value={a.weight || ""}
+                    onChange={(e) =>
+                      updateArrayItem(
+                        "assignments",
+                        idx,
+                        "weight",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+                <textarea
+                  className="border rounded-lg px-2 py-1 w-full"
+                  placeholder="הערות (אופציונלי)"
+                  value={a.notes || ""}
+                  onChange={(e) =>
+                    updateArrayItem(
+                      "assignments",
+                      idx,
+                      "notes",
+                      e.target.value
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => removeArrayItem("assignments", idx)}
+                  className="self-start text-[11px] text-red-600 underline mt-1"
+                >
+                  הסרת מטלה
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => addArrayItem("assignments")}
+            className="mt-3 text-xs border rounded-xl px-3 py-1 hover:bg-white"
+          >
+            + הוספת מטלה
+          </button>
+        </section>
+
+        {/* בחנים / מבחנים */}
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60">
+          <h2 className="text-sm font-medium mb-2">בחנים / מבחנים (exams)</h2>
+
+          {exams.length === 0 && (
+            <div className="text-xs text-neutral-500 mb-2">
+              אין בחנים/מבחנים מוגדרים. אפשר להוסיף.
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {exams.map((ex, idx) => (
+              <div
+                key={idx}
+                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white"
+              >
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px]"
+                    placeholder="שם הבחינה"
+                    value={ex.title || ""}
+                    onChange={(e) =>
+                      updateArrayItem("exams", idx, "title", e.target.value)
+                    }
+                  />
+                  <input
+                    type="date"
+                    className="border rounded-lg px-2 py-1 w-32"
+                    placeholder="תאריך"
+                    value={ex.date || ""}
+                    onChange={(e) =>
+                      updateArrayItem(
+                        "exams",
+                        idx,
+                        "date",
+                        sanitizeDate(e.target.value)
+                      )
+                    }
+                  />
+                  <input
+                    className="border rounded-lg px-2 py-1 w-24"
+                    placeholder="משקל"
+                    value={ex.weight || ""}
+                    onChange={(e) =>
+                      updateArrayItem("exams", idx, "weight", e.target.value)
+                    }
+                  />
+                </div>
+                <textarea
+                  className="border rounded-lg px-2 py-1 w-full"
+                  placeholder="הערות (אופציונלי)"
+                  value={ex.notes || ""}
+                  onChange={(e) =>
+                    updateArrayItem("exams", idx, "notes", e.target.value)
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => removeArrayItem("exams", idx)}
+                  className="self-start text-[11px] text-red-600 underline mt-1"
+                >
+                  הסרת בחינה
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => addArrayItem("exams")}
+            className="mt-3 text-xs border rounded-xl px-3 py-1 hover:bg-white"
+          >
+            + הוספת בחינה
+          </button>
+        </section>
 
         {/* כפתורי שמירה וכו' */}
         <div className="flex flex-wrap gap-3 items-center mt-4">
