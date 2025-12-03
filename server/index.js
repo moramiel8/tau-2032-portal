@@ -3,12 +3,11 @@ import express from "express";
 import cors from "cors";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import session from "express-session";
+import cookieSession from "cookie-session";   // ⬅️ במקום express-session
 import dotenv from "dotenv";
 
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";   // ⬅️ חשוב!
 
 import { query } from "./db.js";
 
@@ -34,8 +33,6 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !SESSION_SECRET) {
   throw new Error("Missing envs");
 }
 
-// מי אתה כמנהל ראשי – כבר לא בשימוש ישיר ב־GoogleStrategy,
-// אבל נשאיר אם תרצה פיתוחים ידניים
 const ADMIN_EMAILS = ["morrabaev@mail.tau.ac.il"];
 const VAAD_EMAILS = [];
 
@@ -49,6 +46,8 @@ const app = express();
 app.use(express.json());
 app.set("trust proxy", 1);
 
+const isProd = process.env.NODE_ENV === "production";
+
 app.use(
   cors({
     origin: [ALLOWED_ORIGIN],
@@ -56,15 +55,13 @@ app.use(
   })
 );
 
-// ---- STATIC UPLOADS (בטוח לפרוד) ----
+// ---- STATIC UPLOADS ----
 let uploadRoot = null;
 
 try {
-  // בלוקאל – נשמור בתוך התיקייה של הפרויקט
   if (process.env.NODE_ENV !== "production") {
     uploadRoot = path.join(process.cwd(), "uploads");
   } else {
-    // ב־Vercel מותר לכתוב רק ל־/tmp (וגם זה לא באמת Persist)
     uploadRoot = path.join("/tmp", "uploads");
   }
 
@@ -79,22 +76,30 @@ try {
 
 export { uploadRoot };
 
-const isProd = process.env.NODE_ENV === "production";
-
+// -------- cookie-session (במקום express-session) --------
 app.use(
-  session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: isProd,
-      sameSite: isProd ? "none" : "lax",
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-    },
+  cookieSession({
+    name: "tau_sess",
+    keys: [SESSION_SECRET],
+    secure: isProd,                 // ב־prod חייב HTTPS
+    sameSite: isProd ? "none" : "lax",
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
   })
 );
 
+// polyfill ל-passport + cookie-session (כמו שהיה לך ב-TS)
+app.use((req, _res, next) => {
+  if (req.session && !req.session.regenerate) {
+    req.session.regenerate = (cb) => cb();
+  }
+  if (req.session && !req.session.save) {
+    req.session.save = (cb) => cb();
+  }
+  next();
+});
+
+// -------- Passport --------
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -120,7 +125,6 @@ passport.use(
           return done(null, false, { message: "domain_not_allowed" });
         }
 
-        // תפקיד אמיתי מה־DB + HARD_ADMINS
         const role = await getEffectiveRole(email);
 
         return done(null, { email, role });
@@ -173,7 +177,8 @@ app.get("/api/session", (req, res) => {
 app.post("/api/logout", (req, res) => {
   if (req.logout) {
     req.logout(() => {
-      req.session?.destroy(() => res.json({ ok: true }));
+      req.session = null;
+      res.json({ ok: true });
     });
   } else {
     res.json({ ok: true });
