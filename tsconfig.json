@@ -8,5 +8,5 @@
     "types": ["node", "cookie-session"],
     "typeRoots": ["./types", "./node_modules/@types"]
   },
-  "include": ["api/**/*.ts", "types/**/*.d.ts"]
+  "include": ["api/**/*.ts", "types/**/*.d.ts", "api/[[...path]].js"]
 }
