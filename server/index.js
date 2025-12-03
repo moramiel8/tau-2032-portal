@@ -157,11 +157,15 @@ app.get(
 );
 
 if (process.env.NODE_ENV !== "production") {
-  app.get("/api/dev/login-as/:email", (req, res) => {
+  app.get("/api/dev/login-as/:email", async (req, res) => {
     const email = req.params.email;
+
+    // לוקחים את התפקיד האמיתי מה-DB + HARD_ADMINS
+    const role = await getEffectiveRole(email);
+
     req.session.regenerate(() => {
-      req.session.passport = { user: { email } };
-      res.json({ ok: true, email });
+      req.session.passport = { user: { email, role } };
+      res.json({ ok: true, email, role });
     });
   });
 }
