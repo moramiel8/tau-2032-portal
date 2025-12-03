@@ -1,0 +1,35 @@
+/* client/src/index.css */
+
+/* אל תשתמש ב-dark mode של התבנית */
+:root { color-scheme: light; }
+
+/* reset בסיסי */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: #fff;   /* רקע לבן */
+  color: #111;        /* טקסט שחור */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+               Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  direction: rtl;     /* כי האתר בעברית */
+}
+
+button {
+  background: transparent; 
+  color: inherit;
+  border: none;            
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* client/src/index.css (או ה־globals שלך) */
+a, button, .clickable, [role="button"] {
+  cursor: pointer;
+}
+

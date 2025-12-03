@@ -1,0 +1,9 @@
+server/.env
+client/.env
+.vercel
+.env
+node_modules
+.env
+uploads
+dist
+uploads
