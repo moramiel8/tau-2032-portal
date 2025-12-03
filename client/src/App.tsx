@@ -9,6 +9,8 @@
   import EditCourseRoute from "./routes/EditCourseRoute";
   import EditHomepageRoute from "./routes/EditHomepageRoute";
 
+  import { useTheme } from "./hooks/useTheme";
+
   import {
     fetchSession,
     isTauEmail,
@@ -41,9 +43,10 @@
     introText?: string;
   };
 
-  // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
  // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
-function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
+
+
+ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
@@ -52,6 +55,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
   // טווח להצגת מטלות/מבחנים
   const [range, setRange] = useState<"week" | "month" | "all">("week");
+
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
@@ -401,6 +405,9 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     const nav = useNavigate();
     const openCourse = (course: Course) => nav(`/course/${course.id}`);
 
+  const { theme, toggleTheme } = useTheme();
+
+
     // Toast
     const [toast, setToast] = useState<string | null>(null);
     const showToast = (msg: string, ms = 2200) => {
@@ -478,9 +485,9 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       ) : null;
 
     return (
-      <div className="min-h-screen bg-white text-black" dir="rtl">
+<div className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors" dir="rtl">
         {/* toolbar קבוע */}
-        <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-40">
+<header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             {/* לוגו + טקסט */}
             <Link
@@ -502,32 +509,41 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
             </Link>
 
             <div className="flex items-center gap-2">
-              {user && (
-                <>
-                  <span className="text-xs text-neutral-600 hidden sm:inline">
-                    {user.email}
-                  </span>
 
-                  {canSeeAdminPanel && (
-                    <button
-                      onClick={() => nav("/admin")}
-                      className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
-                    >
-                      פאנל מנהל
-                    </button>
-                  )}
+  {/* כפתור Dark Mode */}
+  <button
+    onClick={toggleTheme}
+    className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
+  >
+    {theme === "dark" ? "☀️ מצב בהיר" : "🌙 מצב כהה"}
+  </button>
 
-                  <button
-                    onClick={handleLogout}
-                    className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
-                    title="התנתקות"
-                    aria-label="התנתקות"
-                  >
-                    <span className="hidden sm:inline">התנתקות</span>
-                  </button>
-                </>
-              )}
-            </div>
+  {user && (
+    <>
+      <span className="text-xs text-neutral-600 hidden sm:inline">
+        {user.email}
+      </span>
+
+      {canSeeAdminPanel && (
+        <button
+          onClick={() => nav("/admin")}
+          className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+        >
+          פאנל מנהל
+        </button>
+      )}
+
+      <button
+        onClick={handleLogout}
+        className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+        title="התנתקות"
+      >
+        <span className="hidden sm:inline">התנתקות</span>
+      </button>
+    </>
+  )}
+</div>
+
           </div>
         </header>
 
@@ -623,7 +639,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
         <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
           נבנה ע&quot;י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה
-          02/12/2025 10:45
+          03/12/2025 21:32
         </footer>
 
         <Toast />

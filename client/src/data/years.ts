@@ -196,6 +196,18 @@ export const YEARS: Year[] = [
               },
             ],
           },
+
+           {
+            id: "hibuki",
+            name: "חינוך רפואי בראייה חברתית (חיבוקי)",
+            note:  "הערות",
+            coordinator: "מרצה: טרם ידוע",
+            reps: "—",
+            courseNumber: "0111-1321",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+         
+          },
         ],
       },
       {
