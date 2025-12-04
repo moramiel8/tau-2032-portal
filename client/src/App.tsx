@@ -468,7 +468,7 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
   const { theme, toggleTheme } = useTheme();
 
 
-    // Toast
+  // Toast
     const [toast, setToast] = useState<string | null>(null);
     const showToast = (msg: string, ms = 2200) => {
       setToast(msg);
@@ -530,12 +530,12 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
       }
     };
 
-    const DebugBar = () => (
+    {/*   const DebugBar = () => (
       <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
         <div>user? {user ? user.email : "null"}</div>
         <div>loadingUser? {String(loadingUser)}</div>
       </div>
-    );
+    );*/}
 
     const Toast = () =>
       toast ? (
@@ -700,11 +700,11 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
 
         <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
           נבנה ע&quot;י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה
-          03/12/2025 21:32
+          04/12/2025 12:32
         </footer>
 
         <Toast />
-        <DebugBar />
+       {/*<DebugBar /> */} 
       </div>
     );
   }
