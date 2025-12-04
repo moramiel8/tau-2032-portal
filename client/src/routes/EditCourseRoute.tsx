@@ -323,6 +323,24 @@ export default function EditCourseRoute() {
           </label>
 
           <label className="block mb-3">
+            <span className="block mb-1">נציגי קורס:</span>
+            <input
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
+              value={content.reps || ""}
+              onChange={(e) =>
+                setContent({
+                  ...content,
+                  reps: e.target.value,
+                })
+              }
+            />
+          </label>
+
+          <label className="block mb-3">
             <span className="block mb-1">מספר קורס:</span>
             <input
               className="
