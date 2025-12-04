@@ -18,16 +18,22 @@ type CourseVaadEntry = {
   id: string;
   email: string;
   courseIds: string[];
+  displayName?: string | null;
 };
 
 type GlobalRoleEntry = {
   id: string;
   email: string;
   role: "admin" | "vaad";
+  displayName?: string | null;
 };
 
 type GlobalRoleFormProps = {
-  onAdd: (email: string, role: "admin" | "vaad") => Promise<void> | void;
+  onAdd: (
+    email: string,
+    role: "admin" | "vaad",
+    displayName: string
+  ) => Promise<void> | void;
 };
 
 type Announcement = {
@@ -43,15 +49,17 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "vaad">("vaad");
   const [saving, setSaving] = useState(false);
+  const [displayName, setDisplayName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setSaving(true);
     try {
-      await onAdd(email, role);
+      await onAdd(email, role, displayName);
       setEmail("");
       setRole("vaad");
+      setDisplayName("");
     } finally {
       setSaving(false);
     }
@@ -69,6 +77,15 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         placeholder="student@mail.tau.ac.il"
         className="border rounded-xl px-3 py-2 flex-1 min-w-[220px]"
       />
+
+      <input
+        type="text"
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+        placeholder="שם תצוגה (למשל: ועד כללי)"
+        className="border rounded-xl px-3 py-2 flex-1 min-w-[160px]"
+      />
+
       <select
         value={role}
         onChange={(e) => setRole(e.target.value as "admin" | "vaad")}
@@ -77,6 +94,7 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         <option value="vaad">ועד כללי</option>
         <option value="admin">מנהל מערכת</option>
       </select>
+
       <button
         type="submit"
         disabled={saving}
@@ -104,6 +122,8 @@ export default function AdminPanel({
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [editingCourseVaadId, setEditingCourseVaadId] =
     useState<string | null>(null);
+  const [selectedUserDisplayName, setSelectedUserDisplayName] =
+    useState("");
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [newAnnTitle, setNewAnnTitle] = useState("");
@@ -120,7 +140,7 @@ export default function AdminPanel({
     []
   );
 
-  // טעינת הקצאות + תפקידי־על (רק לאדמין/ועד כללי)
+  // טעינת הקצאות + תפקידי־על
   useEffect(() => {
     if (!isAdmin && !isGlobalVaad) return;
 
@@ -143,31 +163,27 @@ export default function AdminPanel({
   }, [isAdmin, isGlobalVaad]);
 
   // טעינת מודעות (admin + vaad)
-// AdminPanel.tsx – useEffect של טעינת מודעות
-useEffect(() => {
-  if (!isAdmin && !isGlobalVaad) return;
+  useEffect(() => {
+    if (!isAdmin && !isGlobalVaad) return;
 
-  (async () => {
-    try {
-      const res = await fetch("/api/admin/announcements", {
-        credentials: "include",
-      });
-      if (!res.ok) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/announcements", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
 
-      const data = await res.json();
+        const data = await res.json();
+        const items: Announcement[] = Array.isArray(data)
+          ? data
+          : data.items || [];
 
-      // תומך גם ב-[{...}] וגם ב-{ items: [...] }
-      const items: Announcement[] = Array.isArray(data)
-        ? data
-        : data.items || [];
-
-      setAnnouncements(items);
-    } catch (e) {
-      console.warn("[AdminPanel] failed to load announcements", e);
-    }
-  })();
-}, [isAdmin, isGlobalVaad]);
-
+        setAnnouncements(items);
+      } catch (e) {
+        console.warn("[AdminPanel] failed to load announcements", e);
+      }
+    })();
+  }, [isAdmin, isGlobalVaad]);
 
   const handleAddAnnouncement = async () => {
     if (!newAnnTitle || !newAnnBody) return;
@@ -214,6 +230,7 @@ useEffect(() => {
 
   const resetForm = () => {
     setSelectedUserEmail("");
+    setSelectedUserDisplayName("");
     setSelectedCourseIds([]);
     setEditingCourseVaadId(null);
   };
@@ -224,6 +241,7 @@ useEffect(() => {
     try {
       const body = {
         email: selectedUserEmail,
+        displayName: selectedUserDisplayName || null,
         courseIds: selectedCourseIds,
       };
 
@@ -259,6 +277,7 @@ useEffect(() => {
   const handleEditCourseVaad = (entry: CourseVaadEntry) => {
     setEditingCourseVaadId(entry.id);
     setSelectedUserEmail(entry.email);
+    setSelectedUserDisplayName(entry.displayName || "");
     setSelectedCourseIds(entry.courseIds);
   };
 
@@ -276,13 +295,17 @@ useEffect(() => {
     }
   };
 
-  const handleAddGlobalRole = async (email: string, role: "admin" | "vaad") => {
+  const handleAddGlobalRole = async (
+    email: string,
+    role: "admin" | "vaad",
+    displayName: string
+  ) => {
     try {
       const res = await fetch("/api/admin/global-roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, role }),
+        body: JSON.stringify({ email, role, displayName }),
       });
       if (!res.ok) throw new Error("save failed");
       const saved: GlobalRoleEntry = await res.json();
@@ -316,7 +339,7 @@ useEffect(() => {
         <span className="text-xs text-neutral-500">({user.role})</span>
       </p>
 
-      {/* 1. הקצאת ועד קורס (admin + vaad כללי) */}
+      {/* 1. הקצאת ועד קורס */}
       {(isAdmin || isGlobalVaad) && (
         <section className="mb-8 border rounded-2xl p-4">
           <h2 className="text-lg font-medium mb-3">
@@ -331,6 +354,17 @@ useEffect(() => {
               onChange={(e) => setSelectedUserEmail(e.target.value)}
               className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
               placeholder="student@mail.tau.ac.il"
+            />
+          </label>
+
+          <label className="block text-sm mb-2">
+            שם תצוגה (אופציונלי):
+            <input
+              type="text"
+              value={selectedUserDisplayName}
+              onChange={(e) => setSelectedUserDisplayName(e.target.value)}
+              className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
+              placeholder="למשל: מור עמיאל רבייב"
             />
           </label>
 
@@ -371,7 +405,7 @@ useEffect(() => {
         </section>
       )}
 
-      {/* 2. רשימת ועד קורס קיימים (admin בלבד) */}
+      {/* 2. רשימת ועד קורס */}
       {isAdmin && (
         <section className="mb-8 border rounded-2xl p-4">
           <h2 className="text-lg font-medium mb-3">רשימת &quot;ועד קורס&quot;</h2>
@@ -390,7 +424,14 @@ useEffect(() => {
               <tbody>
                 {courseVaad.map((entry) => (
                   <tr key={entry.id} className="border-b last:border-b-0">
-                    <td className="py-2 align-top">{entry.email}</td>
+                    <td className="py-2 align-top">
+                      <div>{entry.email}</div>
+                      {entry.displayName && (
+                        <div className="text-[11px] text-neutral-500">
+                          {entry.displayName}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-2 align-top">
                       <ul className="space-y-0.5">
                         {entry.courseIds.map((cid) => (
@@ -426,7 +467,7 @@ useEffect(() => {
         </section>
       )}
 
-      {/* 3. ועד כללי / מנהלים (admin בלבד) */}
+      {/* 3. ועד כללי / מנהלים */}
       {isAdmin && (
         <section className="mb-8 border rounded-2xl p-4">
           <h2 className="text-lg font-medium mb-3">ועד כללי / מנהלים</h2>
@@ -447,7 +488,14 @@ useEffect(() => {
               <tbody>
                 {globalRoles.map((r) => (
                   <tr key={r.id} className="border-b last:border-b-0">
-                    <td className="py-2">{r.email}</td>
+                    <td className="py-2">
+                      <div>{r.email}</div>
+                      {r.displayName && (
+                        <div className="text-[11px] text-neutral-500">
+                          {r.displayName}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-2 text-xs">
                       {r.role === "admin" ? "מנהל מערכת" : "ועד כללי"}
                     </td>
@@ -470,7 +518,7 @@ useEffect(() => {
         </section>
       )}
 
-      {/* 4. ניהול תוכן האתר + לוח מודעות (admin + vaad כללי) */}
+      {/* 4. ניהול תוכן + לוח מודעות */}
       {(isAdmin || isGlobalVaad) && (
         <>
           <section className="border rounded-2xl p-4 mb-8">
@@ -583,7 +631,7 @@ useEffect(() => {
         </>
       )}
 
-      {/* 5. ועד־קורס – עריכת הקורסים שלו */}
+      {/* 5. ועד־קורס – הקורסים שלו */}
       {isCourseVaad && (
         <section className="mb-8 border rounded-2xl p-4">
           <h2 className="text-lg font-medium mb-3">
