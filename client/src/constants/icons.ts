@@ -1,6 +1,6 @@
 // client/src/constants/icons.ts
 
-import MoodleImg from "../assets/react.svg";
+import MoodleImg from "../assets/moodle.svg";
 import DriveImg from "../assets/drive.svg";
 import PdfImg from "../assets/pdf.svg";
 import WhatsappImg from "../assets/whatsapp.svg";
