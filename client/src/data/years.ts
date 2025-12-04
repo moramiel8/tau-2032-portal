@@ -154,7 +154,7 @@ export const YEARS: Year[] = [
             {
               label: "title",
                 href: "https://google.com",
-                icon: IMG_DRIVE,
+                icon: IMG_NET,
                 }
             ],
           },
