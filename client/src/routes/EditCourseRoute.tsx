@@ -326,9 +326,9 @@ const updateExternalItem = (
             />
           </label>
 
-          <label className="block">
+          <label className="block mb-3">
             <span className="block mb-1">הערה קצרה בלבד:</span>
-            <textarea
+            <input
               className="border rounded-xl px-3 py-2 w-full"
               value={content.note || ""}
               onChange={(e) =>
@@ -340,7 +340,7 @@ const updateExternalItem = (
             />
           </label>
 
-                     <label className="block">
+             <label className="block">
             <span className="block mb-1">מה היה בשבוע האחרון?</span>
             <textarea
               className="border rounded-xl px-3 py-2 w-full"

@@ -15,6 +15,9 @@ import {
 
 type CourseContent = Course & {
   [key: string]: any;
+  lastEditedByEmail?: string | null;
+  lastEditedByName?: string | null;
+  lastEditedAt?: string | null;
 };
 
 export default function CourseRoute() {
@@ -97,6 +100,31 @@ export default function CourseRoute() {
     if (isNaN(d.getTime())) return value; // טקסט חופשי ישן
     return d.toLocaleDateString("he-IL");
   };
+
+  const formatLastEditedMeta = (c: CourseContent) => {
+    if (!c.lastEditedAt) return null;
+    const d = new Date(c.lastEditedAt);
+    if (isNaN(d.getTime())) return null;
+
+    const name = c.lastEditedByName || c.lastEditedByEmail || "המערכת";
+
+    const dayStr = d.toLocaleDateString("he-IL", {
+      weekday: "long",
+    });
+    const dateStr = d.toLocaleDateString("he-IL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const timeStr = d.toLocaleTimeString("he-IL", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return `נערך ע״י ${name} ביום ${dayStr}, תאריך ${dateStr} בשעה ${timeStr}`;
+  };
+
+  const lastEditedMeta = formatLastEditedMeta(course);
 
   return (
     <div className="max-w-4xl mx-auto pb-12 px-4">
@@ -228,7 +256,7 @@ export default function CourseRoute() {
             {course.whatwas && (
               <div className="mt-3">
                 <div className="font-medium">
-                  ➡️ מה היה בשבוע האחרון?
+                 ➡️ מה היה בשבוע האחרון?
                 </div>
                 <div className="text-xs text-neutral-700 whitespace-pre-line">
                   {course.whatwas}
@@ -237,13 +265,19 @@ export default function CourseRoute() {
             )}
 
             {course.whatwill && (
-              <div className="mt-2">
+              <div className="mt-3">
                 <div className="font-medium">
                   ⬅️ מה יהיה בהמשך?
                 </div>
                 <div className="text-xs text-neutral-700 whitespace-pre-line">
                   {course.whatwill}
                 </div>
+
+                {lastEditedMeta && (
+                  <div className="text-[10px] text-neutral-400 mt-1">
+                    {lastEditedMeta}
+                  </div>
+                )}
               </div>
             )}
           </div>

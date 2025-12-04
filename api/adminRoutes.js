@@ -400,7 +400,30 @@ router.put(
   requireCourseVaadOrAdmin,
   async (req, res) => {
     const { courseId } = req.params;
-    const payload = req.body || {};
+    const raw = req.body || {};
+    const user = req.user;
+
+    // מי עורך עכשיו
+    const now = new Date().toISOString();
+
+    let editorName = null;
+    if (user?.email) {
+      try {
+        editorName = await getDisplayNameForEmail(user.email);
+      } catch (e) {
+        console.error(
+          "[PUT /admin/course-content/:courseId] failed to resolve display name",
+          e
+        );
+      }
+    }
+
+    const payload = {
+      ...raw,
+      lastEditedByEmail: user?.email || null,
+      lastEditedByName: editorName || user?.email || null,
+      lastEditedAt: now,
+    };
 
     try {
       const result = await query(
@@ -423,6 +446,7 @@ router.put(
     }
   }
 );
+
 
 router.post(
   "/course-content/:courseId/syllabus-upload",
