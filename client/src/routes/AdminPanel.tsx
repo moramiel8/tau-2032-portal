@@ -143,22 +143,31 @@ export default function AdminPanel({
   }, [isAdmin, isGlobalVaad]);
 
   // טעינת מודעות (admin + vaad)
-  useEffect(() => {
-    if (!isAdmin && !isGlobalVaad) return;
+// AdminPanel.tsx – useEffect של טעינת מודעות
+useEffect(() => {
+  if (!isAdmin && !isGlobalVaad) return;
 
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/announcements", {
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as { items: Announcement[] };
-        setAnnouncements(data.items || []);
-      } catch (e) {
-        console.warn("[AdminPanel] failed to load announcements", e);
-      }
-    })();
-  }, [isAdmin, isGlobalVaad]);
+  (async () => {
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      // תומך גם ב-[{...}] וגם ב-{ items: [...] }
+      const items: Announcement[] = Array.isArray(data)
+        ? data
+        : data.items || [];
+
+      setAnnouncements(items);
+    } catch (e) {
+      console.warn("[AdminPanel] failed to load announcements", e);
+    }
+  })();
+}, [isAdmin, isGlobalVaad]);
+
 
   const handleAddAnnouncement = async () => {
     if (!newAnnTitle || !newAnnBody) return;
@@ -269,7 +278,7 @@ export default function AdminPanel({
 
   const handleAddGlobalRole = async (email: string, role: "admin" | "vaad") => {
     try {
-      const res = await fetch("/api/admin/global-role", {
+      const res = await fetch("/api/admin/global-roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -286,7 +295,7 @@ export default function AdminPanel({
   const handleDeleteGlobalRole = async (id: string) => {
     if (!window.confirm("להסיר הרשאות גלובליות מהמשתמש/ת?")) return;
     try {
-      await fetch(`/api/admin/global-role/${id}`, {
+      await fetch(`/api/admin/global-roles/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

@@ -1,5 +1,62 @@
 // client/src/data/years.ts
-import { IMG_DRIVE, IMG_PDF } from "../constants/icons";
+
+/*
+HOW TO ADD COURSE (CANNOT DO IT FROM THE SITE ITSELF BECAUSE IM LAZY)
+(THOUGH YOU CAN EDIT IT FROM THE SITE ONCE YOU ADDED IT HERE!)
+   {
+            id: ID OF THE COURSE
+            name: NAME OF THE COURSE
+            note: SHORT NOTE
+            coordinator: WHO IS THE LECTURER
+            reps: WHO IS YOUR VAAD OF THE COURSE
+            courseNumber: COURSE NUM 
+            place: WHERE IS IT?
+            syllabus: SYLLABUS - YOU CAN ALSO LEAVE IT EMPTY AND EDIT IT LATER ON THE SITE
+
+            links: {
+              drive:
+                SAME LIKE SYLLABUS
+              moodle:  SAME LIKE SYLLABUS
+              whatsapp:  SAME LIKE SYLLABUS
+            },
+            assignments: [
+              {
+                title: ASSIGNMENTS TITLE
+                date: DATE
+                weight: WEIGHT
+                notes: NOTES (SHORT)
+              },
+              {
+                title: 2ND ASSIGNMENT
+                date: SAME
+                weight: SAME
+              },
+            ],
+            exams: [
+              {
+                title: SAME
+                date: SAME
+                weight: SAME
+              },
+              {
+                title: 2ND EXAM
+                date: SAME
+                weight: SAME
+                notes: SAME
+              },
+            ],
+            externalMaterials: 
+            [
+            {
+              label: TITLE ACTUALLY,
+                href: URL,
+                icon: IMG_DRIVE/IMG_PDF/IMG_WHATSAPP/IMG_MOODLE
+                }
+            ],
+          },
+       
+*/
+import { IMG_DRIVE, IMG_PDF, IMG_NET } from "../constants/icons";
 
 export type AssessmentItem = {
   title: string;   // שם המטלה / בחינה
@@ -92,7 +149,14 @@ export const YEARS: Year[] = [
                 notes: "חומר מצטבר, כולל כל המטלות",
               },
             ],
-            externalMaterials: [],
+           externalMaterials: 
+            [
+            {
+              label: "title",
+                href: "https://google.com",
+                icon: IMG_DRIVE,
+                }
+            ],
           },
           {
             id: "chem-organic",
@@ -109,7 +173,19 @@ export const YEARS: Year[] = [
               moodle: "https://moodle.tau.ac.il/course/view.php?id=111121301",
               whatsapp: "https://chat.whatsapp.com/DDTXpj3IheGGI9nSYITeW7",
             },
-            externalMaterials: [],
+          externalMaterials: [
+              {
+                label: "StatQuest – YouTube",
+                href: "https://www.youtube.com/c/joshstarmer",
+                icon: IMG_DRIVE,
+              },
+              {
+                label: "StatQuest",
+                href: "https://www.youtube.com/c/joshstarmer",
+                icon: IMG_DRIVE,
+              },
+
+            ],
           },
           {
             id: "bioch-found",
@@ -143,6 +219,12 @@ export const YEARS: Year[] = [
                 href: "https://www.khanacademy.org/science/health-and-medicine/human-anatomy-and-physiology",
                 icon: IMG_DRIVE,
               },
+
+              {
+                label: "StatQuest",
+                href: "https://www.youtube.com/c/joshstarmer",
+                icon: IMG_DRIVE,
+              },
             ],
           },
           {
@@ -156,7 +238,7 @@ export const YEARS: Year[] = [
             links: { drive: "", moodle: "", whatsapp: "" },
             externalMaterials: [
               {
-                label: "StatQuest – YouTube",
+                label: "StatQuest – YouTube1",
                 href: "https://www.youtube.com/c/joshstarmer",
                 icon: IMG_DRIVE,
               },

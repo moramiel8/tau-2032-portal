@@ -7,13 +7,18 @@ type Props = {
   onBack?: () => void;
 };
 
+// client/src/components/CoursePage.tsx
+
 type CourseAnnouncement = {
   id: string;
   title: string;
   body: string;
   courseId?: string | null;
   createdAt?: string;
+  updatedAt?: string;
+  authorEmail?: string | null;
 };
+
 
 export default function CoursePage({ course, onBack }: Props) {
   const [override, setOverride] = useState<Partial<Course> | null>(null);
@@ -44,21 +49,52 @@ export default function CoursePage({ course, onBack }: Props) {
     })();
   }, [course.id]);
 
-  // טעינת מודעות לקורס
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/announcements?courseId=${course.id}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as { items: CourseAnnouncement[] };
-        setAnnouncements(data.items || []);
-      } catch (e) {
-        console.warn("[CoursePage] failed to load announcements", e);
-      }
-    })();
-  }, [course.id]);
 
-  const { name, note, coordinator, reps, courseNumber, place, syllabus, links } =
+// טעינת מודעות לקורס
+useEffect(() => {
+  (async () => {
+    try {
+      const res = await fetch("/api/announcements");
+      if (!res.ok) return;
+      const data = (await res.json()) as { items: CourseAnnouncement[] };
+
+      // מודעות כלליות + מודעות של הקורס הזה
+      const relevant = (data.items || []).filter(
+        (a) => !a.courseId || a.courseId === course.id
+      );
+
+      setAnnouncements(relevant);
+    } catch (e) {
+      console.warn("[CoursePage] failed to load announcements", e);
+    }
+  })();
+}, [course.id]);
+
+const formatAnnouncementMeta = (a: CourseAnnouncement) => {
+  const ts = a.updatedAt || a.createdAt;
+  if (!ts) return a.authorEmail ? `עודכן ע"י ${a.authorEmail}` : "";
+
+  const d = new Date(ts);
+
+  const dateStr = d.toLocaleDateString("he-IL", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const timeStr = d.toLocaleTimeString("he-IL", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const by = a.authorEmail ? ` ע"י ${a.authorEmail}` : "";
+
+  return `עודכן בתאריך ${dateStr} בשעה ${timeStr}${by}`;
+};
+
+
+  const { name, note, coordinator, reps, courseNumber, place, syllabus, links,   externalMaterials} =
     effectiveCourse;
 
   const assignments: AssessmentItem[] = effectiveCourse.assignments || [];
@@ -69,7 +105,7 @@ export default function CoursePage({ course, onBack }: Props) {
       {onBack && (
         <button
           type="button"
-          onClick={onBack}
+          onClick={onBack}  
           className="text-xs mb-3 underline text-neutral-600"
         >
           ← חזרה לרשימת הקורסים
@@ -97,26 +133,53 @@ export default function CoursePage({ course, onBack }: Props) {
         </p>
       )}
 
-      {announcements.length > 0 && (
+      {/* מודעות לקורס */}
+    {announcements.length > 0 && (
+  <section className="mb-4 border rounded-2xl p-3">
+    <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
+    <ul className="text-xs space-y-2">
+      {announcements.map((a) => (
+        <li key={a.id} className="border-b last:border-b-0 pb-2">
+          <div className="font-semibold">{a.title}</div>
+          <div className="text-neutral-700 whitespace-pre-line">
+            {a.body}
+          </div>
+          {(a.createdAt || a.updatedAt || a.authorEmail) && (
+            <div className="text-[10px] text-neutral-400 mt-1">
+              {formatAnnouncementMeta(a)}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+
+            {/* חומרים חיצוניים */}
+ {externalMaterials && externalMaterials.length > 0 && (
         <section className="mb-4 border rounded-2xl p-3">
-          <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
+          <h2 className="text-sm font-medium mb-2">חומרים חיצוניים מומלצים</h2>
           <ul className="text-xs space-y-2">
-            {announcements.map((a) => (
-              <li key={a.id} className="border-b last:border-b-0 pb-2">
-                <div className="font-semibold">{a.title}</div>
-                <div className="text-neutral-700 whitespace-pre-line">
-                  {a.body}
-                </div>
-                {a.createdAt && (
-                  <div className="text-[10px] text-neutral-400 mt-1">
-                    {new Date(a.createdAt).toLocaleString("he-IL")}
-                  </div>
-                )}
+            {externalMaterials.map((m, idx) => (
+              <li key={idx}>
+                <a
+                  href={m.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 border rounded-xl px-3 py-1 hover:bg-neutral-50"
+                >
+                  {m.icon && (
+                    <img src={m.icon} alt="" className="w-4 h-4" />
+                  )}
+                  <span>{m.label}</span>
+                </a>
               </li>
             ))}
           </ul>
         </section>
       )}
+
 
       {/* קישורים */}
       {links && (

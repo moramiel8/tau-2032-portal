@@ -3,8 +3,22 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ALL_COURSES, type Course, type AssessmentItem } from "../data/years";
 
+import {
+  IMG_DRIVE,
+  IMG_PDF,
+  IMG_WHATSAPP,
+  IMG_MOODLE,
+  IMG_NET,
+} from "../constants/icons"; 
+
 type CourseContent = Course & {
   [key: string]: any;
+};
+
+type ExternalMaterial = {
+  label: string;
+  href: string;
+  icon?: string;
 };
 
 export default function EditCourseRoute() {
@@ -117,7 +131,7 @@ export default function EditCourseRoute() {
 
   const updateArrayItem = (
     field: "assignments" | "exams",
-    index: number,
+    index: number,  
     key: keyof AssessmentItem,
     value: string
   ) => {
@@ -153,7 +167,56 @@ export default function EditCourseRoute() {
     });
   };
 
-  // רק ספרות + ./- בתאריך (לא חובה אבל שומר על פורמט אם אי פעם תעברי ל-input רגיל)
+
+const updateExternalItem = (
+    index: number,
+    key: keyof ExternalMaterial,
+    value: string
+  ) => {
+    if (!content) return;
+    const arr: ExternalMaterial[] = [...(content.externalMaterials || [])];
+    arr[index] = {
+      ...arr[index],
+      [key]: value,
+    };
+    setContent({
+      ...content,
+      externalMaterials: arr,
+    });
+  };
+
+  const addExternalItem = () => {
+    if (!content) return;
+    const arr: ExternalMaterial[] = [...(content.externalMaterials || [])];
+    arr.push({
+      label: "",
+      href: "",
+      icon: IMG_NET, // ברירת מחדל – אינטרנט
+    });
+    setContent({
+      ...content,
+      externalMaterials: arr,
+    });
+  };
+
+  const removeExternalItem = (index: number) => {
+    if (!content) return;
+    const arr: ExternalMaterial[] = [...(content.externalMaterials || [])];
+    arr.splice(index, 1);
+    setContent({
+      ...content,
+      externalMaterials: arr,
+    });
+  };
+
+   const ICON_OPTIONS: { label: string; value: string }[] = [
+    { label: "Drive", value: IMG_DRIVE },
+    { label: "PDF", value: IMG_PDF },
+    { label: "Moodle", value: IMG_MOODLE },
+    { label: "WhatsApp", value: IMG_WHATSAPP },
+    { label: "אינטרנט כללי", value: IMG_NET },
+  ];
+  // רק ספרות + ./- בתאריך (לא חובה אבל שומר על פורמט אם אי פעם תעבור ל-input רגיל)
   const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
 
   if (!id) {
@@ -168,6 +231,10 @@ export default function EditCourseRoute() {
   const exams: AssessmentItem[] = content.exams || [];
 
   const links = content.links || {};
+
+    const externalMaterials: ExternalMaterial[] =
+    (content.externalMaterials as ExternalMaterial[]) || [];
+
 
   const handleSyllabusUpload = async (file: File) => {
     if (!id || !content) return;
@@ -382,6 +449,88 @@ export default function EditCourseRoute() {
             />
           </label>
         </section>
+
+        {/* חומרים חיצוניים */}
+        <section className="mt-2 border rounded-2xl p-4 bg-white">
+          <h2 className="text-sm font-medium mb-2">
+            חומרים חיצוניים (externalMaterials)
+          </h2>
+
+          {externalMaterials.length === 0 && (
+            <div className="text-xs text-neutral-500 mb-2">
+              אין חומרים חיצוניים מוגדרים. אפשר להוסיף.
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {externalMaterials.map((m, idx) => (
+              <div
+                key={idx}
+                className="border rounded-xl p-3 text-xs flex flex-col gap-2 bg-neutral-50/80"
+              >
+                <div className="flex flex-wrap gap-2 items-center">
+                  <input
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px]"
+                    placeholder="שם / תיאור הקישור"
+                    value={m.label || ""}
+                    onChange={(e) =>
+                      updateExternalItem(idx, "label", e.target.value)
+                    }
+                  />
+                  <input
+                    className="border rounded-lg px-2 py-1 flex-[2] min-w-[180px]"
+                    placeholder="https://..."
+                    value={m.href || ""}
+                    onChange={(e) =>
+                      updateExternalItem(idx, "href", e.target.value)
+                    }
+                  />
+
+                  <div className="flex items-center gap-1">
+                    {m.icon && (
+                      <img
+                        src={m.icon}
+                        alt=""
+                        className="w-4 h-4 border rounded-full"
+                      />
+                    )}
+                    <select
+                      className="border rounded-lg px-2 py-1 text-[11px]"
+                      value={m.icon || ""}
+                      onChange={(e) =>
+                        updateExternalItem(idx, "icon", e.target.value)
+                      }
+                    >
+                      <option value="">ללא אייקון</option>
+                      {ICON_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => removeExternalItem(idx)}
+                  className="self-start text-[11px] text-red-600 underline"
+                >
+                  הסרת חומר
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addExternalItem}
+            className="mt-3 text-xs border rounded-xl px-3 py-1 hover:bg-neutral-50"
+          >
+            + הוספת חומר חיצוני
+          </button>
+        </section>
+
 
         {/* מטלות / עבודות */}
         <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60">

@@ -3,17 +3,17 @@ import express from "express";
 import cors from "cors";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import cookieSession from "cookie-session";   // ⬅️ במקום express-session
+import cookieSession from "cookie-session";
 import dotenv from "dotenv";
-
 import path from "path";
 import fs from "fs";
 
 import { query } from "./db.js";
-
 import adminRouter, {
   requireAuth,
   getEffectiveRole,
+  requireAdminLike,
+  getDisplayNameForEmail,
 } from "../api/adminRoutes.js";
 
 dotenv.config();
@@ -50,7 +50,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 app.use(
   cors({
-    origin: [ALLOWED_ORIGIN],
+    origin: [ALLOWED_ORIGIN, "http://localhost:5173"],
     credentials: true,
   })
 );
@@ -76,19 +76,19 @@ try {
 
 export { uploadRoot };
 
-// -------- cookie-session (במקום express-session) --------
+// -------- cookie-session --------
 app.use(
   cookieSession({
     name: "tau_sess",
     keys: [SESSION_SECRET],
-    secure: isProd,                 // ב־prod חייב HTTPS
+    secure: isProd,
     sameSite: isProd ? "none" : "lax",
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   })
 );
 
-// polyfill ל-passport + cookie-session (כמו שהיה לך ב-TS)
+// polyfill ל-passport + cookie-session
 app.use((req, _res, next) => {
   if (req.session && !req.session.regenerate) {
     req.session.regenerate = (cb) => cb();
@@ -126,7 +126,6 @@ passport.use(
         }
 
         const role = await getEffectiveRole(email);
-
         return done(null, { email, role });
       } catch (err) {
         console.error("[GoogleStrategy] failed to resolve role", err);
@@ -159,8 +158,6 @@ app.get(
 if (process.env.NODE_ENV !== "production") {
   app.get("/api/dev/login-as/:email", async (req, res) => {
     const email = req.params.email;
-
-    // לוקחים את התפקיד האמיתי מה-DB + HARD_ADMINS
     const role = await getEffectiveRole(email);
 
     req.session.regenerate(() => {
@@ -243,13 +240,30 @@ app.get("/api/homepage", async (_req, res) => {
   }
 });
 
+// ---- helper למודעות ציבוריות (כולל שם אם קיים) ----
+async function mapAnnouncementRow(row) {
+  const email = row.author_email || null;
+  const displayName = email ? await getDisplayNameForEmail(email) : null;
+
+  return {
+    id: String(row.id),
+    title: row.title,
+    body: row.body,
+    courseId: row.course_id,
+    createdAt: row.created_at,
+    updatedAt: row.created_at, // כרגע אין updated_at בטבלה – נשתמש ב-created
+    authorEmail: email,
+    authorName: displayName,
+  };
+}
+
 // --- public announcements (students) ---
 app.get("/api/announcements", async (req, res) => {
   const { courseId } = req.query;
 
   try {
     let sql = `
-      SELECT id, title, body, course_id, created_at
+      SELECT id, title, body, course_id, created_at, author_email
       FROM announcements
     `;
     const params = [];
@@ -264,16 +278,9 @@ app.get("/api/announcements", async (req, res) => {
     sql += ` ORDER BY created_at DESC LIMIT 20`;
 
     const result = await query(sql, params);
+    const items = await Promise.all(result.rows.map(mapAnnouncementRow));
 
-    res.json({
-      items: result.rows.map((r) => ({
-        id: String(r.id),
-        title: r.title,
-        body: r.body,
-        courseId: r.course_id,
-        createdAt: r.created_at,
-      })),
-    });
+    res.json({ items });
   } catch (err) {
     console.error("[GET /api/announcements] error", err);
     res.status(500).json({ error: "server_error" });

@@ -8,7 +8,6 @@ import fs from "fs";
 
 const router = express.Router();
 
-// admins “קשים” מה־env
 const HARD_ADMINS = (process.env.ADMIN_EMAILS || "morrabaev@mail.tau.ac.il")
   .split(",")
   .map((x) => x.trim().toLowerCase())
@@ -19,6 +18,7 @@ function mapCourseVaadRow(row) {
   return {
     id: row.id.toString(),
     email: row.email,
+    displayName: row.display_name || null,
     courseIds: row.course_ids,
   };
 }
@@ -28,6 +28,7 @@ function mapGlobalRoleRow(row) {
     id: row.id.toString(),
     email: row.email,
     role: row.role,
+    displayName: row.display_name || null,
   };
 }
 
@@ -35,13 +36,11 @@ function mapGlobalRoleRow(row) {
 export async function getEffectiveRole(email) {
   const lower = email.toLowerCase();
 
-  // 1) אם המייל ברשימת האדמינים הקשיחים – ישר admin
   if (HARD_ADMINS.includes(lower)) {
     return "admin";
   }
 
   try {
-    // 2) מנסים לקרוא מה-DB (global_roles)
     const result = await query(
       `SELECT role
        FROM global_roles
@@ -53,12 +52,10 @@ export async function getEffectiveRole(email) {
     const global = result.rows[0];
     return global?.role ?? "student";
   } catch (err) {
-    // 3) אם יש בעיה ב-DB (למשל הטבלה לא קיימת בפרוד) – לא נופלים
     console.error("[getEffectiveRole] DB error, defaulting to 'student'", err);
     return "student";
   }
 }
-
 
 export function requireAuth(req, res, next) {
   const user = req.user;
@@ -74,9 +71,7 @@ export async function requireAdminLike(req, res, next) {
 
   const lower = user.email.toLowerCase();
 
-  // אם הוא admin קשיח – לא צריך DB בכלל
   if (HARD_ADMINS.includes(lower)) {
-    // אפשר גם להדביק role על המשתמש, לנוחות:
     req.user.role = "admin";
     return next();
   }
@@ -95,7 +90,6 @@ export async function requireAdminLike(req, res, next) {
   }
 }
 
-// משתמש שהוא admin/vaad, או ועד קורס של הקורס הספציפי
 async function requireCourseVaadOrAdmin(req, res, next) {
   const user = req.user;
   if (!user?.email) {
@@ -143,7 +137,6 @@ let upload = null;
 
 try {
   if (process.env.NODE_ENV === "production") {
-    // תואם ל-logika ב-server/index.js
     syllabusDir = path.join("/tmp", "uploads", "syllabus");
   } else {
     syllabusDir = path.join(process.cwd(), "uploads", "syllabus");
@@ -185,6 +178,36 @@ try {
   upload = null;
 }
 
+// ---------- helpers לשם תצוגה לפי email ----------
+export async function getDisplayNameForEmail(email) {
+  if (!email) return null;
+
+  try {
+    const cv = await query(
+      `SELECT display_name FROM course_vaad
+       WHERE LOWER(email) = LOWER($1) AND display_name IS NOT NULL
+       LIMIT 1`,
+      [email]
+    );
+    if (cv.rows.length > 0) return cv.rows[0].display_name;
+  } catch (err) {
+    console.error("[getDisplayNameForEmail] course_vaad error", err);
+  }
+
+  try {
+    const gr = await query(
+      `SELECT display_name FROM global_roles
+       WHERE LOWER(email) = LOWER($1) AND display_name IS NOT NULL
+       LIMIT 1`,
+      [email]
+    );
+    if (gr.rows.length > 0) return gr.rows[0].display_name;
+  } catch (err) {
+    console.error("[getDisplayNameForEmail] global_roles error", err);
+  }
+
+  return null;
+}
 
 // ---------- routes ----------
 
@@ -193,9 +216,11 @@ router.get("/assignments", requireAdminLike, async (_req, res) => {
   try {
     const [courseRes, globalRes] = await Promise.all([
       query(
-        "SELECT id, email, course_ids FROM course_vaad ORDER BY id DESC"
+        "SELECT id, email, display_name, course_ids FROM course_vaad ORDER BY id DESC"
       ),
-      query("SELECT id, email, role FROM global_roles ORDER BY id DESC"),
+      query(
+        "SELECT id, email, role, display_name FROM global_roles ORDER BY id DESC"
+      ),
     ]);
 
     const courseVaad = courseRes.rows.map(mapCourseVaadRow);
@@ -213,23 +238,24 @@ router.get("/assignments", requireAdminLike, async (_req, res) => {
 
 // יצירת הקצאת "ועד קורס"
 router.post("/course-vaad", requireAdminLike, async (req, res) => {
-  const { email, courseIds } = req.body || {};
-  if (!email || !Array.isArray(courseIds) || courseIds.length === 0) {
-    return res.status(400).json({ error: "invalid_body" });
-  }
+  const { email, displayName, courseIds } = req.body;
 
   try {
-    const result = await query(
-      `INSERT INTO course_vaad (email, course_ids)
-       VALUES ($1, $2)
-       RETURNING id, email, course_ids`,
-      [email, courseIds]
+    await query(
+      `
+      INSERT INTO course_vaad (email, display_name, course_ids)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (email)
+      DO UPDATE SET
+        display_name = EXCLUDED.display_name,
+        course_ids   = EXCLUDED.course_ids
+    `,
+      [email, displayName || null, courseIds || []]
     );
 
-    const entry = mapCourseVaadRow(result.rows[0]);
-    res.json(entry);
+    res.json({ ok: true });
   } catch (err) {
-    console.error("[POST /course-vaad] error", err);
+    console.error("[POST /api/admin/course-vaad] error", err);
     res.status(500).json({ error: "server_error" });
   }
 });
@@ -255,7 +281,7 @@ router.put("/course-vaad/:id", requireAdminLike, async (req, res) => {
           ELSE $2
         END
       WHERE id = $3
-      RETURNING id, email, course_ids
+      RETURNING id, email, display_name, course_ids
       `,
       [
         email ?? null,
@@ -293,32 +319,32 @@ router.delete("/course-vaad/:id", requireAdminLike, async (req, res) => {
   }
 });
 
-// הוספת תפקיד גלובלי (admin / vaad)
-router.post("/global-role", requireAdminLike, async (req, res) => {
-  const { email, role } = req.body || {};
-  if (!email || (role !== "admin" && role !== "vaad")) {
-    return res.status(400).json({ error: "invalid_body" });
-  }
+// הוספת תפקיד גלובלי
+router.post("/global-roles", requireAdminLike, async (req, res) => {
+  const { email, role, displayName } = req.body;
 
   try {
-    const result = await query(
-      `INSERT INTO global_roles (email, role)
-       VALUES ($1, $2)
-       ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role
-       RETURNING id, email, role`,
-      [email, role]
+    await query(
+      `
+      INSERT INTO global_roles (email, role, display_name)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (email)
+      DO UPDATE SET
+        role         = EXCLUDED.role,
+        display_name = EXCLUDED.display_name
+    `,
+      [email, role, displayName || null]
     );
 
-    const entry = mapGlobalRoleRow(result.rows[0]);
-    res.json(entry);
+    res.json({ ok: true });
   } catch (err) {
-    console.error("[POST /global-role] error", err);
+    console.error("[POST /api/admin/global-roles] error", err);
     res.status(500).json({ error: "server_error" });
   }
 });
 
 // מחיקת תפקיד גלובלי
-router.delete("/global-role/:id", requireAdminLike, async (req, res) => {
+router.delete("/global-roles/:id", requireAdminLike, async (req, res) => {
   const { id } = req.params;
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) {
@@ -329,14 +355,13 @@ router.delete("/global-role/:id", requireAdminLike, async (req, res) => {
     await query("DELETE FROM global_roles WHERE id = $1", [numericId]);
     res.json({ ok: true });
   } catch (err) {
-    console.error("[DELETE /global-role/:id] error", err);
+    console.error("[DELETE /global-roles/:id] error", err);
     res.status(500).json({ error: "server_error" });
   }
 });
 
 // ---------- עריכת תוכן קורסים (admin / vaad / ועד־קורס) ----------
 
-// קריאת תוכן קורס לעריכה
 router.get(
   "/course-content/:courseId",
   requireCourseVaadOrAdmin,
@@ -364,7 +389,6 @@ router.get(
   }
 );
 
-// שמירת תוכן קורס (UPsert)
 router.put(
   "/course-content/:courseId",
   requireCourseVaadOrAdmin,
@@ -394,7 +418,6 @@ router.put(
   }
 );
 
-// העלאת PDF של סילבוס לקורס מסוים
 router.post(
   "/course-content/:courseId/syllabus-upload",
   requireCourseVaadOrAdmin,
@@ -417,11 +440,8 @@ router.post(
   }
 );
 
-
-
 // ----- homepage content (admin) -----
 
-// שליפה לעריכה
 router.get("/homepage", requireAdminLike, async (_req, res) => {
   try {
     const result = await query(
@@ -449,7 +469,6 @@ router.get("/homepage", requireAdminLike, async (_req, res) => {
   }
 });
 
-// שמירה / עדכון עמוד הבית
 router.put("/homepage", requireAdminLike, async (req, res) => {
   const data = req.body || {};
 
@@ -478,7 +497,7 @@ router.put("/homepage", requireAdminLike, async (req, res) => {
 
 // ----- announcements (admin) -----
 
-// רשימת כל המודעות
+// רשימת כל המודעות (לאדמין/ועד)
 router.get("/announcements", requireAdminLike, async (req, res) => {
   try {
     const { courseId } = req.query || {};
@@ -544,6 +563,51 @@ router.post("/announcements", requireAdminLike, async (req, res) => {
     });
   } catch (err) {
     console.error("[POST /admin/announcements] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// עדכון מודעה
+router.put("/announcements/:id", requireAdminLike, async (req, res) => {
+  const { id } = req.params;
+  const { title, body, courseId } = req.body || {};
+  const user = req.user;
+
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) {
+    return res.status(400).json({ error: "invalid_id" });
+  }
+
+  try {
+    const result = await query(
+      `
+      UPDATE announcements
+      SET
+        title = $1,
+        body = $2,
+        course_id = $3,
+        author_email = $4
+      WHERE id = $5
+      RETURNING id, title, body, course_id, author_email, created_at
+    `,
+      [title, body, courseId || null, user?.email || null, numericId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    const r = result.rows[0];
+    res.json({
+      id: String(r.id),
+      title: r.title,
+      body: r.body,
+      courseId: r.course_id,
+      authorEmail: r.author_email,
+      createdAt: r.created_at,
+    });
+  } catch (err) {
+    console.error("[PUT /admin/announcements/:id] error", err);
     res.status(500).json({ error: "server_error" });
   }
 });

@@ -28,14 +28,16 @@
   const AUTH_ENABLED = true;
 
   // ---- types ללוח מודעות בעמוד הבית ----
-  type AnnouncementPublic = {
-    id: string;
-    title: string;
-    body: string;
-    courseId?: string | null;
-    createdAt?: string;
-  };
-
+type AnnouncementPublic = {
+  id: string;
+  title: string;
+  body: string;
+  courseId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  authorEmail?: string | null;
+  authorName?: string | null;
+};
   // ---- תוכן עמוד הבית (ממסך עריכת homepage) ----
   type HomepageContent = {
     heroTitle?: string;
@@ -79,18 +81,73 @@
   }, []);
 
   // טעינת מודעות כלליות
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/announcements");
-        if (!res.ok) return;
-        const data = (await res.json()) as { items: AnnouncementPublic[] };
-        setAnnouncements(data.items || []);
-      } catch (e) {
-        console.warn("[HomeContent] failed to load announcements", e);
-      }
-    })();
-  }, []);
+useEffect(() => {
+  (async () => {
+    try {
+      const res = await fetch("/api/announcements");
+      if (!res.ok) return;
+      const data = (await res.json()) as { items: AnnouncementPublic[] };
+
+      // בעמוד הבית – רק מודעות כלליות (בלי courseId)
+      setAnnouncements((data.items || []).filter((a) => !a.courseId));
+    } catch (e) {
+      console.warn("[HomeContent] failed to load announcements", e);
+    }
+  })();
+}, []);
+
+
+const formatAnnouncementMeta = (a: AnnouncementPublic) => {
+  const dateStr = a.updatedAt || a.createdAt;
+  const hasAuthor = !!(a.authorName || a.authorEmail);
+
+  if (!dateStr && !hasAuthor) return null;
+
+  const d = dateStr ? new Date(dateStr) : null;
+
+  return (
+    <>
+      {d && (
+        <>
+          עודכן בתאריך{" "}
+          {d.toLocaleDateString("he-IL", {
+            weekday: "long",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })}{" "}
+          בשעה{" "}
+          {d.toLocaleTimeString("he-IL", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </>
+      )}
+
+      {hasAuthor && (
+        <>
+          {" "}
+          ע"י{" "}
+          {a.authorName ? (
+            <>
+              {a.authorName}
+              {a.authorEmail && (
+                <span className="text-neutral-500">
+                  {" "}
+                  ({a.authorEmail})
+                </span>
+              )}
+            </>
+          ) : (
+            a.authorEmail
+          )}
+        </>
+      )}
+    </>
+  );
+};
+
+
 
   // טעינת תוכן עמוד הבית (ציבורי)
   useEffect(() => {
@@ -262,26 +319,29 @@
       )}
 
       {/* לוח מודעות */}
-      {announcements.length > 0 && (
-        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm">
-          <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
-          <ul className="space-y-2 text-sm">
-            {announcements.map((a) => (
-              <li key={a.id} className="border-b last:border-b-0 pb-2">
-                <div className="font-medium">{a.title}</div>
-                <div className="text-xs text-neutral-700 whitespace-pre-line">
-                  {a.body}
-                </div>
-                {a.createdAt && (
-                  <div className="text-[10px] text-neutral-400 mt-1">
-                    {new Date(a.createdAt).toLocaleString("he-IL")}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+{announcements.length > 0 && (
+  <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm">
+    <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
+    <ul className="space-y-2 text-sm">
+      {announcements.map((a) => (
+        <li key={a.id} className="border-b last:border-b-0 pb-2">
+          <div className="font-medium">{a.title}</div>
+          <div className="text-xs text-neutral-700 whitespace-pre-line">
+            {a.body}
+          </div>
+
+          {/* מראים מטא־דאטה רק אם באמת יש משהו */}
+          {formatAnnouncementMeta(a) && (
+            <div className="text-[10px] text-neutral-400 mt-1">
+              {formatAnnouncementMeta(a)}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
 
       {/* טבלת מטלות + מבחנים קרובים */}
       {latestItems.length > 0 && (
@@ -538,7 +598,8 @@
         className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
         title="התנתקות"
       >
-        <span className="hidden sm:inline">התנתקות</span>
+  <span className="inline">התנתקות</span>
+
       </button>
     </>
   )}
