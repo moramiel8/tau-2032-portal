@@ -307,7 +307,6 @@ app.get("/api/course-content", async (_req, res) => {
 });
 
 // -- Count view and return current count --
-// -- Count view and return current count --
 app.post("/api/stats/view", async (req, res) => {
   try {
     const result = await query(
@@ -327,6 +326,22 @@ app.post("/api/stats/view", async (req, res) => {
     res.status(500).json({ error: "server_error" });
   }
 });
+
+// -- Fetch only (לא חובה כרגע, אבל שיהיה תקין) --
+app.get("/api/stats/view", async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT value FROM stats WHERE key = 'site_views'`
+    );
+
+    const views = result.rows[0]?.value ?? 0;
+    res.json({ views });
+  } catch (err) {
+    console.error("[GET /api/stats/view] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
 
 // -- Fetch only (for footer refresh) --
 app.get("/api/stats/view", async (req, res) => {

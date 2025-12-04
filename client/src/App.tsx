@@ -455,7 +455,7 @@ export default function App() {
   const [loadingUser, setLoadingUser] = useState(false);
   const [myCourseVaadIds, setMyCourseVaadIds] = useState<string[]>([]);
 
-  const [views, setViews] = useState<number | null>(null); // 👈 מונה ביקורים
+const [views, setViews] = useState<number>(0);
 
   const nav = useNavigate();
   const openCourse = (course: Course) => nav(`/course/${course.id}`);
@@ -729,20 +729,19 @@ export default function App() {
         )}
       </main>
 
-      <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500 flex gap-4 items-center">
-        <span>
-          נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה{" "}
-          {lastUpdatedText || "—"}
-        </span>
+     <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500 flex gap-4 items-center">
+  <span>
+    נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה{" "}
+    {lastUpdatedText || "—"}
+  </span>
 
-        {/* מונה ביקורים קטן עם אייקון */}
-        {views !== null && (
-          <span className="flex items-center gap-1 text-neutral-400"><span>מספר מבקרים:</span>
-            <img src={IMG_VISITOR} alt="" className="w-3 h-3 opacity-70" />
-            {views.toLocaleString("he-IL")}
-          </span>
-        )}
-      </footer>
+  <span className="flex items-center gap-0.5 text-neutral-400">
+    <span>מספר מבקרים:</span>
+    <span className="w-3 h-3 opacity-70" />
+    {views.toLocaleString("he-IL")}
+  </span>
+</footer>
+
 
       <Toast />
       {/* <DebugBar /> */}
