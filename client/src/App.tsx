@@ -25,7 +25,7 @@ import { getCachedUser } from "./utils/sessionCache";
 import CourseRoute from "./routes/CourseRoute";
 import AdminPanel from "./routes/AdminPanel";
 
-import { IMG_VISITOR } from "./constants/icons";
+import { IMG_BUYME, IMG_WHATSAPP, IMG_FACEBOOK, IMG_GITHUB } from "./constants/icons";
 
 
 const AUTH_ENABLED = true;
@@ -729,17 +729,66 @@ const [views, setViews] = useState<number>(0);
         )}
       </main>
 
-     <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500 flex gap-4 items-center">
-  <span>
-    נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה{" "}
-    {lastUpdatedText || "—"}
-  </span>
+<footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
+  <div className="flex flex-col gap-2">
 
-  <span className="flex items-center gap-0.5 text-neutral-400">
-    <span>מספר מבקרים:</span>
-    <span className="w-3 h-3 opacity-70" />
-    {views.toLocaleString("he-IL")}
-  </span>
+    {/* שורה עליונה – טקסט */}
+    <span>
+      נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה{" "}
+      {lastUpdatedText || "—"}
+    </span>
+
+    {/* שורה שניה – מספר מבקרים */}
+    <span className="flex items-center gap-1 text-neutral-400">
+      מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
+    </span>
+
+    {/* שורה שלישית – אייקונים */}
+    <div className="flex items-center gap-4 mt-2">
+
+      {/* Facebook */}
+      <a
+        href="https://www.facebook.com/mork0/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="opacity-70 hover:opacity-100 transition"
+      >
+        <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
+      </a>
+
+      {/* GitHub */}
+      <a
+        href="https://github.com/moramiel8"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="opacity-70 hover:opacity-100 transition"
+      >
+        <img src={IMG_GITHUB} alt="GitHub" className="w-5 h-5" />
+      </a>
+
+      {/* Buy Me a Coffee */}
+      <a
+        href="https://buymecoffee.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="opacity-70 hover:opacity-100 transition"
+      >
+        <img src={IMG_BUYME} alt="Buy Me a Coffee" className="w-5 h-5" />
+      </a>
+
+      {/* WhatsApp – לינק להודעה אישית */}
+      <a
+  href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="opacity-70 hover:opacity-100 transition"
+>
+  <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
+</a>
+
+
+    </div>
+  </div>
 </footer>
 
 

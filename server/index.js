@@ -311,18 +311,36 @@ app.post("/api/stats/view", async (req, res) => {
   try {
     const result = await query(
       `
-      INSERT INTO stats (key, value)
-      VALUES ('site_views', 1)
+      INSERT INTO stats(key, value)
+      VALUES('site_views', 1)
       ON CONFLICT (key)
       DO UPDATE SET value = stats.value + 1
       RETURNING value
       `
     );
 
-    const views = result.rows[0]?.value ?? 0;
+    const views = Number(result.rows[0]?.value ?? 0);
     res.json({ views });
   } catch (err) {
     console.error("[POST /api/stats/view] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// -- Fetch only (for footer refresh) --
+app.get("/api/stats/view", async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT value FROM stats WHERE key = 'site_views'`
+    );
+
+    const views = result.rows.length
+      ? Number(result.rows[0].value ?? 0)
+      : 0;
+
+    res.json({ views });
+  } catch (err) {
+    console.error("[GET /api/stats/view] error", err);
     res.status(500).json({ error: "server_error" });
   }
 });
