@@ -90,6 +90,35 @@ export async function requireAdminLike(req, res, next) {
   }
 }
 
+export async function requireAdminOnly(req, res, next) {
+  const user = req.user;
+  if (!user?.email) {
+    return res.status(401).json({ error: "not_authenticated" });
+  }
+
+  const lower = user.email.toLowerCase();
+
+  // אדמין "קשיח" דרך ENV תמיד מאושר
+  if (HARD_ADMINS.includes(lower)) {
+    req.user.role = "admin";
+    return next();
+  }
+
+  try {
+    const role = await getEffectiveRole(user.email);
+    if (role !== "admin") {
+      return res.status(403).json({ error: "forbidden" });
+    }
+
+    req.user.role = "admin";
+    next();
+  } catch (err) {
+    console.error("[requireAdminOnly] failed", err);
+    return res.status(500).json({ error: "server_error" });
+  }
+}
+
+
 async function requireCourseVaadOrAdmin(req, res, next) {
   const user = req.user;
   if (!user?.email) {
@@ -326,7 +355,8 @@ router.delete("/course-vaad/:id", requireAdminLike, async (req, res) => {
 });
 
 // הוספת תפקיד גלובלי
-router.post("/global-roles", requireAdminLike, async (req, res) => {
+// הוספת תפקיד גלובלי (ועד כללי / מנהל מערכת)
+router.post("/global-roles", requireAdminOnly, async (req, res) => {
   const { email, role, displayName } = req.body;
 
   try {

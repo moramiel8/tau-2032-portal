@@ -113,13 +113,13 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       <>
         {d && (
           <>
-            עודכן בתאריך{" "}
+            עודכן ב{" "}
             {d.toLocaleDateString("he-IL", {
               weekday: "long",
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
-            })}{" "}
+            })}{" "},
             בשעה{" "}
             {d.toLocaleTimeString("he-IL", {
               hour: "2-digit",
@@ -311,7 +311,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
-          <h2 className="text-sm text-neutral-600 mb-3">
+          <h2 className="text-sm text-neutral-600 mb-3 whitespace-pre-line">
             {homepage.heroSubtitle ||
               "כל המידע, הקישורים והחומרים במקום אחד"}
           </h2>
