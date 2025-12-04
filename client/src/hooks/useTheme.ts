@@ -1,29 +1,18 @@
-//client/src/hooks/useTheme.ts
-
+// client/src/hooks/useTheme.ts
 import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
+const THEME_KEY = "medtau-theme";
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return "light";
-
-    const saved = localStorage.getItem("theme") as Theme | null;
-    if (saved === "light" || saved === "dark") return saved;
-
-    // ברירת מחדל – לפי מערכת ההפעלה
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return prefersDark ? "dark" : "light";
+    const stored = localStorage.getItem(THEME_KEY) as Theme | null;
+    return stored || "light";
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-    localStorage.setItem("theme", theme);
+    localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
   const toggleTheme = () =>

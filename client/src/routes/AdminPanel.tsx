@@ -437,7 +437,7 @@ const loadAssignments = async () => {
           ) : (
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b text-xs text-neutral-500">
+                <tr className="border-b text-xs text-neutral-500 dark:border-slate-700">
                   <th className="text-right py-2">מייל</th>
                   <th className="text-right py-2">קורסים</th>
                   <th className="text-right py-2 w-24">פעולות</th>
@@ -501,7 +501,7 @@ const loadAssignments = async () => {
           ) : (
             <table className="w-full text-sm border-collapse mb-4">
               <thead>
-                <tr className="border-b text-xs text-neutral-500">
+                <tr className="border-b text-xs text-neutral-500 dark:border-slate-700">
                   <th className="text-right py-2">מייל</th>
                   <th className="text-right py-2">תפקיד</th>
                   <th className="text-right py-2 w-24">פעולות</th>

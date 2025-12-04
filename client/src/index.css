@@ -1,4 +1,13 @@
 @import "tailwindcss";
 
-html { direction: rtl; }
-body { @apply bg-white text-black; }
+/* זה מה שעושה את מצב הדארק לפי class="dark" */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html {
+  direction: rtl;
+}
+
+/* אפשר גם לתת דיפולט ללייף־מוד */
+body {
+  @apply bg-white text-black;
+}

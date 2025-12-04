@@ -187,7 +187,7 @@ const formatAnnouncementMeta = (a: CourseAnnouncement) => {
 
       {/* קישורים */}
       {links && (
-        <section className="mb-4">
+<section className="mb-4 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
           <h2 className="text-sm font-medium mb-2">קישורים</h2>
           <div className="flex flex-wrap gap-2 text-xs">
             {links.drive && (

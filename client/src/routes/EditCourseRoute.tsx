@@ -9,7 +9,7 @@ import {
   IMG_WHATSAPP,
   IMG_MOODLE,
   IMG_NET,
-} from "../constants/icons"; 
+} from "../constants/icons";
 
 type CourseContent = Course & {
   [key: string]: any;
@@ -93,10 +93,10 @@ export default function EditCourseRoute() {
     }
   };
 
-  // ------- autosave (עם debounce) -------
+  // autosave עם debounce
   useEffect(() => {
     if (!id || !content) return;
-    if (!loadedRef.current) return; // לא לשמור בזמן הטעינה הראשונית
+    if (!loadedRef.current) return;
 
     setAutoStatus("saving");
     if (autoTimerRef.current) {
@@ -127,11 +127,11 @@ export default function EditCourseRoute() {
     };
   }, [id, content]);
 
-  // ------- helpers לעריכת arrays של assignments / exams -------
+  // ------- helpers לעריכת arrays -------
 
   const updateArrayItem = (
     field: "assignments" | "exams",
-    index: number,  
+    index: number,
     key: keyof AssessmentItem,
     value: string
   ) => {
@@ -167,8 +167,7 @@ export default function EditCourseRoute() {
     });
   };
 
-
-const updateExternalItem = (
+  const updateExternalItem = (
     index: number,
     key: keyof ExternalMaterial,
     value: string
@@ -191,7 +190,7 @@ const updateExternalItem = (
     arr.push({
       label: "",
       href: "",
-      icon: IMG_NET, // ברירת מחדל – אינטרנט
+      icon: IMG_NET,
     });
     setContent({
       ...content,
@@ -209,32 +208,29 @@ const updateExternalItem = (
     });
   };
 
-   const ICON_OPTIONS: { label: string; value: string }[] = [
+  const ICON_OPTIONS: { label: string; value: string }[] = [
     { label: "Drive", value: IMG_DRIVE },
     { label: "PDF", value: IMG_PDF },
     { label: "Moodle", value: IMG_MOODLE },
     { label: "WhatsApp", value: IMG_WHATSAPP },
     { label: "Chrome (For General Website)", value: IMG_NET },
   ];
-  // רק ספרות + ./- בתאריך (לא חובה אבל שומר על פורמט אם אי פעם תעבור ל-input רגיל)
+
   const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
 
   if (!id) {
-    return <div className="p-4">לא הועבר מזהה קורס.</div>;
+    return <div className="p-4 text-sm">לא הועבר מזהה קורס.</div>;
   }
 
   if (loading || !content) {
-    return <div className="p-4">טוען נתוני קורס...</div>;
+    return <div className="p-4 text-sm">טוען נתוני קורס...</div>;
   }
 
   const assignments: AssessmentItem[] = content.assignments || [];
   const exams: AssessmentItem[] = content.exams || [];
-
   const links = content.links || {};
-
-    const externalMaterials: ExternalMaterial[] =
+  const externalMaterials: ExternalMaterial[] =
     (content.externalMaterials as ExternalMaterial[]) || [];
-
 
   const handleSyllabusUpload = async (file: File) => {
     if (!id || !content) return;
@@ -261,7 +257,6 @@ const updateExternalItem = (
         ...content,
         syllabus: data.url,
       });
-      // autosave כבר ידאג לשמור ב־DB
     } catch (e) {
       console.warn("[EditCourseRoute] syllabus upload failed", e);
       setUploadError("העלאת הקובץ נכשלה");
@@ -275,19 +270,30 @@ const updateExternalItem = (
       <h1 className="text-2xl font-semibold mb-1">
         עריכת קורס: {content.name}
       </h1>
-      <p className="text-xs text-neutral-500 mb-4">
+      <p className="text-xs text-neutral-500 dark:text-slate-400 mb-4">
         מזהה קורס פנימי: <code>{id}</code>
       </p>
 
       <div className="space-y-6 text-sm">
         {/* פרטים בסיסיים */}
-        <section className="border rounded-2xl p-4 bg-neutral-50/60">
+        <section
+          className="
+            border rounded-2xl p-4
+            bg-neutral-50/60 border-neutral-200
+            dark:bg-slate-900 dark:border-slate-700
+          "
+        >
           <h2 className="text-sm font-medium mb-3">פרטי קורס</h2>
 
           <label className="block mb-3">
             <span className="block mb-1">שם הקורס:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                dark:placeholder-slate-500
+              "
               value={content.name || ""}
               onChange={(e) =>
                 setContent({
@@ -301,7 +307,11 @@ const updateExternalItem = (
           <label className="block mb-3">
             <span className="block mb-1">רכז/ת הקורס:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={content.coordinator || ""}
               onChange={(e) =>
                 setContent({
@@ -315,7 +325,11 @@ const updateExternalItem = (
           <label className="block mb-3">
             <span className="block mb-1">מספר קורס:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={content.courseNumber || ""}
               onChange={(e) =>
                 setContent({
@@ -329,7 +343,11 @@ const updateExternalItem = (
           <label className="block mb-3">
             <span className="block mb-1">הערה קצרה בלבד:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={content.note || ""}
               onChange={(e) =>
                 setContent({
@@ -340,10 +358,14 @@ const updateExternalItem = (
             />
           </label>
 
-             <label className="block">
+          <label className="block mb-3">
             <span className="block mb-1">מה היה בשבוע האחרון?</span>
             <textarea
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={content.whatwas || ""}
               onChange={(e) =>
                 setContent({
@@ -354,10 +376,14 @@ const updateExternalItem = (
             />
           </label>
 
-                    <label className="block">
+          <label className="block">
             <span className="block mb-1">מה יהיה בהמשך?</span>
             <textarea
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={content.whatwill || ""}
               onChange={(e) =>
                 setContent({
@@ -370,7 +396,13 @@ const updateExternalItem = (
         </section>
 
         {/* קישורים */}
-        <section className="border rounded-2xl p-4 bg-white">
+        <section
+          className="
+            border rounded-2xl p-4
+            bg-white border-neutral-200
+            dark:bg-slate-900 dark:border-slate-700
+          "
+        >
           <h2 className="text-sm font-medium mb-3">קישורים</h2>
 
           <label className="block mb-3">
@@ -378,7 +410,11 @@ const updateExternalItem = (
 
             <div className="flex flex-wrap items-center gap-2">
               <input
-                className="border rounded-xl px-3 py-2 w-full sm:flex-1"
+                className="
+                  border rounded-xl px-3 py-2 w-full sm:flex-1
+                  border-neutral-200 bg-white text-neutral-900
+                  dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                "
                 value={content.syllabus || ""}
                 onChange={(e) =>
                   setContent({
@@ -389,7 +425,16 @@ const updateExternalItem = (
                 placeholder="https://... או /uploads/syllabus/..."
               />
 
-              <label className="text-xs border rounded-xl px-3 py-2 cursor-pointer hover:bg-neutral-50 flex items-center gap-1">
+              <label
+                className="
+                  text-xs border rounded-xl px-3 py-2 cursor-pointer
+                  hover:bg-neutral-50
+                  border-neutral-200 bg-white
+                  flex items-center gap-1
+                  dark:border-slate-700 dark:bg-slate-900
+                  dark:hover:bg-slate-800
+                "
+              >
                 📎 העלאת PDF
                 <input
                   type="file"
@@ -407,7 +452,7 @@ const updateExternalItem = (
             </div>
 
             {uploadingSyllabus && (
-              <div className="text-[11px] text-neutral-500 mt-1">
+              <div className="text-[11px] text-neutral-500 dark:text-slate-400 mt-1">
                 מעלה את הקובץ… ⏳
               </div>
             )}
@@ -426,7 +471,11 @@ const updateExternalItem = (
           <label className="block mb-3">
             <span className="block mb-1">קישור לדרייב הקורס:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={links.drive || ""}
               onChange={(e) =>
                 setContent({
@@ -444,7 +493,11 @@ const updateExternalItem = (
           <label className="block mb-3">
             <span className="block mb-1">קישור למודל:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={links.moodle || ""}
               onChange={(e) =>
                 setContent({
@@ -462,7 +515,11 @@ const updateExternalItem = (
           <label className="block">
             <span className="block mb-1">קבוצת וואטסאפ:</span>
             <input
-              className="border rounded-xl px-3 py-2 w-full"
+              className="
+                border rounded-xl px-3 py-2 w-full
+                border-neutral-200 bg-white text-neutral-900
+                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+              "
               value={links.whatsapp || ""}
               onChange={(e) =>
                 setContent({
@@ -479,13 +536,19 @@ const updateExternalItem = (
         </section>
 
         {/* חומרים חיצוניים */}
-        <section className="mt-2 border rounded-2xl p-4 bg-white">
+        <section
+          className="
+            mt-2 border rounded-2xl p-4
+            bg-white border-neutral-200
+            dark:bg-slate-900 dark:border-slate-700
+          "
+        >
           <h2 className="text-sm font-medium mb-2">
             חומרים חיצוניים (externalMaterials)
           </h2>
 
           {externalMaterials.length === 0 && (
-            <div className="text-xs text-neutral-500 mb-2">
+            <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
               אין חומרים חיצוניים מוגדרים. אפשר להוסיף.
             </div>
           )}
@@ -494,11 +557,19 @@ const updateExternalItem = (
             {externalMaterials.map((m, idx) => (
               <div
                 key={idx}
-                className="border rounded-xl p-3 text-xs flex flex-col gap-2 bg-neutral-50/80"
+                className="
+                  border rounded-xl p-3 text-xs flex flex-col gap-2
+                  bg-neutral-50/80 border-neutral-200
+                  dark:bg-slate-950/40 dark:border-slate-700
+                "
               >
                 <div className="flex flex-wrap gap-2 items-center">
                   <input
-                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px]"
+                    className="
+                      border rounded-lg px-2 py-1 flex-1 min-w-[140px]
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="שם / תיאור הקישור"
                     value={m.label || ""}
                     onChange={(e) =>
@@ -506,7 +577,11 @@ const updateExternalItem = (
                     }
                   />
                   <input
-                    className="border rounded-lg px-2 py-1 flex-[2] min-w-[180px]"
+                    className="
+                      border rounded-lg px-2 py-1 flex-[2] min-w-[180px]
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="https://..."
                     value={m.href || ""}
                     onChange={(e) =>
@@ -519,11 +594,15 @@ const updateExternalItem = (
                       <img
                         src={m.icon}
                         alt=""
-                        className="w-4 h-4 border rounded-full"
+                        className="w-4 h-4 border rounded-full border-neutral-200 dark:border-slate-600"
                       />
                     )}
                     <select
-                      className="border rounded-lg px-2 py-1 text-[11px]"
+                      className="
+                        border rounded-lg px-2 py-1 text-[11px]
+                        border-neutral-200 bg-white text-neutral-900
+                        dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                      "
                       value={m.icon || ""}
                       onChange={(e) =>
                         updateExternalItem(idx, "icon", e.target.value)
@@ -553,21 +632,30 @@ const updateExternalItem = (
           <button
             type="button"
             onClick={addExternalItem}
-            className="mt-3 text-xs border rounded-xl px-3 py-1 hover:bg-neutral-50"
+            className="
+              mt-3 text-xs border rounded-xl px-3 py-1
+              border-neutral-200 bg-white hover:bg-neutral-50
+              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
+            "
           >
             + הוספת חומר חיצוני
           </button>
         </section>
 
-
         {/* מטלות / עבודות */}
-        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60">
+        <section
+          className="
+            mt-2 border rounded-2xl p-4
+            bg-neutral-50/60 border-neutral-200
+            dark:bg-slate-900 dark:border-slate-700
+          "
+        >
           <h2 className="text-sm font-medium mb-2">
             מטלות / עבודות (assignments)
           </h2>
 
           {assignments.length === 0 && (
-            <div className="text-xs text-neutral-500 mb-2">
+            <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
               אין מטלות מוגדרות. אפשר להוסיף.
             </div>
           )}
@@ -576,11 +664,19 @@ const updateExternalItem = (
             {assignments.map((a, idx) => (
               <div
                 key={idx}
-                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white"
+                className="
+                  border rounded-xl p-3 text-xs flex flex-col gap-1
+                  bg-white border-neutral-200
+                  dark:bg-slate-950/40 dark:border-slate-700
+                "
               >
                 <div className="flex flex-wrap gap-2">
                   <input
-                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px]"
+                    className="
+                      border rounded-lg px-2 py-1 flex-1 min-w-[140px]
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="שם המטלה"
                     value={a.title || ""}
                     onChange={(e) =>
@@ -589,7 +685,11 @@ const updateExternalItem = (
                   />
                   <input
                     type="date"
-                    className="border rounded-lg px-2 py-1 w-32"
+                    className="
+                      border rounded-lg px-2 py-1 w-32
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="תאריך"
                     value={a.date || ""}
                     onChange={(e) =>
@@ -602,7 +702,11 @@ const updateExternalItem = (
                     }
                   />
                   <input
-                    className="border rounded-lg px-2 py-1 w-24"
+                    className="
+                      border rounded-lg px-2 py-1 w-24
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="משקל"
                     value={a.weight || ""}
                     onChange={(e) =>
@@ -616,7 +720,11 @@ const updateExternalItem = (
                   />
                 </div>
                 <textarea
-                  className="border rounded-lg px-2 py-1 w-full"
+                  className="
+                    border rounded-lg px-2 py-1 w-full
+                    border-neutral-200 bg-white text-neutral-900
+                    dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                  "
                   placeholder="הערות (אופציונלי)"
                   value={a.notes || ""}
                   onChange={(e) =>
@@ -642,18 +750,28 @@ const updateExternalItem = (
           <button
             type="button"
             onClick={() => addArrayItem("assignments")}
-            className="mt-3 text-xs border rounded-xl px-3 py-1 hover:bg-white"
+            className="
+              mt-3 text-xs border rounded-xl px-3 py-1
+              border-neutral-200 bg-white hover:bg-neutral-50
+              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
+            "
           >
             + הוספת מטלה
           </button>
         </section>
 
         {/* בחנים / מבחנים */}
-        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60">
+        <section
+          className="
+            mt-2 border rounded-2xl p-4
+            bg-neutral-50/60 border-neutral-200
+            dark:bg-slate-900 dark:border-slate-700
+          "
+        >
           <h2 className="text-sm font-medium mb-2">בחנים / מבחנים (exams)</h2>
 
           {exams.length === 0 && (
-            <div className="text-xs text-neutral-500 mb-2">
+            <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
               אין בחנים/מבחנים מוגדרים. אפשר להוסיף.
             </div>
           )}
@@ -662,11 +780,19 @@ const updateExternalItem = (
             {exams.map((ex, idx) => (
               <div
                 key={idx}
-                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white"
+                className="
+                  border rounded-xl p-3 text-xs flex flex-col gap-1
+                  bg-white border-neutral-200
+                  dark:bg-slate-950/40 dark:border-slate-700
+                "
               >
                 <div className="flex flex-wrap gap-2">
                   <input
-                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px]"
+                    className="
+                      border rounded-lg px-2 py-1 flex-1 min-w-[140px]
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="שם הבחינה"
                     value={ex.title || ""}
                     onChange={(e) =>
@@ -675,7 +801,11 @@ const updateExternalItem = (
                   />
                   <input
                     type="date"
-                    className="border rounded-lg px-2 py-1 w-32"
+                    className="
+                      border rounded-lg px-2 py-1 w-32
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="תאריך"
                     value={ex.date || ""}
                     onChange={(e) =>
@@ -688,7 +818,11 @@ const updateExternalItem = (
                     }
                   />
                   <input
-                    className="border rounded-lg px-2 py-1 w-24"
+                    className="
+                      border rounded-lg px-2 py-1 w-24
+                      border-neutral-200 bg-white text-neutral-900
+                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                    "
                     placeholder="משקל"
                     value={ex.weight || ""}
                     onChange={(e) =>
@@ -697,7 +831,11 @@ const updateExternalItem = (
                   />
                 </div>
                 <textarea
-                  className="border rounded-lg px-2 py-1 w-full"
+                  className="
+                    border rounded-lg px-2 py-1 w-full
+                    border-neutral-200 bg-white text-neutral-900
+                    dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
+                  "
                   placeholder="הערות (אופציונלי)"
                   value={ex.notes || ""}
                   onChange={(e) =>
@@ -718,7 +856,11 @@ const updateExternalItem = (
           <button
             type="button"
             onClick={() => addArrayItem("exams")}
-            className="mt-3 text-xs border rounded-xl px-3 py-1 hover:bg-white"
+            className="
+              mt-3 text-xs border rounded-xl px-3 py-1
+              border-neutral-200 bg-white hover:bg-neutral-50
+              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
+            "
           >
             + הוספת בחינה
           </button>
@@ -730,19 +872,25 @@ const updateExternalItem = (
             type="button"
             onClick={manualSave}
             disabled={saving}
-            className="border rounded-xl px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-60"
+            className="
+              border rounded-xl px-4 py-2 text-sm
+              border-neutral-200 bg-white hover:bg-neutral-50
+              disabled:opacity-60
+              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
+              dark:text-slate-100
+            "
           >
             {saving ? "שומר..." : "שמירת שינויים ידנית"}
           </button>
           <button
             type="button"
             onClick={() => nav("/admin/courses")}
-            className="text-xs text-neutral-500 underline"
+            className="text-xs text-neutral-500 dark:text-slate-400 underline"
           >
             ביטול / חזרה לרשימת הקורסים
           </button>
 
-          <div className="text-[11px] text-neutral-500 ms-auto">
+          <div className="text-[11px] text-neutral-500 dark:text-slate-400 ms-auto">
             {autoStatus === "saving" && "שומר אוטומטית..."}
             {autoStatus === "saved" && "נשמר אוטומטית לפני רגע"}
             {autoStatus === "error" &&

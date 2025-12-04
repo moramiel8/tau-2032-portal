@@ -98,44 +98,50 @@ export default function AdminCoursesRoute() {
         </span>
       </div>
 
-      <div className="border rounded-2xl overflow-hidden shadow-sm bg-white">
-        <table className="w-full text-sm border-collapse">
-          <thead className="bg-neutral-50 text-xs text-neutral-500">
-            <tr>
-              <th className="text-right py-2 px-3">שנה</th>
-              <th className="text-right py-2 px-3">סמסטר</th>
-              <th className="text-right py-2 px-3">שם הקורס</th>
-              <th className="text-right py-2 px-3">מספר קורס</th>
-              <th className="text-right py-2 px-3 w-32">פעולות</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((c) => (
-              <tr
-                key={`${c.yearId}-${c.semesterId}-${c.id}`}
-                className="border-t hover:bg-neutral-50/70"
-              >
-                <td className="py-2 px-3 align-top text-xs">{c.yearTitle}</td>
-                <td className="py-2 px-3 align-top text-xs">
-                  {c.semesterTitle}
-                </td>
-                <td className="py-2 px-3 align-top">
-                  <div className="font-medium text-sm">{c.name}</div>
-                  <div className="text-xs text-neutral-500">{c.id}</div>
-                </td>
-                <td className="py-2 px-3 align-top text-xs">
-                  {c.courseNumber || "—"}
-                </td>
-                <td className="py-2 px-3 align-top text-xs">
-                  <button
-                    type="button"
-                    onClick={() => nav(`/admin/course/${c.id}/edit`)}
-                    className="border rounded-xl px-3 py-1 hover:bg-neutral-50"
-                  >
-                    עריכה
-                  </button>
-                </td>
-              </tr>
+      <div className="border rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
+  <table className="w-full text-sm border-collapse">
+    <thead className="bg-neutral-50 text-xs text-neutral-500 dark:bg-slate-800 dark:text-slate-300">
+      <tr>
+        <th className="text-right py-2 px-3">שנה</th>
+        <th className="text-right py-2 px-3">סמסטר</th>
+        <th className="text-right py-2 px-3">שם הקורס</th>
+        <th className="text-right py-2 px-3">מספר קורס</th>
+        <th className="text-right py-2 px-3 w-32">פעולות</th>
+      </tr>
+    </thead>
+    <tbody>
+      {filtered.map((c) => (
+        <tr
+          key={`${c.yearId}-${c.semesterId}-${c.id}`}
+          className="border-t hover:bg-neutral-50/70 dark:border-slate-800 dark:hover:bg-slate-800/70"
+        >
+          <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
+            {c.yearTitle}
+          </td>
+          <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
+            {c.semesterTitle}
+          </td>
+          <td className="py-2 px-3 align-top">
+            <div className="font-medium text-sm text-neutral-900 dark:text-slate-50">
+              {c.name}
+            </div>
+            <div className="text-xs text-neutral-500 dark:text-slate-400">
+              {c.id}
+            </div>
+          </td>
+          <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
+            {c.courseNumber || "—"}
+          </td>
+          <td className="py-2 px-3 align-top text-xs">
+            <button
+              type="button"
+              onClick={() => nav(`/admin/course/${c.id}/edit`)}
+              className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+            >
+              עריכה
+            </button>
+          </td>
+        </tr>
             ))}
             {filtered.length === 0 && (
               <tr>

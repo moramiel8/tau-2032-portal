@@ -46,8 +46,12 @@ function loadInitialState(): PersistedState {
 }
 
 export default function CourseList({ years, onOpenCourse }: Props) {
-  const [openPre, setOpenPre] = useState<boolean>(() => loadInitialState().openPre);
-  const [openClinical, setOpenClinical] = useState<boolean>(() => loadInitialState().openClinical);
+  const [openPre, setOpenPre] = useState<boolean>(
+    () => loadInitialState().openPre
+  );
+  const [openClinical, setOpenClinical] = useState<boolean>(
+    () => loadInitialState().openClinical
+  );
   const [openYears, setOpenYears] = useState<OpenYearsState>(
     () => loadInitialState().openYears
   );
@@ -78,7 +82,6 @@ export default function CourseList({ years, onOpenCourse }: Props) {
   const toggleYear = (yearId: string) => {
     setOpenYears((prev) => {
       const current = prev[yearId];
-      // אם undefined → נחשב כפתוח, לחיצה ראשונה תהפוך לסגור
       const nextOpen = current === undefined ? false : !current;
       return {
         ...prev,
@@ -95,14 +98,26 @@ export default function CourseList({ years, onOpenCourse }: Props) {
         return (
           <section
             key={year.id}
-            className="border rounded-2xl p-4 bg-white shadow-sm"
+            className="
+              border rounded-2xl p-4 shadow-sm
+              bg-white border-neutral-200
+              dark:bg-slate-900 dark:border-slate-700
+            "
           >
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-base font-semibold">{year.title}</h3>
+
               <button
                 type="button"
                 onClick={() => toggleYear(year.id)}
-                className="text-[11px] border rounded-xl px-2 py-1 hover:bg-neutral-50"
+                className="
+                  text-[11px] border rounded-xl px-2 py-1
+                  bg-white hover:bg-neutral-50
+                  border-neutral-200 text-neutral-700
+                  dark:bg-slate-900 dark:border-slate-700
+                  dark:text-slate-100 dark:hover:bg-slate-800
+                  transition-colors
+                "
               >
                 {isOpen ? "מזער שנה" : "הצג שנה"}
               </button>
@@ -112,7 +127,7 @@ export default function CourseList({ years, onOpenCourse }: Props) {
               <div className="space-y-3">
                 {year.semesters.map((sem) => (
                   <div key={sem.id}>
-                    <div className="text-xs font-medium text-neutral-500 mb-1">
+                    <div className="text-xs font-medium text-neutral-500 dark:text-slate-300 mb-1">
                       {sem.title}
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -121,11 +136,19 @@ export default function CourseList({ years, onOpenCourse }: Props) {
                           key={course.id}
                           type="button"
                           onClick={() => onOpenCourse(course)}
-                          className="text-xs sm:text-sm border rounded-xl px-3 py-2 hover:bg-neutral-50 text-right"
+                          className="
+                            text-xs sm:text-sm text-right
+                            border rounded-xl px-3 py-2
+                            bg-white border-neutral-200 text-neutral-900
+                            hover:bg-neutral-50
+                            dark:bg-slate-950/40 dark:border-slate-700
+                            dark:text-slate-100 dark:hover:bg-slate-800
+                            transition-colors
+                          "
                         >
                           <div className="font-medium">{course.name}</div>
                           {course.note && (
-                            <div className="text-[11px] text-neutral-500">
+                            <div className="text-[11px] text-neutral-500 dark:text-slate-300">
                               {course.note}
                             </div>
                           )}
@@ -152,7 +175,14 @@ export default function CourseList({ years, onOpenCourse }: Props) {
             <button
               type="button"
               onClick={() => setOpenPre((v) => !v)}
-              className="text-xs border rounded-xl px-2 py-1 hover:bg-neutral-50"
+              className="
+                text-xs border rounded-xl px-2 py-1
+                bg-white hover:bg-neutral-50
+                border-neutral-200 text-neutral-700
+                dark:bg-slate-900 dark:border-slate-700
+                dark:text-slate-100 dark:hover:bg-slate-800
+                transition-colors
+              "
             >
               {openPre ? "הסתר" : "הצג"}
             </button>
@@ -169,7 +199,14 @@ export default function CourseList({ years, onOpenCourse }: Props) {
             <button
               type="button"
               onClick={() => setOpenClinical((v) => !v)}
-              className="text-xs border rounded-xl px-2 py-1 hover:bg-neutral-50"
+              className="
+                text-xs border rounded-xl px-2 py-1
+                bg-white hover:bg-neutral-50
+                border-neutral-200 text-neutral-700
+                dark:bg-slate-900 dark:border-slate-700
+                dark:text-slate-100 dark:hover:bg-slate-800
+                transition-colors
+              "
             >
               {openClinical ? "הסתר" : "הצג"}
             </button>

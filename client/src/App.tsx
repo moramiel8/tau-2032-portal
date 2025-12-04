@@ -25,8 +25,12 @@ import { getCachedUser } from "./utils/sessionCache";
 import CourseRoute from "./routes/CourseRoute";
 import AdminPanel from "./routes/AdminPanel";
 
-import { IMG_BUYME, IMG_WHATSAPP, IMG_FACEBOOK, IMG_GITHUB } from "./constants/icons";
-
+import {
+  IMG_BUYME,
+  IMG_WHATSAPP,
+  IMG_FACEBOOK,
+  IMG_GITHUB,
+} from "./constants/icons";
 
 const AUTH_ENABLED = true;
 
@@ -50,7 +54,6 @@ type HomepageContent = {
 };
 
 // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
-
 function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
@@ -181,9 +184,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     }));
   }, [overrides]);
 
-  // עוזר לפענח תאריך:
-  // - מהאדמין: 2025-12-01 (type="date")
-  // - מטקסט חופשי: 10.12.2025 / 10/12/2025 / 10-12-2025
+  // עוזר לפענח תאריך
   const parseHebrewDate = (value: string): Date | null => {
     if (!value) return null;
     const trimmed = value.trim();
@@ -198,7 +199,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       return isNaN(d.getTime()) ? null : d;
     }
 
-    // 2) פורמט "ישראלי" חופשי: 10.12.2025 / 10/12/25 / 10-12-2025
+    // 2) פורמט "ישראלי" חופשי
     const m = trimmed.replace(/\s+/g, "").match(
       /(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/
     );
@@ -299,7 +300,14 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     <>
       {/* HERO מתוך עמוד הבית */}
       {homepage && (
-        <section className="mb-6 border rounded-2xl p-5 bg-gradient-to-l from-blue-50 to-cyan-50 shadow-sm">
+        <section
+  className="
+    mb-6 border rounded-2xl p-5 shadow-sm
+    bg-gradient-to-l from-blue-50 to-cyan-50
+    dark:from-slate-800 dark:to-slate-900
+    border-neutral-200 dark:border-slate-700
+  "
+>
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
@@ -317,13 +325,19 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
       {/* לוח מודעות */}
       {announcements.length > 0 && (
-        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm">
+        <section
+  className="
+    mb-6 border rounded-2xl p-4 shadow-sm
+    bg-white dark:bg-slate-900
+    border-neutral-200 dark:border-slate-700
+  "
+>
           <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
           <ul className="space-y-2 text-sm">
             {announcements.map((a) => (
               <li key={a.id} className="border-b last:border-b-0 pb-2">
                 <div className="font-medium">{a.title}</div>
-                <div className="text-xs text-neutral-700 whitespace-pre-line">
+  <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
                   {a.body}
                 </div>
 
@@ -341,46 +355,71 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
       {/* טבלת מטלות + מבחנים קרובים */}
       {latestItems.length > 0 && (
-        <section className="mb-8 border rounded-2xl p-4 bg-white shadow-sm">
+       <section
+  className="
+    mb-8 border rounded-2xl p-4 shadow-sm
+    bg-white dark:bg-slate-900
+    border-neutral-200 dark:border-slate-700
+  "
+>
+
           <div className="flex items-center justify-between mb-2 gap-2">
             <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
-            <div className="flex gap-1 text-[11px] sm:text-xs">
-              <button
-                onClick={() => setRange("week")}
-                className={`px-2 sm:px-3 py-1 rounded-xl border ${
-                  range === "week"
-                    ? "bg-blue-100 border-blue-400"
-                    : "bg-white"
-                }`}
-              >
-                📅 שבוע
-              </button>
-              <button
-                onClick={() => setRange("month")}
-                className={`px-2 sm:px-3 py-1 rounded-xl border ${
-                  range === "month"
-                    ? "bg-blue-100 border-blue-400"
-                    : "bg-white"
-                }`}
-              >
-                🗓️ חודש
-              </button>
-              <button
-                onClick={() => setRange("all")}
-                className={`px-2 sm:px-3 py-1 rounded-xl border ${
-                  range === "all"
-                    ? "bg-blue-100 border-blue-400"
-                    : "bg-white"
-                }`}
-              >
-                ⏭️ הכול
-              </button>
-            </div>
+           <div className="flex gap-1 text-[11px] sm:text-xs">
+  {/* שבוע */}
+  <button
+    onClick={() => setRange("week")}
+    className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+      ${
+        range === "week"
+          ? // נבחר
+            "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+          : // לא נבחר
+            "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+      }
+    `}
+  >
+    📅 שבוע
+  </button>
+
+  {/* חודש */}
+  <button
+    onClick={() => setRange("month")}
+    className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+      ${
+        range === "month"
+          ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+          : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+      }
+    `}
+  >
+    🗓️ חודש
+  </button>
+
+  {/* הכול */}
+  <button
+    onClick={() => setRange("all")}
+    className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+      ${
+        range === "all"
+          ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+          : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+      }
+    `}
+  >
+    ⏭️ הכול
+  </button>
+</div>
+
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm border-collapse">
-              <thead className="bg-neutral-50 text-[11px] text-neutral-500">
+<thead className="
+  bg-neutral-50 dark:bg-slate-800
+  text-[11px]
+  text-neutral-500 dark:text-slate-300
+">
                 <tr>
                   <th className="text-right py-2 px-2">קורס</th>
                   <th className="text-right py-2 px-2">סוג</th>
@@ -395,12 +434,12 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
                 {latestItems.map((item, index) => {
                   const isFirst = index === 0;
                   return (
-                    <tr
-                      key={`${item.courseId}-${item.type}-${item.title}-${item.date}`}
-                      className={
-                        "border-t" + (isFirst ? " bg-yellow-50/60" : "")
-                      }
-                    >
+                   <tr
+  className={
+    "border-t border-neutral-200 dark:border-slate-700" +
+    (isFirst ? " bg-yellow-50/60 dark:bg-yellow-900/20" : "")
+  }
+>
                       <td className="py-2 px-2 align-top">
                         <span className="font-medium flex items-center gap-1">
                           {isFirst && <span>📌</span>}
@@ -449,13 +488,11 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 }
 
 // ---- App ----
-
 export default function App() {
   const [user, setUser] = useState<User | null>(() => getCachedUser());
   const [loadingUser, setLoadingUser] = useState(false);
   const [myCourseVaadIds, setMyCourseVaadIds] = useState<string[]>([]);
-
-const [views, setViews] = useState<number>(0);
+  const [views, setViews] = useState<number>(0);
 
   const nav = useNavigate();
   const openCourse = (course: Course) => nav(`/course/${course.id}`);
@@ -561,13 +598,6 @@ const [views, setViews] = useState<number>(0);
     }
   };
 
-  // const DebugBar = () => (
-  //   <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
-  //     <div>user? {user ? user.email : "null"}</div>
-  //     <div>loadingUser? {String(loadingUser)}</div>
-  //   </div>
-  // );
-
   const Toast = () =>
     toast ? (
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-4 py-2 rounded-xl shadow-lg">
@@ -576,224 +606,237 @@ const [views, setViews] = useState<number>(0);
     ) : null;
 
   return (
-    <div
-      className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors"
-      dir="rtl"
-    >
-      {/* toolbar קבוע */}
-      <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* לוגו + טקסט */}
-          <Link
-            to="/"
-            className="flex items-center gap-3 cursor-pointer select-none"
-            aria-label="חזרה לעמוד הבית"
-          >
-            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
-              MedTAU
-            </div>
-            <div>
-              <div className="text-base font-semibold">
-                אתר מחזור 2032 - תל אביב
-              </div>
-              <div className="text-xs text-neutral-500">
-                אתר עזר לסטודנטים לרפואה שש שנתית
-              </div>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            {/* כפתור Dark Mode */}
-            <button
-              onClick={toggleTheme}
-              className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
+    // 👈 מזה Tailwind מזהה דארק מוד (darkMode: "class")
+    <div className={theme === "dark" ? "dark" : ""}>
+      <div
+        className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors"
+        dir="rtl"
+      >
+        {/* toolbar קבוע */}
+        <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            {/* לוגו + טקסט */}
+            <Link
+              to="/"
+              className="flex items-center gap-3 cursor-pointer select-none"
+              aria-label="חזרה לעמוד הבית"
             >
-              {theme === "dark" ? "☀️ מצב בהיר" : "🌙 מצב כהה"}
+              <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
+                MedTAU
+              </div>
+              <div>
+                <div className="text-base font-semibold">
+                  אתר מחזור 2032 - תל אביב
+                </div>
+                <div className="text-xs text-neutral-500">
+                  אתר עזר לסטודנטים לרפואה שש שנתי
+                </div>
+              </div>
+            </Link>
+
+            <div className="flex items-center gap-2">
+              {/* כפתור Dark Mode */}
+              <button
+                onClick={toggleTheme}
+                className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
+              >
+                {theme === "dark" ? "☀️" : "🌙"}
+              </button>
+
+              {user && (
+                <>
+                  <span className="text-xs text-neutral-600 hidden sm:inline">
+                    {user.email}
+                  </span>
+
+                  {canSeeAdminPanel && (
+                    <button
+               onClick={() => nav("/admin")}
+              className="
+              border rounded-2xl px-3 py-2 text-sm
+              hover:bg-neutral-50
+              dark:hover:bg-slate-800
+              flex items-center gap-1 cursor-pointer
+               "
+              >
+              פאנל מנהל
             </button>
 
-            {user && (
-              <>
-                <span className="text-xs text-neutral-600 hidden sm:inline">
-                  {user.email}
-                </span>
+                  )}
 
-                {canSeeAdminPanel && (
-                  <button
-                    onClick={() => nav("/admin")}
-                    className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
-                  >
-                    פאנל מנהל
-                  </button>
-                )}
-
-                <button
-                  onClick={handleLogout}
-                  className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
-                  title="התנתקות"
-                >
-                  <span className="inline">התנתקות</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        {loadingUser ? (
-          <div className="text-sm text-neutral-500">טוען…</div>
-        ) : !user ? (
-          <div className="border rounded-2xl p-6 text-sm">
-            כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
-            בחר/י חשבון עם הדומיין
-            <b> mail.tau.ac.il</b>.
-            <div className="mt-3">
-              <button
-                onClick={handleSignIn}
-                className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
-              >
-                התחברות עם Google
-              </button>
+                 <button
+  onClick={handleLogout}
+  className="
+    border rounded-2xl px-3 py-2 text-sm
+    hover:bg-neutral-50
+    dark:hover:bg-slate-800
+    flex items-center gap-1 cursor-pointer
+    title='התנתקות'
+  "
+>
+  <span className="inline">התנתקות</span>
+</button>
+                </>
+              )}
             </div>
           </div>
-        ) : !isTauEmail(user.email) ? (
-          <div className="border rounded-2xl p-6 text-sm text-red-600">
-            הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
-            חשבון TAU.
+        </header>
+
+        <main className="max-w-6xl mx-auto px-4 py-6">
+          {loadingUser ? (
+            <div className="text-sm text-neutral-500">טוען…</div>
+          ) : !user ? (
+            <div className="border rounded-2xl p-6 text-sm">
+              כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
+              בחר/י חשבון עם הדומיין
+              <b> mail.tau.ac.il</b>.
+              <div className="mt-3">
+                <button
+                  onClick={handleSignIn}
+                  className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
+                >
+                  התחברות עם Google
+                </button>
+              </div>
+            </div>
+          ) : !isTauEmail(user.email) ? (
+            <div className="border rounded-2xl p-6 text-sm text-red-600">
+              הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
+              חשבון TAU.
+            </div>
+          ) : (
+            <Routes>
+              <Route path="/" element={<HomeContent openCourse={openCourse} />} />
+              <Route path="/course/:id" element={<CourseRoute />} />
+
+              {/* admin routes */}
+              <Route
+                path="/admin"
+                element={
+                  canSeeAdminPanel ? (
+                    <AdminPanel
+                      user={user}
+                      isAdmin={isAdmin}
+                      isGlobalVaad={isGlobalVaad}
+                      isCourseVaad={isCourseVaad}
+                      myCourseVaadIds={myCourseVaadIds}
+                    />
+                  ) : (
+                    <HomeContent openCourse={openCourse} />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin/home"
+                element={
+                  isAdmin || isGlobalVaad ? (
+                    <EditHomepageRoute />
+                  ) : (
+                    <HomeContent openCourse={openCourse} />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin/courses"
+                element={
+                  isAdmin || isGlobalVaad ? (
+                    <AdminCoursesRoute />
+                  ) : (
+                    <HomeContent openCourse={openCourse} />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin/course/:id/edit"
+                element={
+                  canSeeAdminPanel ? (
+                    <EditCourseRoute />
+                  ) : (
+                    <HomeContent openCourse={openCourse} />
+                  )
+                }
+              />
+
+              {/* fallback */}
+              <Route path="*" element={<HomeContent openCourse={openCourse} />} />
+            </Routes>
+          )}
+        </main>
+
+<footer className="
+  max-w-6xl mx-auto px-4 py-8 text-xs
+  text-neutral-500 dark:text-slate-300
+">
+          <div className="flex flex-col gap-2">
+            {/* שורה עליונה – טקסט */}
+            <span>
+              נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן
+              לאחרונה {lastUpdatedText || "—"}
+            </span>
+
+            {/* שורה שניה – מספר מבקרים */}
+            <span className="flex items-center gap-1 text-neutral-400">
+              מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
+            </span>
+
+            {/* שורה שלישית – אייקונים */}
+            <div className="flex items-center gap-4 mt-2">
+              {/* Facebook */}
+              <a
+                href="https://www.facebook.com/mork0/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition"
+              >
+                <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
+              </a>
+
+              {/* GitHub */}
+              <a
+                href="https://github.com/moramiel8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition"
+              >
+               <img
+  src={IMG_GITHUB}
+  alt="GitHub"
+  className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+/>
+              </a>
+
+              {/* WhatsApp – לינק להודעה אישית */}
+              <a
+                href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition"
+              >
+                <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
+              </a>
+
+              
+            </div>
+
+                        {/* שורה רביעית – ביימיקופי */}
+
+            <div className="flex items-center gap-4 mt-2">
+
+              {/* Buy Me a Coffee */}
+
+              <a href="https://www.buymeacoffee.com/moramiel8">
+              <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&
+                emoji=&slug=moramiel8&button_colour=FFDD00&font_colour=000000&font_family=Cookie&
+                outline_colour=000000&coffee_colour=ffffff" /></a>
+              </div>
           </div>
-        ) : (
-          <Routes>
-            <Route
-              path="/"
-              element={<HomeContent openCourse={openCourse} />}
-            />
-            <Route path="/course/:id" element={<CourseRoute />} />
+        </footer>
 
-            {/* admin routes */}
-            <Route
-              path="/admin"
-              element={
-                canSeeAdminPanel ? (
-                  <AdminPanel
-                    user={user}
-                    isAdmin={isAdmin}
-                    isGlobalVaad={isGlobalVaad}
-                    isCourseVaad={isCourseVaad}
-                    myCourseVaadIds={myCourseVaadIds}
-                  />
-                ) : (
-                  <HomeContent openCourse={openCourse} />
-                )
-              }
-            />
-
-            <Route
-              path="/admin/home"
-              element={
-                isAdmin || isGlobalVaad ? (
-                  <EditHomepageRoute />
-                ) : (
-                  <HomeContent openCourse={openCourse} />
-                )
-              }
-            />
-
-            <Route
-              path="/admin/courses"
-              element={
-                isAdmin || isGlobalVaad ? (
-                  <AdminCoursesRoute />
-                ) : (
-                  <HomeContent openCourse={openCourse} />
-                )
-              }
-            />
-
-            <Route
-              path="/admin/course/:id/edit"
-              element={
-                canSeeAdminPanel ? (
-                  <EditCourseRoute />
-                ) : (
-                  <HomeContent openCourse={openCourse} />
-                )
-              }
-            />
-
-            {/* fallback */}
-            <Route
-              path="*"
-              element={<HomeContent openCourse={openCourse} />}
-            />
-          </Routes>
-        )}
-      </main>
-
-<footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
-  <div className="flex flex-col gap-2">
-
-    {/* שורה עליונה – טקסט */}
-    <span>
-      נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה{" "}
-      {lastUpdatedText || "—"}
-    </span>
-
-    {/* שורה שניה – מספר מבקרים */}
-    <span className="flex items-center gap-1 text-neutral-400">
-      מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
-    </span>
-
-    {/* שורה שלישית – אייקונים */}
-    <div className="flex items-center gap-4 mt-2">
-
-      {/* Facebook */}
-      <a
-        href="https://www.facebook.com/mork0/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="opacity-70 hover:opacity-100 transition"
-      >
-        <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
-      </a>
-
-      {/* GitHub */}
-      <a
-        href="https://github.com/moramiel8"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="opacity-70 hover:opacity-100 transition"
-      >
-        <img src={IMG_GITHUB} alt="GitHub" className="w-5 h-5" />
-      </a>
-
-      {/* Buy Me a Coffee */}
-      <a
-        href="https://buymecoffee.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="opacity-70 hover:opacity-100 transition"
-      >
-        <img src={IMG_BUYME} alt="Buy Me a Coffee" className="w-5 h-5" />
-      </a>
-
-      {/* WhatsApp – לינק להודעה אישית */}
-      <a
-  href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="opacity-70 hover:opacity-100 transition"
->
-  <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
-</a>
-
-
-    </div>
-  </div>
-</footer>
-
-
-      <Toast />
-      {/* <DebugBar /> */}
+        <Toast />
+      </div>
     </div>
   );
 }
