@@ -329,7 +329,7 @@ const updateExternalItem = (
           <label className="block">
             <span className="block mb-1">הערה קצרה בלבד:</span>
             <textarea
-              className="border rounded-xl px-3 py-2 w-full min-h-[80px]"
+              className="border rounded-xl px-3 py-2 w-full"
               value={content.note || ""}
               onChange={(e) =>
                 setContent({
