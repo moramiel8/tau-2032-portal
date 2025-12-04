@@ -37,7 +37,9 @@ export default function CoursePage({ course, onBack }: Props) {
       try {
         const res = await fetch(`/api/course-content/${course.id}`);
         if (!res.ok) return;
-        const data = await res.json();
+       const data = await res.json();
+      console.log("[CoursePage] override from server:", data);  
+
         if (data.exists && data.content) {
           setOverride(data.content as Partial<Course>);
         } else {
@@ -94,7 +96,7 @@ const formatAnnouncementMeta = (a: CourseAnnouncement) => {
 };
 
 
-  const { name, note, coordinator, reps, courseNumber, place, syllabus, links,   externalMaterials} =
+  const { name, note, coordinator, reps, courseNumber, place, syllabus, links, whatwas, whatwill,  externalMaterials} =
     effectiveCourse;
 
   const assignments: AssessmentItem[] = effectiveCourse.assignments || [];
@@ -125,11 +127,13 @@ const formatAnnouncementMeta = (a: CourseAnnouncement) => {
         </p>
       )}
 
-      {(coordinator || reps) && (
+      {(coordinator || reps || whatwas || whatwill) && (
         <p className="text-xs text-neutral-600 mb-4">
           {coordinator && <span>רכז/ת: {coordinator}</span>}
           {coordinator && reps && <span> · </span>}
           {reps && <span>נציגי ועד: {reps}</span>}
+          {whatwas && <span>מה היה בשבוע האחרון? {whatwas}</span>}
+           {whatwill && <span>מה יהיה בהמשך? {whatwill}</span>}
         </p>
       )}
 

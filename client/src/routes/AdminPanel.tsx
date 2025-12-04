@@ -106,6 +106,7 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
   );
 }
 
+
 // ---------- main component ----------
 export default function AdminPanel({
   user,
@@ -122,8 +123,7 @@ export default function AdminPanel({
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [editingCourseVaadId, setEditingCourseVaadId] =
     useState<string | null>(null);
-  const [selectedUserDisplayName, setSelectedUserDisplayName] =
-    useState("");
+  const [selectedUserDisplayName, setSelectedUserDisplayName] = useState("");
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [newAnnTitle, setNewAnnTitle] = useState("");
@@ -132,7 +132,6 @@ export default function AdminPanel({
 
   const [courseVaad, setCourseVaad] = useState<CourseVaadEntry[]>([]);
   const [globalRoles, setGlobalRoles] = useState<GlobalRoleEntry[]>([]);
-
   const [saving, setSaving] = useState(false);
 
   const allCourses: Course[] = useMemo(
@@ -140,26 +139,41 @@ export default function AdminPanel({
     []
   );
 
-  // טעינת הקצאות + תפקידי־על
+  //  פונקציה שמביאה מהשרת את כל ההקצאות + תפקידי העל
+//  פונקציה שמביאה מהשרת את כל ההקצאות + תפקידי העל
+const loadAssignments = async () => {
+  try {
+    const res = await fetch("/api/admin/assignments", {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      console.warn("[AdminPanel] assignments request failed", res.status);
+      return;
+    }
+
+    const raw = await res.json();
+    console.log("assignments from server:", raw);
+
+    // תומך גם ב-camelCase וגם ב-snake_case שמגיע מהשרת
+    const courseVaadData: CourseVaadEntry[] =
+      raw.courseVaad ?? raw.course_vaad ?? [];
+
+    const globalRolesData: GlobalRoleEntry[] =
+      raw.globalRoles ?? raw.global_roles ?? [];
+
+    setCourseVaad(courseVaadData);
+    setGlobalRoles(globalRolesData);
+  } catch (e) {
+    console.warn("[AdminPanel] failed to load assignments", e);
+  }
+};
+
+
+   // טעינת הקצאות + תפקידי־על (רק לאדמין/ועד כללי)
   useEffect(() => {
     if (!isAdmin && !isGlobalVaad) return;
-
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/assignments", {
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          courseVaad: CourseVaadEntry[];
-          globalRoles: GlobalRoleEntry[];
-        };
-        setCourseVaad(data.courseVaad);
-        setGlobalRoles(data.globalRoles);
-      } catch (e) {
-        console.warn("[AdminPanel] failed to load assignments", e);
-      }
-    })();
+    loadAssignments();
   }, [isAdmin, isGlobalVaad]);
 
   // טעינת מודעות (admin + vaad)
@@ -235,44 +249,50 @@ export default function AdminPanel({
     setEditingCourseVaadId(null);
   };
 
-  const handleSaveCourseVaad = async () => {
-    if (!selectedUserEmail || selectedCourseIds.length === 0) return;
-    setSaving(true);
-    try {
-      const body = {
-        email: selectedUserEmail,
-        displayName: selectedUserDisplayName || null,
-        courseIds: selectedCourseIds,
-      };
+ const handleSaveCourseVaad = async () => {
+  if (!selectedUserEmail || selectedCourseIds.length === 0) return;
+  setSaving(true);
+  try {
+    // ⬅️ נסיון ראשון: רק שדות בסיס
+  const body = {
+  email: selectedUserEmail,
+  displayName: selectedUserDisplayName || null,
+  courseIds: selectedCourseIds,
+};
 
-      const url = editingCourseVaadId
-        ? `/api/admin/course-vaad/${editingCourseVaadId}`
-        : "/api/admin/course-vaad";
-      const method = editingCourseVaadId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("save failed");
+    const url = editingCourseVaadId
+      ? `/api/admin/course-vaad/${editingCourseVaadId}`
+      : "/api/admin/course-vaad";
+    const method = editingCourseVaadId ? "PUT" : "POST";
 
-      const saved: CourseVaadEntry = await res.json();
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      credentials: "include",
+    });
 
-      setCourseVaad((prev) =>
-        editingCourseVaadId
-          ? prev.map((x) => (x.id === saved.id ? saved : x))
-          : [...prev, saved]
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn(
+        "[AdminPanel] save course vaad failed:",
+        res.status,
+        text
       );
-
-      resetForm();
-    } catch (e) {
-      console.warn("[AdminPanel] save course vaad failed", e);
-    } finally {
-      setSaving(false);
+      throw new Error("save failed");
     }
-  };
+
+    await loadAssignments();
+    resetForm();
+  } catch (e) {
+    console.warn("[AdminPanel] save course vaad failed", e);
+  } finally {
+    setSaving(false);
+  }
+};
+
+
 
   const handleEditCourseVaad = (entry: CourseVaadEntry) => {
     setEditingCourseVaadId(entry.id);
@@ -308,12 +328,14 @@ export default function AdminPanel({
         body: JSON.stringify({ email, role, displayName }),
       });
       if (!res.ok) throw new Error("save failed");
-      const saved: GlobalRoleEntry = await res.json();
-      setGlobalRoles((prev) => [...prev, saved]);
+
+      // 🔹 אחרי שמירה – שוב נטען את כל ההרשאות מהשרת
+      await loadAssignments();
     } catch (e) {
       console.warn("[AdminPanel] add global role failed", e);
     }
   };
+
 
   const handleDeleteGlobalRole = async (id: string) => {
     if (!window.confirm("להסיר הרשאות גלובליות מהמשתמש/ת?")) return;
@@ -427,7 +449,7 @@ export default function AdminPanel({
                     <td className="py-2 align-top">
                       <div>{entry.email}</div>
                       {entry.displayName && (
-                        <div className="text-[11px] text-neutral-500">
+                       <div className="text-[11px] text-neutral-500">
                           {entry.displayName}
                         </div>
                       )}

@@ -35,7 +35,7 @@ export default function CourseRoute() {
           setLoading(false);
           return;
         }
-        const data = await res.json() as {
+        const data = (await res.json()) as {
           exists: boolean;
           content: Partial<CourseContent> | null;
         };
@@ -43,7 +43,9 @@ export default function CourseRoute() {
         if (data.exists && data.content) {
           // merge על ה־base כדי לא לאבד דברים מה־YEARS
           setCourse(
-            baseCourse ? { ...baseCourse, ...data.content } : (data.content as CourseContent)
+            baseCourse
+              ? { ...baseCourse, ...data.content }
+              : (data.content as CourseContent)
           );
         } else {
           setCourse(baseCourse);
@@ -81,6 +83,13 @@ export default function CourseRoute() {
     !!course.links?.drive ||
     !!course.links?.moodle ||
     (course.externalMaterials && course.externalMaterials.length > 0);
+
+  const hasGeneralInfo =
+    !!course.coordinator ||
+    !!course.reps ||
+    !!course.place ||
+    !!course.whatwas ||
+    !!course.whatwill;
 
   const formatDate = (value?: string) => {
     if (!value) return "—";
@@ -192,30 +201,54 @@ export default function CourseRoute() {
         </section>
       )}
 
-      {/* מידע כללי */}
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm">
-        <h2 className="text-sm font-semibold mb-3">מידע כללי</h2>
-        <div className="space-y-1">
-          {course.coordinator && (
-            <div>
-              <span className="font-medium">רכז/ת הקורס: </span>
-              {course.coordinator}
-            </div>
-          )}
-          {course.reps && (
-            <div>
-              <span className="font-medium">נציגי קורס: </span>
-              {course.reps}
-            </div>
-          )}
-          {course.place && (
-            <div>
-              <span className="font-medium">מיקום עיקרי: </span>
-              {course.place}
-            </div>
-          )}
-        </div>
-      </section>
+      {/* מידע כללי + מה היה/יהיה */}
+      {hasGeneralInfo && (
+        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm">
+          <h2 className="text-sm font-semibold mb-3">מידע כללי</h2>
+          <div className="space-y-2">
+            {course.coordinator && (
+              <div>
+                <span className="font-medium">רכז/ת הקורס: </span>
+                {course.coordinator}
+              </div>
+            )}
+            {course.reps && (
+              <div>
+                <span className="font-medium">נציגי קורס: </span>
+                {course.reps}
+              </div>
+            )}
+            {course.place && (
+              <div>
+                <span className="font-medium">מיקום עיקרי: </span>
+                {course.place}
+              </div>
+            )}
+
+            {course.whatwas && (
+              <div className="mt-3">
+                <div className="font-medium">
+                  ➡️ מה היה בשבוע האחרון?
+                </div>
+                <div className="text-xs text-neutral-700 whitespace-pre-line">
+                  {course.whatwas}
+                </div>
+              </div>
+            )}
+
+            {course.whatwill && (
+              <div className="mt-2">
+                <div className="font-medium">
+                  ⬅️ מה יהיה בהמשך?
+                </div>
+                <div className="text-xs text-neutral-700 whitespace-pre-line">
+                  {course.whatwill}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* מטלות */}
       <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm">

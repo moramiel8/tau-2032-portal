@@ -240,7 +240,9 @@ router.get("/assignments", requireAdminLike, async (_req, res) => {
 router.post("/course-vaad", requireAdminLike, async (req, res) => {
   const { email, displayName, courseIds } = req.body;
 
+
   try {
+      console.log("course-vaad body:", req.body);
     await query(
       `
       INSERT INTO course_vaad (email, display_name, course_ids)
@@ -255,6 +257,7 @@ router.post("/course-vaad", requireAdminLike, async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
+    console.error("course-vaad error:", err);
     console.error("[POST /api/admin/course-vaad] error", err);
     res.status(500).json({ error: "server_error" });
   }
@@ -263,7 +266,7 @@ router.post("/course-vaad", requireAdminLike, async (req, res) => {
 // עדכון הקצאת "ועד קורס"
 router.put("/course-vaad/:id", requireAdminLike, async (req, res) => {
   const { id } = req.params;
-  const { email, courseIds } = req.body || {};
+  const { email, courseIds, displayName } = req.body || {};
 
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) {
@@ -275,16 +278,18 @@ router.put("/course-vaad/:id", requireAdminLike, async (req, res) => {
       `
       UPDATE course_vaad
       SET
-        email = COALESCE($1, email),
-        course_ids = CASE
-          WHEN $2::text[] IS NULL OR cardinality($2) = 0 THEN course_ids
-          ELSE $2
+        email        = COALESCE($1, email),
+        display_name = COALESCE($2, display_name),
+        course_ids   = CASE
+          WHEN $3::text[] IS NULL OR cardinality($3) = 0 THEN course_ids
+          ELSE $3
         END
-      WHERE id = $3
+      WHERE id = $4
       RETURNING id, email, display_name, course_ids
       `,
       [
         email ?? null,
+        displayName ?? null,
         Array.isArray(courseIds) && courseIds.length > 0 ? courseIds : null,
         numericId,
       ]
@@ -301,6 +306,7 @@ router.put("/course-vaad/:id", requireAdminLike, async (req, res) => {
     res.status(500).json({ error: "server_error" });
   }
 });
+
 
 // מחיקת הקצאת "ועד קורס"
 router.delete("/course-vaad/:id", requireAdminLike, async (req, res) => {

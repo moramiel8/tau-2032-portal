@@ -75,6 +75,8 @@ export type Course = {
   id: string;
   name: string;
   note?: string;
+  whatwas?: string;
+  whatwill?: string;
   coordinator?: string;
   reps?: string;
   courseNumber?: string;
@@ -111,6 +113,8 @@ export const YEARS: Year[] = [
             id: "chem-gen-phys",
             name: "כימיה כללית ופיזיקלית",
             note: "חצי סמסטריאלי – מחצית ראשונה",
+            whatwas: "nothing",
+            whatwill: "nothing, too",
             coordinator: 'ד"ר ענאן חג` יחיא ערישה',
             reps: "—",
             courseNumber: "0111-1212",
@@ -163,6 +167,8 @@ export const YEARS: Year[] = [
             name: "כימיה אורגנית",
             note: "חצי סמסטריאלי – מחצית שנייה",
             coordinator: 'ד"ר ענאן חג` יחיא ערישה',
+             whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1213",
             syllabus:
@@ -192,6 +198,8 @@ export const YEARS: Year[] = [
             name: "יסודות ביוכימיים של הרפואה",
             note: "שבועי",
             coordinator: "פרופ' מעין גל",
+             whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1215",
             syllabus: "",
@@ -209,6 +217,8 @@ export const YEARS: Year[] = [
             name: "מבוא לביופיזיקה ופיזיולוגיה כללית",
             note: "שבועי",
             coordinator: 'ד"ר מריה גוזמן אלוש',
+            whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1219",
             syllabus: "",
@@ -232,6 +242,8 @@ export const YEARS: Year[] = [
             name: "מבוא לסטטיסטיקה",
             note: "שבועי",
             coordinator: 'ד"ר יעל איזנבך',
+             whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1219",
             syllabus: "",
@@ -249,6 +261,8 @@ export const YEARS: Year[] = [
             name: "מבוא לפיזיקה",
             note: "שבועי – א-סינכרוני",
             coordinator: 'ד"ר בן צוקר',
+             whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1226",
             syllabus: "",
@@ -266,6 +280,8 @@ export const YEARS: Year[] = [
             name: "אפידמיולוגיה ושיטות מחקר",
             note: "שבועי – א-סינכרוני",
             coordinator: "מרצה: טרם ידוע",
+             whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1321",
             syllabus: "",
@@ -284,6 +300,8 @@ export const YEARS: Year[] = [
             name: "חינוך רפואי בראייה חברתית (חיבוקי)",
             note:  "הערות",
             coordinator: "מרצה: טרם ידוע",
+             whatwas: "nothing",
+            whatwill: "nothing, too",
             reps: "—",
             courseNumber: "0111-1321",
             syllabus: "",

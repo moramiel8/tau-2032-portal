@@ -214,7 +214,7 @@ const updateExternalItem = (
     { label: "PDF", value: IMG_PDF },
     { label: "Moodle", value: IMG_MOODLE },
     { label: "WhatsApp", value: IMG_WHATSAPP },
-    { label: "אינטרנט כללי", value: IMG_NET },
+    { label: "Chrome (For General Website)", value: IMG_NET },
   ];
   // רק ספרות + ./- בתאריך (לא חובה אבל שומר על פורמט אם אי פעם תעבור ל-input רגיל)
   const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
@@ -335,6 +335,34 @@ const updateExternalItem = (
                 setContent({
                   ...content,
                   note: e.target.value,
+                })
+              }
+            />
+          </label>
+
+                     <label className="block">
+            <span className="block mb-1">מה היה בשבוע האחרון?</span>
+            <textarea
+              className="border rounded-xl px-3 py-2 w-full"
+              value={content.whatwas || ""}
+              onChange={(e) =>
+                setContent({
+                  ...content,
+                  whatwas: e.target.value,
+                })
+              }
+            />
+          </label>
+
+                    <label className="block">
+            <span className="block mb-1">מה יהיה בהמשך?</span>
+            <textarea
+              className="border rounded-xl px-3 py-2 w-full"
+              value={content.whatwill || ""}
+              onChange={(e) =>
+                setContent({
+                  ...content,
+                  whatwill: e.target.value,
                 })
               }
             />
