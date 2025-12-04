@@ -1,33 +1,36 @@
-  // client/src/App.tsx
-  import { useEffect, useState, useMemo } from "react";
-  import { Routes, Route, useNavigate, Link } from "react-router-dom";
+// client/src/App.tsx
+import { useEffect, useState, useMemo } from "react";
+import { Routes, Route, useNavigate, Link } from "react-router-dom";
 
-  import CourseList from "./components/CourseList";
-  import { YEARS, type Course, type AssessmentItem } from "./data/years";
+import CourseList from "./components/CourseList";
+import { YEARS, type Course, type AssessmentItem } from "./data/years";
 
-  import AdminCoursesRoute from "./routes/AdminCoursesRoute";
-  import EditCourseRoute from "./routes/EditCourseRoute";
-  import EditHomepageRoute from "./routes/EditHomepageRoute";
+import AdminCoursesRoute from "./routes/AdminCoursesRoute";
+import EditCourseRoute from "./routes/EditCourseRoute";
+import EditHomepageRoute from "./routes/EditHomepageRoute";
 
-  import { useTheme } from "./hooks/useTheme";
+import { useTheme } from "./hooks/useTheme";
 
-  import {
-    fetchSession,
-    isTauEmail,
-    startGoogleLogin,
-    getDomain,
-    logout,
-  } from "./utils/auth";
-  import type { User } from "./utils/auth";
+import {
+  fetchSession,
+  isTauEmail,
+  startGoogleLogin,
+  getDomain,
+  logout,
+} from "./utils/auth";
+import type { User } from "./utils/auth";
 
-  import CalendarEmbed from "./components/CalendarEmbed";
-  import { getCachedUser } from "./utils/sessionCache";
-  import CourseRoute from "./routes/CourseRoute";
-  import AdminPanel from "./routes/AdminPanel";
+import CalendarEmbed from "./components/CalendarEmbed";
+import { getCachedUser } from "./utils/sessionCache";
+import CourseRoute from "./routes/CourseRoute";
+import AdminPanel from "./routes/AdminPanel";
 
-  const AUTH_ENABLED = true;
+import { IMG_VISITOR } from "./constants/icons";
 
-  // ---- types ללוח מודעות בעמוד הבית ----
+
+const AUTH_ENABLED = true;
+
+// ---- types ללוח מודעות בעמוד הבית ----
 type AnnouncementPublic = {
   id: string;
   title: string;
@@ -38,17 +41,17 @@ type AnnouncementPublic = {
   authorEmail?: string | null;
   authorName?: string | null;
 };
-  // ---- תוכן עמוד הבית (ממסך עריכת homepage) ----
-  type HomepageContent = {
-    heroTitle?: string;
-    heroSubtitle?: string;
-    introText?: string;
-  };
 
- // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
+// ---- תוכן עמוד הבית (ממסך עריכת homepage) ----
+type HomepageContent = {
+  heroTitle?: string;
+  heroSubtitle?: string;
+  introText?: string;
+};
 
+// ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
 
- function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
+function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
@@ -57,7 +60,6 @@ type AnnouncementPublic = {
 
   // טווח להצגת מטלות/מבחנים
   const [range, setRange] = useState<"week" | "month" | "all">("week");
-
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
@@ -81,73 +83,70 @@ type AnnouncementPublic = {
   }, []);
 
   // טעינת מודעות כלליות
-useEffect(() => {
-  (async () => {
-    try {
-      const res = await fetch("/api/announcements");
-      if (!res.ok) return;
-      const data = (await res.json()) as { items: AnnouncementPublic[] };
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/announcements");
+        if (!res.ok) return;
+        const data = (await res.json()) as { items: AnnouncementPublic[] };
 
-      // בעמוד הבית – רק מודעות כלליות (בלי courseId)
-      setAnnouncements((data.items || []).filter((a) => !a.courseId));
-    } catch (e) {
-      console.warn("[HomeContent] failed to load announcements", e);
-    }
-  })();
-}, []);
+        // בעמוד הבית – רק מודעות כלליות (בלי courseId)
+        setAnnouncements((data.items || []).filter((a) => !a.courseId));
+      } catch (e) {
+        console.warn("[HomeContent] failed to load announcements", e);
+      }
+    })();
+  }, []);
 
+  const formatAnnouncementMeta = (a: AnnouncementPublic) => {
+    const dateStr = a.updatedAt || a.createdAt;
+    const hasAuthor = !!(a.authorName || a.authorEmail);
 
-const formatAnnouncementMeta = (a: AnnouncementPublic) => {
-  const dateStr = a.updatedAt || a.createdAt;
-  const hasAuthor = !!(a.authorName || a.authorEmail);
+    if (!dateStr && !hasAuthor) return null;
 
-  if (!dateStr && !hasAuthor) return null;
+    const d = dateStr ? new Date(dateStr) : null;
 
-  const d = dateStr ? new Date(dateStr) : null;
+    return (
+      <>
+        {d && (
+          <>
+            עודכן בתאריך{" "}
+            {d.toLocaleDateString("he-IL", {
+              weekday: "long",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}{" "}
+            בשעה{" "}
+            {d.toLocaleTimeString("he-IL", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </>
+        )}
 
-  return (
-    <>
-      {d && (
-        <>
-          עודכן בתאריך{" "}
-          {d.toLocaleDateString("he-IL", {
-            weekday: "long",
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          })}{" "}
-          בשעה{" "}
-          {d.toLocaleTimeString("he-IL", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </>
-      )}
-
-      {hasAuthor && (
-        <>
-          {" "}
-          ע"י{" "}
-          {a.authorName ? (
-            <>
-              {a.authorName}
-              {a.authorEmail && (
-                <span className="text-neutral-500">
-                  {" "}
-                  ({a.authorEmail})
-                </span>
-              )}
-            </>
-          ) : (
-            a.authorEmail
-          )}
-        </>
-      )}
-    </>
-  );
-};
-
-
+        {hasAuthor && (
+          <>
+            {" "}
+            ע"י{" "}
+            {a.authorName ? (
+              <>
+                {a.authorName}
+                {a.authorEmail && (
+                  <span className="text-neutral-500">
+                    {" "}
+                    ({a.authorEmail})
+                  </span>
+                )}
+              </>
+            ) : (
+              a.authorEmail
+            )}
+          </>
+        )}
+      </>
+    );
+  };
 
   // טעינת תוכן עמוד הבית (ציבורי)
   useEffect(() => {
@@ -182,7 +181,6 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
     }));
   }, [overrides]);
 
-  // עוזר לפענח תאריך כמו 10.12.2025 לפורמט JS
   // עוזר לפענח תאריך:
   // - מהאדמין: 2025-12-01 (type="date")
   // - מטקסט חופשי: 10.12.2025 / 10/12/2025 / 10-12-2025
@@ -219,7 +217,6 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
 
     return null;
   };
-
 
   // מטלות + מבחנים קרובים מכל הקורסים
   type UpcomingItem = {
@@ -319,37 +316,34 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
       )}
 
       {/* לוח מודעות */}
-{announcements.length > 0 && (
-  <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm">
-    <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
-    <ul className="space-y-2 text-sm">
-      {announcements.map((a) => (
-        <li key={a.id} className="border-b last:border-b-0 pb-2">
-          <div className="font-medium">{a.title}</div>
-          <div className="text-xs text-neutral-700 whitespace-pre-line">
-            {a.body}
-          </div>
+      {announcements.length > 0 && (
+        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm">
+          <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
+          <ul className="space-y-2 text-sm">
+            {announcements.map((a) => (
+              <li key={a.id} className="border-b last:border-b-0 pb-2">
+                <div className="font-medium">{a.title}</div>
+                <div className="text-xs text-neutral-700 whitespace-pre-line">
+                  {a.body}
+                </div>
 
-          {/* מראים מטא־דאטה רק אם באמת יש משהו */}
-          {formatAnnouncementMeta(a) && (
-            <div className="text-[10px] text-neutral-400 mt-1">
-              {formatAnnouncementMeta(a)}
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  </section>
-)}
-
+                {/* מראים מטא־דאטה רק אם באמת יש משהו */}
+                {formatAnnouncementMeta(a) && (
+                  <div className="text-[10px] text-neutral-400 mt-1">
+                    {formatAnnouncementMeta(a)}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* טבלת מטלות + מבחנים קרובים */}
       {latestItems.length > 0 && (
         <section className="mb-8 border rounded-2xl p-4 bg-white shadow-sm">
           <div className="flex items-center justify-between mb-2 gap-2">
-            <h2 className="text-lg font-semibold">
-              מטלות ומבחנים קרובים
-            </h2>
+            <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
             <div className="flex gap-1 text-[11px] sm:text-xs">
               <button
                 onClick={() => setRange("week")}
@@ -404,8 +398,7 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
                     <tr
                       key={`${item.courseId}-${item.type}-${item.title}-${item.date}`}
                       className={
-                        "border-t" +
-                        (isFirst ? " bg-yellow-50/60" : "")
+                        "border-t" + (isFirst ? " bg-yellow-50/60" : "")
                       }
                     >
                       <td className="py-2 px-2 align-top">
@@ -455,256 +448,304 @@ const formatAnnouncementMeta = (a: AnnouncementPublic) => {
   );
 }
 
+// ---- App ----
 
+export default function App() {
+  const [user, setUser] = useState<User | null>(() => getCachedUser());
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [myCourseVaadIds, setMyCourseVaadIds] = useState<string[]>([]);
 
-  export default function App() {
-    const [user, setUser] = useState<User | null>(() => getCachedUser());
-    const [loadingUser, setLoadingUser] = useState(false);
-    const [myCourseVaadIds, setMyCourseVaadIds] = useState<string[]>([]);
+  const [views, setViews] = useState<number | null>(null); // 👈 מונה ביקורים
 
-    const nav = useNavigate();
-    const openCourse = (course: Course) => nav(`/course/${course.id}`);
+  const nav = useNavigate();
+  const openCourse = (course: Course) => nav(`/course/${course.id}`);
 
   const { theme, toggleTheme } = useTheme();
 
+  // set last updated on footer
+  const buildTimeRaw = import.meta.env.VITE_BUILD_TIME as string | undefined;
+  const lastUpdatedText = useMemo(() => {
+    const src = buildTimeRaw || new Date().toISOString(); // fallback לפיתוח
+    const d = new Date(src);
+    if (isNaN(d.getTime())) return null;
+
+    const dateStr = d.toLocaleDateString("he-IL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+    const timeStr = d.toLocaleTimeString("he-IL", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return `${dateStr} ${timeStr}`;
+  }, [buildTimeRaw]);
 
   // Toast
-    const [toast, setToast] = useState<string | null>(null);
-    const showToast = (msg: string, ms = 2200) => {
-      setToast(msg);
-      window.setTimeout(() => setToast(null), ms);
-    };
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string, ms = 2200) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), ms);
+  };
 
-    useEffect(() => {
-      if (!AUTH_ENABLED) return;
-      let cancelled = false;
-      (async () => {
-        try {
-          const fresh = await fetchSession();
-          if (!cancelled) setUser(fresh);
-        } finally {
-          if (!cancelled) setLoadingUser(false);
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-
-    // לבדוק אם המשתמש הוא ועד־קורס ועל אילו קורסים
-    useEffect(() => {
-      if (!user) {
-        setMyCourseVaadIds([]);
-        return;
-      }
-
-      (async () => {
-        try {
-          const res = await fetch("/api/my/course-vaad");
-          if (!res.ok) return;
-          const data = (await res.json()) as { courseIds: string[] };
-          setMyCourseVaadIds(data.courseIds || []);
-        } catch (e) {
-          console.warn("[App] failed to load my course-vaad ids", e);
-        }
-      })();
-    }, [user?.email]);
-
-    // תפקידי הרשאות
-    const isAdmin =
-      user?.role === "admin" || user?.email === "morrabaev@mail.tau.ac.il";
-    const isGlobalVaad = user?.role === "vaad";
-    const isCourseVaad = myCourseVaadIds.length > 0;
-    const canSeeAdminPanel = !!user && (isAdmin || isGlobalVaad || isCourseVaad);
-
-    const handleSignIn = () => startGoogleLogin();
-
-    const handleLogout = async () => {
+  useEffect(() => {
+    if (!AUTH_ENABLED) return;
+    let cancelled = false;
+    (async () => {
       try {
-        await logout();
-        setUser(null);
-        showToast("התנתקת בהצלחה!");
-      } catch (e) {
-        showToast("בעיה בהתנתקות, נסה שוב");
-        console.warn("[App] logout error", e);
+        const fresh = await fetchSession();
+        if (!cancelled) setUser(fresh);
+      } finally {
+        if (!cancelled) setLoadingUser(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
+  }, []);
 
-    {/*   const DebugBar = () => (
-      <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
-        <div>user? {user ? user.email : "null"}</div>
-        <div>loadingUser? {String(loadingUser)}</div>
+  // רישום צפייה + קריאת המונה מהשרת
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/stats/view", { method: "POST" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { views?: number };
+        if (typeof data.views === "number") {
+          setViews(data.views);
+        }
+      } catch (e) {
+        console.warn("Failed to record view", e);
+      }
+    })();
+  }, []);
+
+  // לבדוק אם המשתמש הוא ועד־קורס ועל אילו קורסים
+  useEffect(() => {
+    if (!user) {
+      setMyCourseVaadIds([]);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch("/api/my/course-vaad");
+        if (!res.ok) return;
+        const data = (await res.json()) as { courseIds: string[] };
+        setMyCourseVaadIds(data.courseIds || []);
+      } catch (e) {
+        console.warn("[App] failed to load my course-vaad ids", e);
+      }
+    })();
+  }, [user?.email]);
+
+  // תפקידי הרשאות
+  const isAdmin =
+    user?.role === "admin" || user?.email === "morrabaev@mail.tau.ac.il";
+  const isGlobalVaad = user?.role === "vaad";
+  const isCourseVaad = myCourseVaadIds.length > 0;
+  const canSeeAdminPanel = !!user && (isAdmin || isGlobalVaad || isCourseVaad);
+
+  const handleSignIn = () => startGoogleLogin();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      showToast("התנתקת בהצלחה!");
+    } catch (e) {
+      showToast("בעיה בהתנתקות, נסה שוב");
+      console.warn("[App] logout error", e);
+    }
+  };
+
+  // const DebugBar = () => (
+  //   <div className="fixed bottom-2 right-2 z-50 text-xs bg-black text-white/90 px-3 py-2 rounded-lg opacity-80">
+  //     <div>user? {user ? user.email : "null"}</div>
+  //     <div>loadingUser? {String(loadingUser)}</div>
+  //   </div>
+  // );
+
+  const Toast = () =>
+    toast ? (
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-4 py-2 rounded-xl shadow-lg">
+        {toast}
       </div>
-    );*/}
+    ) : null;
 
-    const Toast = () =>
-      toast ? (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-4 py-2 rounded-xl shadow-lg">
-          {toast}
-        </div>
-      ) : null;
+  return (
+    <div
+      className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors"
+      dir="rtl"
+    >
+      {/* toolbar קבוע */}
+      <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* לוגו + טקסט */}
+          <Link
+            to="/"
+            className="flex items-center gap-3 cursor-pointer select-none"
+            aria-label="חזרה לעמוד הבית"
+          >
+            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
+              MedTAU
+            </div>
+            <div>
+              <div className="text-base font-semibold">
+                אתר מחזור 2032 - תל אביב
+              </div>
+              <div className="text-xs text-neutral-500">
+                אתר עזר לסטודנטים לרפואה שש שנתית
+              </div>
+            </div>
+          </Link>
 
-    return (
-<div className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors" dir="rtl">
-        {/* toolbar קבוע */}
-<header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            {/* לוגו + טקסט */}
-            <Link
-              to="/"
-              className="flex items-center gap-3 cursor-pointer select-none"
-              aria-label="חזרה לעמוד הבית"
+          <div className="flex items-center gap-2">
+            {/* כפתור Dark Mode */}
+            <button
+              onClick={toggleTheme}
+              className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
             >
-              <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
-                MedTAU
-              </div>
-              <div>
-                <div className="text-base font-semibold">
-                  אתר מחזור 2032 - תל אביב
-                </div>
-                <div className="text-xs text-neutral-500">
-                  אתר עזר לסטודנטים לרפואה שש שנתית
-                </div>
-              </div>
-            </Link>
+              {theme === "dark" ? "☀️ מצב בהיר" : "🌙 מצב כהה"}
+            </button>
 
-            <div className="flex items-center gap-2">
+            {user && (
+              <>
+                <span className="text-xs text-neutral-600 hidden sm:inline">
+                  {user.email}
+                </span>
 
-  {/* כפתור Dark Mode */}
-  <button
-    onClick={toggleTheme}
-    className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
-  >
-    {theme === "dark" ? "☀️ מצב בהיר" : "🌙 מצב כהה"}
-  </button>
+                {canSeeAdminPanel && (
+                  <button
+                    onClick={() => nav("/admin")}
+                    className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                  >
+                    פאנל מנהל
+                  </button>
+                )}
 
-  {user && (
-    <>
-      <span className="text-xs text-neutral-600 hidden sm:inline">
-        {user.email}
-      </span>
-
-      {canSeeAdminPanel && (
-        <button
-          onClick={() => nav("/admin")}
-          className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
-        >
-          פאנל מנהל
-        </button>
-      )}
-
-      <button
-        onClick={handleLogout}
-        className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
-        title="התנתקות"
-      >
-  <span className="inline">התנתקות</span>
-
-      </button>
-    </>
-  )}
-</div>
-
-          </div>
-        </header>
-
-        <main className="max-w-6xl mx-auto px-4 py-6">
-          {loadingUser ? (
-            <div className="text-sm text-neutral-500">טוען…</div>
-          ) : !user ? (
-            <div className="border rounded-2xl p-6 text-sm">
-              כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
-              בחר/י חשבון עם הדומיין
-              <b> mail.tau.ac.il</b>.
-              <div className="mt-3">
                 <button
-                  onClick={handleSignIn}
-                  className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
+                  onClick={handleLogout}
+                  className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-50 flex items-center gap-1 cursor-pointer"
+                  title="התנתקות"
                 >
-                  התחברות עם Google
+                  <span className="inline">התנתקות</span>
                 </button>
-              </div>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        {loadingUser ? (
+          <div className="text-sm text-neutral-500">טוען…</div>
+        ) : !user ? (
+          <div className="border rounded-2xl p-6 text-sm">
+            כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
+            בחר/י חשבון עם הדומיין
+            <b> mail.tau.ac.il</b>.
+            <div className="mt-3">
+              <button
+                onClick={handleSignIn}
+                className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
+              >
+                התחברות עם Google
+              </button>
             </div>
-          ) : !isTauEmail(user.email) ? (
-            <div className="border rounded-2xl p-6 text-sm text-red-600">
-              הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
-              חשבון TAU.
-            </div>
-          ) : (
-            <Routes>
-              <Route
-                path="/"
-                element={<HomeContent openCourse={openCourse} />}
-              />
-              <Route path="/course/:id" element={<CourseRoute />} />
+          </div>
+        ) : !isTauEmail(user.email) ? (
+          <div className="border rounded-2xl p-6 text-sm text-red-600">
+            הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
+            חשבון TAU.
+          </div>
+        ) : (
+          <Routes>
+            <Route
+              path="/"
+              element={<HomeContent openCourse={openCourse} />}
+            />
+            <Route path="/course/:id" element={<CourseRoute />} />
 
-              {/* admin routes */}
-              <Route
-                path="/admin"
-                element={
-                  canSeeAdminPanel ? (
-                    <AdminPanel
-                      user={user}
-                      isAdmin={isAdmin}
-                      isGlobalVaad={isGlobalVaad}
-                      isCourseVaad={isCourseVaad}
-                      myCourseVaadIds={myCourseVaadIds}
-                    />
-                  ) : (
-                    <HomeContent openCourse={openCourse} />
-                  )
-                }
-              />
+            {/* admin routes */}
+            <Route
+              path="/admin"
+              element={
+                canSeeAdminPanel ? (
+                  <AdminPanel
+                    user={user}
+                    isAdmin={isAdmin}
+                    isGlobalVaad={isGlobalVaad}
+                    isCourseVaad={isCourseVaad}
+                    myCourseVaadIds={myCourseVaadIds}
+                  />
+                ) : (
+                  <HomeContent openCourse={openCourse} />
+                )
+              }
+            />
 
-              <Route
-                path="/admin/home"
-                element={
-                  isAdmin || isGlobalVaad ? (
-                    <EditHomepageRoute />
-                  ) : (
-                    <HomeContent openCourse={openCourse} />
-                  )
-                }
-              />
+            <Route
+              path="/admin/home"
+              element={
+                isAdmin || isGlobalVaad ? (
+                  <EditHomepageRoute />
+                ) : (
+                  <HomeContent openCourse={openCourse} />
+                )
+              }
+            />
 
-              <Route
-                path="/admin/courses"
-                element={
-                  isAdmin || isGlobalVaad ? (
-                    <AdminCoursesRoute />
-                  ) : (
-                    <HomeContent openCourse={openCourse} />
-                  )
-                }
-              />
+            <Route
+              path="/admin/courses"
+              element={
+                isAdmin || isGlobalVaad ? (
+                  <AdminCoursesRoute />
+                ) : (
+                  <HomeContent openCourse={openCourse} />
+                )
+              }
+            />
 
-              <Route
-                path="/admin/course/:id/edit"
-                element={
-                  canSeeAdminPanel ? (
-                    <EditCourseRoute />
-                  ) : (
-                    <HomeContent openCourse={openCourse} />
-                  )
-                }
-              />
+            <Route
+              path="/admin/course/:id/edit"
+              element={
+                canSeeAdminPanel ? (
+                  <EditCourseRoute />
+                ) : (
+                  <HomeContent openCourse={openCourse} />
+                )
+              }
+            />
 
-              {/* fallback */}
-              <Route
-                path="*"
-                element={<HomeContent openCourse={openCourse} />}
-              />
-            </Routes>
-          )}
-        </main>
+            {/* fallback */}
+            <Route
+              path="*"
+              element={<HomeContent openCourse={openCourse} />}
+            />
+          </Routes>
+        )}
+      </main>
 
-        <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500">
-          נבנה ע&quot;י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה
-          04/12/2025 12:32
-        </footer>
+      <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-500 flex gap-4 items-center">
+        <span>
+          נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן לאחרונה{" "}
+          {lastUpdatedText || "—"}
+        </span>
 
-        <Toast />
-       {/*<DebugBar /> */} 
-      </div>
-    );
-  }
+        {/* מונה ביקורים קטן עם אייקון */}
+        {views !== null && (
+          <span className="flex items-center gap-1 text-neutral-400"><span>מספר מבקרים:</span>
+            <img src={IMG_VISITOR} alt="" className="w-3 h-3 opacity-70" />
+            {views.toLocaleString("he-IL")}
+          </span>
+        )}
+      </footer>
+
+      <Toast />
+      {/* <DebugBar /> */}
+    </div>
+  );
+}

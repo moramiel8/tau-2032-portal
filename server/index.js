@@ -306,6 +306,58 @@ app.get("/api/course-content", async (_req, res) => {
   }
 });
 
+// -- Count view and return current count --
+// -- Count view and return current count --
+app.post("/api/stats/view", async (req, res) => {
+  try {
+    const result = await query(
+      `
+      INSERT INTO stats (key, value)
+      VALUES ('site_views', 1)
+      ON CONFLICT (key)
+      DO UPDATE SET value = stats.value + 1
+      RETURNING value
+      `
+    );
+
+    const views = result.rows[0]?.value ?? 0;
+    res.json({ views });
+  } catch (err) {
+    console.error("[POST /api/stats/view] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// -- Fetch only (for footer refresh) --
+app.get("/api/stats/view", async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT value FROM stats WHERE key = 'site_views'`
+    );
+
+    const views = result.rows[0]?.value ?? 0;
+    res.json({ views });
+  } catch (err) {
+    console.error("[GET /api/stats/view] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+
+// -- Fetch only (for footer refresh) --
+app.get("/api/stats/view", async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT value FROM stats WHERE key = 'site_views'`
+    );
+    res.json({ views: result.rows[0].value });
+  } catch (err) {
+    console.error("[GET /api/stats/view] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+
 // אילו קורסים המשתמש הוא ועד שלהם
 app.get("/api/my/course-vaad", async (req, res) => {
   const user = req.user;
