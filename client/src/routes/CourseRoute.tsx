@@ -33,6 +33,7 @@ type CourseAnnouncement = {
   createdAt?: string;
   updatedAt?: string;
   authorEmail?: string | null;
+  authorName?: string | null;
 };
 
 export default function CourseRoute() {
@@ -42,7 +43,7 @@ export default function CourseRoute() {
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
 
-  /* --- טענת משתמשי ועד (כרגע רק ל־future use) --- */
+  /* --- טענת משתמשי ועד (לשמות יפים וכו') --- */
   useEffect(() => {
     (async () => {
       try {
@@ -101,8 +102,9 @@ export default function CourseRoute() {
 
     (async () => {
       try {
-        // חשוב: שולחים courseId ב־query
-        const res = await fetch(`/api/announcements?courseId=${encodeURIComponent(id)}`);
+        const res = await fetch(
+          `/api/announcements?courseId=${encodeURIComponent(id)}`
+        );
         if (!res.ok) return;
 
         const data = await res.json();
@@ -110,25 +112,15 @@ export default function CourseRoute() {
           ? data
           : data.items || [];
 
-        // מודעות ספציפיות לקורס
         const courseSpecific = items.filter((a) => a.courseId === id);
-
-        // מודעות כלליות (ללא courseId)
-        const general = items.filter((a) => !a.courseId);
-
-        // אם אין בכלל מודעות לקורס – לא מציגים כלום (גם לא כלליות)
-        if (courseSpecific.length === 0) {
-          setAnnouncements([]);
-        } else {
-          // קודם מודעות קורס, ואז כלליות
-          setAnnouncements([...courseSpecific, ...general]);
-        }
+        setAnnouncements(courseSpecific);
       } catch (e) {
         console.warn("[CourseRoute] failed to load announcements", e);
       }
     })();
   }, [id]);
 
+  // ---- guard clauses (אין hooks אחריהם!) ----
   if (!id) {
     return <div className="p-4 text-sm">לא הועבר מזהה קורס.</div>;
   }
@@ -152,6 +144,25 @@ export default function CourseRoute() {
     ? [course.reps]
     : [];
 
+  // עוזר: שם תצוגה לפי מייל מתוך vaadUsers
+  const getDisplayNameByEmail = (email?: string | null): string | null => {
+    if (!email) return null;
+    const normalized = email.trim().toLowerCase();
+    const match = vaadUsers.find(
+      (u) => (u.email || "").trim().toLowerCase() === normalized
+    );
+    return match?.displayName || email;
+  };
+
+  // רשימת נציגים לתצוגה – "שם (email)" אם יש שם יפה, אחרת רק email
+  const repsDisplay: string[] = reps.map((email) => {
+    const name = getDisplayNameByEmail(email);
+    if (name && name !== email) {
+      return `${name} (${email})`;
+    }
+    return email;
+  });
+
   const assignments: AssessmentItem[] = course.assignments || [];
   const exams: AssessmentItem[] = course.exams || [];
 
@@ -163,7 +174,7 @@ export default function CourseRoute() {
 
   const hasGeneralInfo =
     !!course.coordinator ||
-    reps.length > 0 ||
+    repsDisplay.length > 0 ||
     !!course.place ||
     !!course.whatwas ||
     !!course.whatwill;
@@ -180,7 +191,8 @@ export default function CourseRoute() {
     const d = new Date(c.lastEditedAt);
     if (isNaN(d.getTime())) return null;
 
-    const name = c.lastEditedByName || c.lastEditedByEmail || "המערכת";
+    const name =
+      c.lastEditedByName || getDisplayNameByEmail(c.lastEditedByEmail) || "המערכת";
 
     const dayStr = d.toLocaleDateString("he-IL", {
       weekday: "long",
@@ -202,24 +214,33 @@ export default function CourseRoute() {
 
   const formatAnnouncementMeta = (a: CourseAnnouncement) => {
     const ts = a.updatedAt || a.createdAt;
-    if (!ts) return a.authorEmail ? `עודכן ע"י ${a.authorEmail}` : "";
-    const d = new Date(ts);
+    const d = ts ? new Date(ts) : null;
 
-    const dateStr = d.toLocaleDateString("he-IL", {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    const byName =
+      a.authorName || getDisplayNameByEmail(a.authorEmail) || null;
 
-    const timeStr = d.toLocaleTimeString("he-IL", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!d && !byName) return "";
 
-    const by = a.authorEmail ? ` ע"י ${a.authorEmail}` : "";
+    const dateStr = d
+      ? d.toLocaleDateString("he-IL", {
+          weekday: "long",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+      : "";
 
-    return `עודכן בתאריך ${dateStr} בשעה ${timeStr}${by}`;
+    const timeStr = d
+      ? d.toLocaleTimeString("he-IL", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "";
+
+    let text = "";
+    if (d) text += `עודכן בתאריך ${dateStr} בשעה ${timeStr}`;
+    if (byName) text += ` ע"י ${byName}`;
+    return text;
   };
 
   return (
@@ -326,11 +347,11 @@ export default function CourseRoute() {
               </div>
             )}
 
-            {reps.length > 0 && (
+            {repsDisplay.length > 0 && (
               <div>
                 <span className="font-medium">נציגי קורס: </span>
-                <span dir="ltr" className="text-xs">
-                  {reps.join(", ")}
+                <span className="text-xs">
+                  {repsDisplay.join("; ")}
                 </span>
               </div>
             )}
@@ -392,7 +413,7 @@ export default function CourseRoute() {
       )}
 
       {/* מטלות */}
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800">
         <h2 className="text-sm font-semibold mb-3">מטלות / עבודות</h2>
         {assignments.length === 0 ? (
           <div className="text-xs text-neutral-500">
@@ -434,7 +455,7 @@ export default function CourseRoute() {
       </section>
 
       {/* בחנים / מבחנים */}
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800">
         <h2 className="text-sm font-semibold mb-3">בחנים / מבחנים</h2>
         {exams.length === 0 ? (
           <div className="text-xs text-neutral-500">

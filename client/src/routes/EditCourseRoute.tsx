@@ -392,38 +392,19 @@ export default function EditCourseRoute() {
             {/* Selected reps */}
             {reps.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
-                {reps.map((email, idx) => {
-                  const user = vaadUsers.find((u) => u.email === email);
-                  const label = user?.displayName
-                    ? `${user.displayName} (${email})`
-                    : email;
+           {reps.map((email, idx) => {
+  const user = vaadUsers.find((u) => u.email === email);
+  const label = user?.displayName
+    ? `${user.displayName} (${email})`
+    : email;
 
-                  return (
-                    <span
-                      key={email}
-                      className="
-                        inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs
-                        border bg-neutral-100 text-neutral-800 border-neutral-300
-                        dark:bg-neutral-800 dark:text-slate-50 dark:border-slate-600
-                      "
-                    >
-                      {label}
-                      {idx < reps.length - 1 && <span> ; </span>}
-                      <button
-                        type="button"
-                        className="leading-none text-[10px]"
-                        onClick={() =>
-                          setContent({
-                            ...content,
-                            reps: reps.filter((e) => e !== email),
-                          })
-                        }
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  );
-                })}
+  return (
+    <span key={email} className="inline-block" dir="rtl">
+      {label}
+      {idx < reps.length - 1 && <span> ; </span>}
+    </span>
+  );
+})}
               </div>
             )}
 

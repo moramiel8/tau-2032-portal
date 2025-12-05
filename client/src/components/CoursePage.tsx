@@ -78,20 +78,20 @@ setAnnouncements(relevant);
   }, [course.id]);
 
   // --- טעינת רשימת ועדי קורס (לשם + מייל) ---
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/course-vaad-users", {
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        setVaadUsers(data.items || []);
-      } catch (e) {
-        console.warn("[CoursePage] failed to load vaad users", e);
-      }
-    })();
-  }, []);
+useEffect(() => {
+  (async () => {
+    try {
+      const res = await fetch("/api/admin/course-vaad-users", {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setVaadUsers(data.items || []);
+    } catch (e) {
+      console.warn("[CoursePage] failed to load vaad users", e);
+    }
+  })();
+}, []);
 
   const formatAnnouncementMeta = (a: CourseAnnouncement) => {
     const ts = a.updatedAt || a.createdAt;
