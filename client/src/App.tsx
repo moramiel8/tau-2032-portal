@@ -28,6 +28,7 @@ import CourseRoute from "./routes/CourseRoute";
 import AdminPanel from "./routes/AdminPanel";
 
 import {
+  IMG_BUYME,
   IMG_WHATSAPP,
   IMG_FACEBOOK,
   IMG_GITHUB,
@@ -862,6 +863,19 @@ export default function App() {
                 <img
                   src={IMG_GITHUB}
                   alt="GitHub"
+                  className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+                />
+              </a>
+
+ <a
+                href="https://www.buymeacoffee.com/moramiel8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition"
+              >
+                <img
+                  src={IMG_BUYME}
+                  alt="BuyMe"
                   className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
                 />
               </a>
