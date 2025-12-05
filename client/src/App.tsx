@@ -311,12 +311,12 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
-          <h2 className="text-sm text-neutral-600 mb-3 whitespace-pre-line">
+          <h2 className="text-sm text-neutral-300 mb-3 whitespace-pre-line">
             {homepage.heroSubtitle ||
               "כל המידע, הקישורים והחומרים במקום אחד"}
           </h2>
           {homepage.introText && (
-            <p className="text-sm text-neutral-700 whitespace-pre-line">
+            <p className="text-sm text-neutral-400 whitespace-pre-line">
               {homepage.introText}
             </p>
           )}
