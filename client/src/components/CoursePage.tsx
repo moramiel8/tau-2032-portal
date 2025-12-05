@@ -7,8 +7,6 @@ type Props = {
   onBack?: () => void;
 };
 
-// client/src/components/CoursePage.tsx
-
 type CourseAnnouncement = {
   id: string;
   title: string;
@@ -19,10 +17,16 @@ type CourseAnnouncement = {
   authorEmail?: string | null;
 };
 
+type VaadUser = {
+  id: string;
+  email: string;
+  displayName: string | null;
+};
 
 export default function CoursePage({ course, onBack }: Props) {
   const [override, setOverride] = useState<Partial<Course> | null>(null);
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
+  const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
 
   const effectiveCourse = useMemo<Course>(() => {
     return {
@@ -31,14 +35,14 @@ export default function CoursePage({ course, onBack }: Props) {
     };
   }, [course, override]);
 
-  // טעינת override ספציפי לקורס
+  // --- טעינת override ספציפי לקורס ---
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`/api/course-content/${course.id}`);
         if (!res.ok) return;
-       const data = await res.json();
-      console.log("[CoursePage] override from server:", data);  
+        const data = await res.json();
+        console.log("[CoursePage] override from server:", data);
 
         if (data.exists && data.content) {
           setOverride(data.content as Partial<Course>);
@@ -51,63 +55,107 @@ export default function CoursePage({ course, onBack }: Props) {
     })();
   }, [course.id]);
 
+  // --- טעינת מודעות לקורס ---
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/announcements");
+        if (!res.ok) return;
+        const data = (await res.json()) as { items: CourseAnnouncement[] };
 
-// טעינת מודעות לקורס
-useEffect(() => {
-  (async () => {
-    try {
-      const res = await fetch("/api/announcements");
-      if (!res.ok) return;
-      const data = (await res.json()) as { items: CourseAnnouncement[] };
+        const relevant = (data.items || []).filter(
+          (a) => !a.courseId || a.courseId === course.id
+        );
 
-      // מודעות כלליות + מודעות של הקורס הזה
-      const relevant = (data.items || []).filter(
-        (a) => !a.courseId || a.courseId === course.id
-      );
+        setAnnouncements(relevant);
+      } catch (e) {
+        console.warn("[CoursePage] failed to load announcements", e);
+      }
+    })();
+  }, [course.id]);
 
-      setAnnouncements(relevant);
-    } catch (e) {
-      console.warn("[CoursePage] failed to load announcements", e);
-    }
-  })();
-}, [course.id]);
+  // --- טעינת רשימת ועדי קורס (לשם + מייל) ---
+  useEffect(() => {
+    (async () => {
+      try {
+      const res = await fetch("/api/admin/course-vaad-users", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setVaadUsers(data.items || []);
+      } catch (e) {
+        console.warn("[CoursePage] failed to load vaad users", e);
+      }
+    })();
+  }, []);
 
-const formatAnnouncementMeta = (a: CourseAnnouncement) => {
-  const ts = a.updatedAt || a.createdAt;
-  if (!ts) return a.authorEmail ? `עודכן ע"י ${a.authorEmail}` : "";
+  const formatAnnouncementMeta = (a: CourseAnnouncement) => {
+    const ts = a.updatedAt || a.createdAt;
+    if (!ts) return a.authorEmail ? `עודכן ע"י ${a.authorEmail}` : "";
 
-  const d = new Date(ts);
+    const d = new Date(ts);
 
-  const dateStr = d.toLocaleDateString("he-IL", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+    const dateStr = d.toLocaleDateString("he-IL", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
 
-  const timeStr = d.toLocaleTimeString("he-IL", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+    const timeStr = d.toLocaleTimeString("he-IL", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-  const by = a.authorEmail ? ` ע"י ${a.authorEmail}` : "";
+    const by = a.authorEmail ? ` ע"י ${a.authorEmail}` : "";
 
-  return `עודכן בתאריך ${dateStr} בשעה ${timeStr}${by}`;
-};
+    return `עודכן בתאריך ${dateStr} בשעה ${timeStr}${by}`;
+  };
 
-
-  const { name, note, coordinator, reps, courseNumber, place, syllabus, links, whatwas, whatwill,  externalMaterials} =
-    effectiveCourse;
+  // פירוק מה־effectiveCourse
+  const {
+    name,
+    note,
+    coordinator,
+    reps: rawReps,
+    courseNumber,
+    place,
+    syllabus,
+    links,
+    whatwas,
+    whatwill,
+    externalMaterials,
+  } = effectiveCourse as Course & { reps?: string | string[] };
 
   const assignments: AssessmentItem[] = effectiveCourse.assignments || [];
   const exams: AssessmentItem[] = effectiveCourse.exams || [];
+
+  // --- נירמול reps למערך + תצוגה עם השם ---
+  const repsArray: string[] = useMemo(() => {
+    if (Array.isArray(rawReps)) return rawReps;
+    if (typeof rawReps === "string" && rawReps.trim() !== "") {
+      return [rawReps];
+    }
+    return [];
+  }, [rawReps]);
+
+  const repsDisplay: string[] = useMemo(() => {
+    return repsArray.map((email) => {
+      const normalizedEmail = (email || "").trim().toLowerCase();
+      const user = vaadUsers.find(
+        (u) => (u.email || "").trim().toLowerCase() === normalizedEmail
+      );
+      return user?.displayName ? `${user.displayName} (${email})` : email;
+    });
+  }, [repsArray, vaadUsers]);
 
   return (
     <div className="max-w-3xl mx-auto pb-10">
       {onBack && (
         <button
           type="button"
-          onClick={onBack}  
+          onClick={onBack}
           className="text-xs mb-3 underline text-neutral-600"
         >
           ← חזרה לרשימת הקורסים
@@ -127,41 +175,57 @@ const formatAnnouncementMeta = (a: CourseAnnouncement) => {
         </p>
       )}
 
-      {(coordinator || reps || whatwas || whatwill) && (
+      {(coordinator || repsDisplay.length > 0 || whatwas || whatwill) && (
         <p className="text-xs text-neutral-600 mb-4">
           {coordinator && <span>רכז/ת: {coordinator}</span>}
-          {coordinator && reps && <span> · </span>}
-          {reps && <span>נציגי ועד: {reps}</span>}
-          {whatwas && <span>מה היה בשבוע האחרון? {whatwas}</span>}
-           {whatwill && <span>מה יהיה בהמשך? {whatwill}</span>}
+          {coordinator && repsDisplay.length > 0 && <span> · </span>}
+          {repsDisplay.length > 0 && (
+            <span>
+              נציגי ועד:{" "}
+              <span dir="ltr">
+                {repsDisplay.join(", ")}
+              </span>
+            </span>
+          )}
+          {whatwas && (
+            <>
+              {" · "}
+              <span>מה היה בשבוע האחרון? {whatwas}</span>
+            </>
+          )}
+          {whatwill && (
+            <>
+              {" · "}
+              <span>מה יהיה בהמשך? {whatwill}</span>
+            </>
+          )}
         </p>
       )}
 
       {/* מודעות לקורס */}
-    {announcements.length > 0 && (
-  <section className="mb-4 border rounded-2xl p-3">
-    <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
-    <ul className="text-xs space-y-2">
-      {announcements.map((a) => (
-        <li key={a.id} className="border-b last:border-b-0 pb-2">
-          <div className="font-semibold">{a.title}</div>
-          <div className="text-neutral-700 whitespace-pre-line">
-            {a.body}
-          </div>
-          {(a.createdAt || a.updatedAt || a.authorEmail) && (
-            <div className="text-[10px] text-neutral-400 mt-1">
-              {formatAnnouncementMeta(a)}
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  </section>
-)}
+      {announcements.length > 0 && (
+        <section className="mb-4 border rounded-2xl p-3">
+          <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
+          <ul className="text-xs space-y-2">
+            {announcements.map((a) => (
+              <li key={a.id} className="border-b last:border-b-0 pb-2">
+                <div className="font-semibold">{a.title}</div>
+                <div className="text-neutral-700 whitespace-pre-line">
+                  {a.body}
+                </div>
+                {(a.createdAt || a.updatedAt || a.authorEmail) && (
+                  <div className="text-[10px] text-neutral-400 mt-1">
+                    {formatAnnouncementMeta(a)}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-
-            {/* חומרים חיצוניים */}
- {externalMaterials && externalMaterials.length > 0 && (
+      {/* חומרים חיצוניים */}
+      {externalMaterials && externalMaterials.length > 0 && (
         <section className="mb-4 border rounded-2xl p-3">
           <h2 className="text-sm font-medium mb-2">חומרים חיצוניים מומלצים</h2>
           <ul className="text-xs space-y-2">
@@ -184,10 +248,9 @@ const formatAnnouncementMeta = (a: CourseAnnouncement) => {
         </section>
       )}
 
-
       {/* קישורים */}
       {links && (
-<section className="mb-4 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+        <section className="mb-4 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
           <h2 className="text-sm font-medium mb-2">קישורים</h2>
           <div className="flex flex-wrap gap-2 text-xs">
             {links.drive && (

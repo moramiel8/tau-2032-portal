@@ -392,7 +392,7 @@ export default function EditCourseRoute() {
             {/* Selected reps */}
             {reps.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
-                {reps.map((email) => {
+                {reps.map((email, idx) => {
                   const user = vaadUsers.find((u) => u.email === email);
                   const label = user?.displayName
                     ? `${user.displayName} (${email})`
@@ -408,6 +408,7 @@ export default function EditCourseRoute() {
                       "
                     >
                       {label}
+                      {idx < reps.length - 1 && <span> ; </span>}
                       <button
                         type="button"
                         className="leading-none text-[10px]"

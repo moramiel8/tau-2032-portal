@@ -37,7 +37,7 @@ export default function CourseRoute() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/course-vaad-users", {
+      const res = await fetch("/api/admin/course-vaad-users", {
           credentials: "include",
         });
         if (!res.ok) return;
@@ -265,28 +265,35 @@ export default function CourseRoute() {
               </div>
             )}
 
-            {reps.length > 0 && (
-              <div>
-                <span className="font-medium">נציגי קורס: </span>
-                <span className="inline-flex flex-wrap gap-x-1 gap-y-0.5" dir="ltr">
-                  {reps.map((email) => {
-                    const user = vaadUsers.find((u) => u.email === email);
-                    const label = user?.displayName
-                      ? `${user.displayName} (${email})`
-                      : email;
+          {reps.length > 0 && (
+  <div>
+    <span className="font-medium">נציגי קורס: </span>
+    <span className="inline-flex flex-wrap gap-x-1 gap-y-0.5">
+      {reps.map((email, idx) => {
+        const normalizedEmail = (email || "").trim().toLowerCase();
 
-                    return (
-                      <span
-                        key={email}
-                        className="inline-block text-xs text-blue-800 dark:text-blue-200"
-                      >
-                        {label}
-                      </span>
-                    );
-                  })}
-                </span>
-              </div>
-            )}
+        const user = vaadUsers.find(
+          (u) => (u.email || "").trim().toLowerCase() === normalizedEmail
+        );
+
+        const label = user?.displayName
+          ? `${user.displayName} (${email})`
+          : email;
+
+        return (
+          <span
+            key={email}
+            className="inline-block text-xs text-blue-800 dark:text-blue-200"
+          >
+            {label}
+            {idx < reps.length - 1 && <span> ; </span>}
+          </span>
+        );
+      })}
+    </span>
+  </div>
+)}
+
 
             {course.place && (
               <div>
