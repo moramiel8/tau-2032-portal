@@ -42,7 +42,7 @@ export default function CourseRoute() {
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
 
-  // --- משתמשי ועד (לשמות היפים) ---
+  /* --- טענת משתמשי ועד (כרגע רק ל־future use) --- */
   useEffect(() => {
     (async () => {
       try {
@@ -53,12 +53,12 @@ export default function CourseRoute() {
         const data = await res.json();
         setVaadUsers(data.items || []);
       } catch (e) {
-        console.warn("[CourseRoute] failed to load vaad users", e);
+        console.warn("failed to load vaad users", e);
       }
     })();
   }, []);
 
-  // --- טעינת תוכן הקורס ---
+  /* --- טענת תוכן הקורס --- */
   useEffect(() => {
     if (!id) return;
 
@@ -95,13 +95,14 @@ export default function CourseRoute() {
     })();
   }, [id]);
 
-  // --- מודעות לקורס (לקהל הרגיל) ---
+  /* --- טענת מודעות לקורס (לתצוגה לסטודנטים) --- */
   useEffect(() => {
     if (!id) return;
 
     (async () => {
       try {
-        const res = await fetch("/api/announcements");
+        // חשוב: שולחים courseId ב־query
+        const res = await fetch(`/api/announcements?courseId=${encodeURIComponent(id)}`);
         if (!res.ok) return;
 
         const data = await res.json();
@@ -109,13 +110,19 @@ export default function CourseRoute() {
           ? data
           : data.items || [];
 
+        // מודעות ספציפיות לקורס
         const courseSpecific = items.filter((a) => a.courseId === id);
+
+        // מודעות כלליות (ללא courseId)
         const general = items.filter((a) => !a.courseId);
 
-        // אם יש מודעות לקורס – מציגים רק אותן, אחרת נופלים למודעות כלליות
-        setAnnouncements(
-          courseSpecific.length > 0 ? courseSpecific : general
-        );
+        // אם אין בכלל מודעות לקורס – לא מציגים כלום (גם לא כלליות)
+        if (courseSpecific.length === 0) {
+          setAnnouncements([]);
+        } else {
+          // קודם מודעות קורס, ואז כלליות
+          setAnnouncements([...courseSpecific, ...general]);
+        }
       } catch (e) {
         console.warn("[CourseRoute] failed to load announcements", e);
       }
@@ -138,7 +145,7 @@ export default function CourseRoute() {
     );
   }
 
-  // --- נירמול reps ---
+  /* --- נירמול reps --- */
   const reps: string[] = Array.isArray(course.reps)
     ? course.reps
     : course.reps
@@ -196,7 +203,6 @@ export default function CourseRoute() {
   const formatAnnouncementMeta = (a: CourseAnnouncement) => {
     const ts = a.updatedAt || a.createdAt;
     if (!ts) return a.authorEmail ? `עודכן ע"י ${a.authorEmail}` : "";
-
     const d = new Date(ts);
 
     const dateStr = d.toLocaleDateString("he-IL", {
@@ -308,7 +314,7 @@ export default function CourseRoute() {
         </section>
       )}
 
-      {/* מידע כללי */}
+      {/* מידע כללי + מה היה/יהיה */}
       {hasGeneralInfo && (
         <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
           <h2 className="text-sm font-semibold mb-3">מידע כללי</h2>
@@ -323,32 +329,8 @@ export default function CourseRoute() {
             {reps.length > 0 && (
               <div>
                 <span className="font-medium">נציגי קורס: </span>
-                <span className="inline-flex flex-wrap gap-x-1 gap-y-0.5">
-                  {reps.map((email, idx) => {
-                    const normalizedEmail = (email || "")
-                      .trim()
-                      .toLowerCase();
-
-                    const user = vaadUsers.find(
-                      (u) =>
-                        (u.email || "").trim().toLowerCase() ===
-                        normalizedEmail
-                    );
-
-                    const label = user?.displayName
-                      ? `${user.displayName} (${email})`
-                      : email;
-
-                    return (
-                      <span
-                        key={email}
-                        className="inline-block text-xs text-blue-800 dark:text-blue-200"
-                      >
-                        {label}
-                        {idx < reps.length - 1 && <span> ; </span>}
-                      </span>
-                    );
-                  })}
+                <span dir="ltr" className="text-xs">
+                  {reps.join(", ")}
                 </span>
               </div>
             )}
@@ -375,19 +357,19 @@ export default function CourseRoute() {
                 <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
                   {course.whatwill}
                 </div>
+              </div>
+            )}
 
-                {lastEditedMeta && (
-                  <div className="text-[10px] text-neutral-400 mt-1">
-                    {lastEditedMeta}
-                  </div>
-                )}
+            {lastEditedMeta && (
+              <div className="text-[10px] text-neutral-400 mt-1">
+                {lastEditedMeta}
               </div>
             )}
           </div>
         </section>
       )}
 
-      {/* מודעות לקורס */}
+      {/* 🔔 מודעות לקורס */}
       {announcements.length > 0 && (
         <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
           <h2 className="text-sm font-semibold mb-3">מודעות לקורס זה</h2>

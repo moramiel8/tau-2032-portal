@@ -62,7 +62,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
   // טווח להצגת מטלות/מבחנים
-  const [range, setRange] = useState<"week" | "month" | "all">("week");
+const [range, setRange] = useState<"week" | "month" | "all">("all");
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
@@ -354,116 +354,113 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       )}
 
       {/* טבלת מטלות + מבחנים קרובים */}
-      {latestItems.length > 0 && (
-       <section
+      <section
   className="
     mb-8 border rounded-2xl p-4 shadow-sm
     bg-white dark:bg-slate-900
     border-neutral-200 dark:border-slate-700
   "
 >
+  <div className="flex items-center justify-between mb-2 gap-2">
+    <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
 
-          <div className="flex items-center justify-between mb-2 gap-2">
-            <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
-           <div className="flex gap-1 text-[11px] sm:text-xs">
-  {/* שבוע */}
-  <button
-    onClick={() => setRange("week")}
-    className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-      ${
-        range === "week"
-          ? // נבחר
-            "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-          : // לא נבחר
-            "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-      }
-    `}
-  >
-    📅 שבוע
-  </button>
+    {/* כפתורי טווח – בדיוק כמו שיש לך */}
+    <div className="flex gap-1 text-[11px] sm:text-xs">
+      <button
+        onClick={() => setRange("week")}
+        className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+          ${
+            range === "week"
+              ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+              : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          }
+        `}
+      >
+        📅 שבוע
+      </button>
 
-  {/* חודש */}
-  <button
-    onClick={() => setRange("month")}
-    className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-      ${
-        range === "month"
-          ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-          : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-      }
-    `}
-  >
-    🗓️ חודש
-  </button>
+      <button
+        onClick={() => setRange("month")}
+        className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+          ${
+            range === "month"
+              ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+              : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          }
+        `}
+      >
+        🗓️ חודש
+      </button>
 
-  {/* הכול */}
-  <button
-    onClick={() => setRange("all")}
-    className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-      ${
-        range === "all"
-          ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-          : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-      }
-    `}
-  >
-    ⏭️ הכול
-  </button>
-</div>
+      <button
+        onClick={() => setRange("all")}
+        className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+          ${
+            range === "all"
+              ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+              : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          }
+        `}
+      >
+        ⏭️ הכול
+      </button>
+    </div>
+  </div>
 
-          </div>
+  {latestItems.length === 0 ? (
+    <div className="text-xs text-neutral-500 mt-2">
+      אין מטלות או מבחנים בטווח שנבחר.
+    </div>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs sm:text-sm border-collapse">
+        <thead className="bg-neutral-50 dark:bg-slate-800 text-[11px] text-neutral-500 dark:text-slate-300">
+          <tr>
+            <th className="text-right py-2 px-2">קורס</th>
+            <th className="text-right py-2 px-2">סוג</th>
+            <th className="text-right py-2 px-2">שם</th>
+            <th className="text-right py-2 px-2">תאריך</th>
+            <th className="text-right py-2 px-2 hidden sm:table-cell">
+              הערות
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {latestItems.map((item, index) => {
+            const isFirst = index === 0;
+            return (
+              <tr
+                key={item.courseId + item.title + index}
+                className={
+                  "border-t border-neutral-200 dark:border-slate-700" +
+                  (isFirst ? " bg-yellow-50/60 dark:bg-yellow-900/20" : "")
+                }
+              >
+                <td className="py-2 px-2 align-top">
+                  <span className="font-medium flex items-center gap-1">
+                    {isFirst && <span>📌</span>}
+                    {item.courseName}
+                  </span>
+                </td>
+                <td className="py-2 px-2 align-top whitespace-nowrap">
+                  {item.type === "assignment" ? "📝 מטלה" : "💯 בחינה"}
+                </td>
+                <td className="py-2 px-2 align-top">{item.title}</td>
+                <td className="py-2 px-2 align-top whitespace-nowrap">
+                  {item.dateObj.toLocaleDateString("he-IL")}
+                </td>
+                <td className="py-2 px-2 align-top text-neutral-500 hidden sm:table-cell">
+                  {item.notes || "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</section>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm border-collapse">
-<thead className="
-  bg-neutral-50 dark:bg-slate-800
-  text-[11px]
-  text-neutral-500 dark:text-slate-300
-">
-                <tr>
-                  <th className="text-right py-2 px-2">קורס</th>
-                  <th className="text-right py-2 px-2">סוג</th>
-                  <th className="text-right py-2 px-2">שם</th>
-                  <th className="text-right py-2 px-2">תאריך</th>
-                  <th className="text-right py-2 px-2 hidden sm:table-cell">
-                    הערות
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {latestItems.map((item, index) => {
-                  const isFirst = index === 0;
-                  return (
-                   <tr
-  className={
-    "border-t border-neutral-200 dark:border-slate-700" +
-    (isFirst ? " bg-yellow-50/60 dark:bg-yellow-900/20" : "")
-  }
->
-                      <td className="py-2 px-2 align-top">
-                        <span className="font-medium flex items-center gap-1">
-                          {isFirst && <span>📌</span>}
-                          {item.courseName}
-                        </span>
-                      </td>
-                      <td className="py-2 px-2 align-top whitespace-nowrap">
-                        {item.type === "assignment" ? "📝 מטלה" : "💯 בחינה"}
-                      </td>
-                      <td className="py-2 px-2 align-top">{item.title}</td>
-                      <td className="py-2 px-2 align-top whitespace-nowrap">
-                        {item.dateObj.toLocaleDateString("he-IL")}
-                      </td>
-                      <td className="py-2 px-2 align-top text-neutral-500 hidden sm:table-cell">
-                        {item.notes || "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
 
       {/* יומן */}
       <section className="mb-8">

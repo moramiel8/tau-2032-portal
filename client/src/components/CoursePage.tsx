@@ -64,8 +64,11 @@ export default function CoursePage({ course, onBack }: Props) {
         const data = (await res.json()) as { items: CourseAnnouncement[] };
 
         const relevant = (data.items || []).filter(
-          (a) => !a.courseId || a.courseId === course.id
-        );
+  (a) => a.courseId === course.id
+);
+
+setAnnouncements(relevant);
+
 
         setAnnouncements(relevant);
       } catch (e) {
@@ -78,7 +81,7 @@ export default function CoursePage({ course, onBack }: Props) {
   useEffect(() => {
     (async () => {
       try {
-      const res = await fetch("/api/admin/course-vaad-users", {
+        const res = await fetch("/api/course-vaad-users", {
           credentials: "include",
         });
         if (!res.ok) return;
