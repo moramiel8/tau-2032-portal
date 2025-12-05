@@ -265,6 +265,34 @@ router.get("/assignments", requireAdminLike, async (_req, res) => {
   }
 });
 
+
+// כל משתמשי "ועד קורס" לבחירה כנציגים
+router.get("/course-vaad-users", requireAdminLike, async (_req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT id, email, display_name
+      FROM course_vaad
+      ORDER BY
+        COALESCE(display_name, '') ASC,
+        email ASC
+      `
+    );
+
+    res.json({
+      items: result.rows.map((r) => ({
+        id: String(r.id),
+        email: r.email,
+        displayName: r.display_name || null,
+      })),
+    });
+  } catch (err) {
+    console.error("[GET /admin/course-vaad-users] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+
 // יצירת הקצאת "ועד קורס"
 router.post("/course-vaad", requireAdminLike, async (req, res) => {
   const { email, displayName, courseIds } = req.body;
@@ -380,7 +408,7 @@ router.post("/global-roles", requireAdminOnly, async (req, res) => {
 });
 
 // מחיקת תפקיד גלובלי
-router.delete("/global-roles/:id", requireAdminLike, async (req, res) => {
+router.delete("/global-roles/:id", requireAdminOnly, async (req, res) => {
   const { id } = req.params;
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) {

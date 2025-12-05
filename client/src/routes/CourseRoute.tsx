@@ -13,8 +13,13 @@ import {
   IMG_PDF,
 } from "../constants/icons";
 
+type VaadUser = {
+  id: string;
+  email: string;
+  displayName: string | null;
+};
+
 type CourseContent = Course & {
-  [key: string]: any;
   lastEditedByEmail?: string | null;
   lastEditedByName?: string | null;
   lastEditedAt?: string | null;
@@ -24,7 +29,29 @@ export default function CourseRoute() {
   const { id } = useParams();
   const [course, setCourse] = useState<CourseContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
 
+  /* ---------------------------------------------
+     טענת משתמשי ועד (לשמות היפים)
+  --------------------------------------------- */
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/course-vaad-users", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setVaadUsers(data.items || []);
+      } catch (e) {
+        console.warn("failed to load vaad users", e);
+      }
+    })();
+  }, []);
+
+  /* ---------------------------------------------
+     טענת תוכן הקורס
+  --------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
@@ -44,7 +71,6 @@ export default function CourseRoute() {
         };
 
         if (data.exists && data.content) {
-          // merge על ה־base כדי לא לאבד דברים מה־YEARS
           setCourse(
             baseCourse
               ? { ...baseCourse, ...data.content }
@@ -78,6 +104,15 @@ export default function CourseRoute() {
     );
   }
 
+  /* ---------------------------------------------
+     נירמול reps (מחרוזת / מערך / undefined)
+  --------------------------------------------- */
+  const reps: string[] = Array.isArray(course.reps)
+    ? course.reps
+    : course.reps
+    ? [course.reps]
+    : [];
+
   const assignments: AssessmentItem[] = course.assignments || [];
   const exams: AssessmentItem[] = course.exams || [];
 
@@ -89,7 +124,7 @@ export default function CourseRoute() {
 
   const hasGeneralInfo =
     !!course.coordinator ||
-    !!course.reps ||
+    reps.length > 0 ||
     !!course.place ||
     !!course.whatwas ||
     !!course.whatwill;
@@ -128,14 +163,16 @@ export default function CourseRoute() {
 
   return (
     <div className="max-w-4xl mx-auto pb-12 px-4">
-      <header className="mb-5 border-b pb-3">
-        <h1 className="text-2xl font-semibold mb-1">{course.name}</h1>
-  <p className="text-xs text-neutral-500 dark:text-slate-400 mb-1">
+      <header className="mb-5 border-b pb-3 border-neutral-200 dark:border-slate-800">
+        <h1 className="text-2xl font-semibold mb-1 dark:text-slate-100">
+          {course.name}
+        </h1>
+        <p className="text-xs text-neutral-500 dark:text-slate-400 mb-1">
           מזהה קורס: <code>{course.id}</code>{" "}
           {course.courseNumber && <>· מספר קורס: {course.courseNumber}</>}
         </p>
         {course.note && (
-    <p className="text-sm text-neutral-600 dark:text-slate-300 whitespace-pre-line">
+          <p className="text-sm text-neutral-600 dark:text-slate-300 whitespace-pre-line">
             {course.note}
           </p>
         )}
@@ -143,31 +180,82 @@ export default function CourseRoute() {
 
       {/* לינקים ואייקונים */}
       {hasLinks && (
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
-  <h2 className="text-sm font-semibold mb-3 text-neutral-800 dark:text-slate-100">
-    קישורים חשובים
-  </h2>
+        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <h2 className="text-sm font-semibold mb-3 text-neutral-800 dark:text-slate-100">
+            קישורים חשובים
+          </h2>
 
-  <div className="flex flex-wrap gap-3">
-    {course.links?.whatsapp && (
-      <a
-        href={course.links.whatsapp}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 text-xs hover:bg-green-50 dark:hover:bg-green-950/40 border-neutral-200 dark:border-slate-700"
-      >
-        <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-4 h-4" />
-        קבוצת וואטסאפ
-      </a>
-    )}
-    {/* שאר הכפתורים – אותו רעיון, רק צבע hover שונה */}
-  </div>
-</section>
+          <div className="flex flex-wrap gap-3 text-xs">
+            {course.links?.whatsapp && (
+              <a
+                href={course.links.whatsapp}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-green-50 dark:hover:bg-green-950/40 border-neutral-200 dark:border-slate-700 dark:text-slate-100"
+              >
+                <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-4 h-4" />
+                קבוצת וואטסאפ
+              </a>
+            )}
+
+            {course.links?.drive && (
+              <a
+                href={course.links.drive}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-neutral-200 dark:border-slate-700 dark:text-slate-100"
+              >
+                <img src={IMG_DRIVE} alt="Drive" className="w-4 h-4" />
+                דרייב הקורס
+              </a>
+            )}
+
+            {course.links?.moodle && (
+              <a
+                href={course.links.moodle}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-orange-50 dark:hover:bg-orange-950/40 border-neutral-200 dark:border-slate-700 dark:text-slate-100"
+              >
+                <img src={IMG_MOODLE} alt="Moodle" className="w-4 h-4" />
+                מודל
+              </a>
+            )}
+
+            {course.syllabus && (
+              <a
+                href={course.syllabus}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 border-neutral-200 dark:border-slate-700 dark:text-slate-100"
+              >
+                <img src={IMG_PDF} alt="Syllabus" className="w-4 h-4" />
+                סילבוס
+              </a>
+            )}
+
+            {course.externalMaterials &&
+              course.externalMaterials.map((m, idx) => (
+                <a
+                  key={idx}
+                  href={m.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 border-neutral-200 dark:border-slate-700 dark:text-slate-100"
+                >
+                  {m.icon && (
+                    <img src={m.icon} alt="" className="w-4 h-4" />
+                  )}
+                  {m.label}
+                </a>
+              ))}
+          </div>
+        </section>
       )}
 
       {/* מידע כללי + מה היה/יהיה */}
       {hasGeneralInfo && (
-<section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
           <h2 className="text-sm font-semibold mb-3">מידע כללי</h2>
           <div className="space-y-2">
             {course.coordinator && (
@@ -176,12 +264,30 @@ export default function CourseRoute() {
                 {course.coordinator}
               </div>
             )}
-            {course.reps && (
+
+            {reps.length > 0 && (
               <div>
                 <span className="font-medium">נציגי קורס: </span>
-                {course.reps}
+                <span className="inline-flex flex-wrap gap-x-1 gap-y-0.5" dir="ltr">
+                  {reps.map((email) => {
+                    const user = vaadUsers.find((u) => u.email === email);
+                    const label = user?.displayName
+                      ? `${user.displayName} (${email})`
+                      : email;
+
+                    return (
+                      <span
+                        key={email}
+                        className="inline-block text-xs text-blue-800 dark:text-blue-200"
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
+                </span>
               </div>
             )}
+
             {course.place && (
               <div>
                 <span className="font-medium">מיקום עיקרי: </span>
@@ -191,10 +297,8 @@ export default function CourseRoute() {
 
             {course.whatwas && (
               <div className="mt-3">
-                <div className="font-medium">
-                 ➡️ מה היה בשבוע האחרון?
-                </div>
-  <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
+                <div className="font-medium">➡️ מה היה בשבוע האחרון?</div>
+                <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
                   {course.whatwas}
                 </div>
               </div>
@@ -202,10 +306,8 @@ export default function CourseRoute() {
 
             {course.whatwill && (
               <div className="mt-3">
-                <div className="font-medium">
-                  ⬅️ מה יהיה בהמשך?
-                </div>
-  <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
+                <div className="font-medium">⬅️ מה יהיה בהמשך?</div>
+                <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
                   {course.whatwill}
                 </div>
 
@@ -221,7 +323,7 @@ export default function CourseRoute() {
       )}
 
       {/* מטלות */}
-<section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
         <h2 className="text-sm font-semibold mb-3">מטלות / עבודות</h2>
         {assignments.length === 0 ? (
           <div className="text-xs text-neutral-500">
@@ -240,12 +342,12 @@ export default function CourseRoute() {
               </thead>
               <tbody>
                 {assignments.map((a, idx) => (
-                  <tr key={idx} className="border-t">
+                  <tr key={idx} className="border-t border-neutral-200 dark:border-slate-800">
                     <td className="py-2 px-2 align-top">{a.title}</td>
+                    <td className="py-2 px-2 align-top">{formatDate(a.date)}</td>
                     <td className="py-2 px-2 align-top">
-                      {formatDate(a.date)}
+                      {a.weight || "—"}
                     </td>
-                    <td className="py-2 px-2 align-top">{a.weight || "—"}</td>
                     <td className="py-2 px-2 align-top">
                       {a.notes || "—"}
                     </td>
@@ -258,7 +360,7 @@ export default function CourseRoute() {
       </section>
 
       {/* בחנים / מבחנים */}
-<section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
         <h2 className="text-sm font-semibold mb-3">בחנים / מבחנים</h2>
         {exams.length === 0 ? (
           <div className="text-xs text-neutral-500">
@@ -277,7 +379,7 @@ export default function CourseRoute() {
               </thead>
               <tbody>
                 {exams.map((ex, idx) => (
-                  <tr key={idx} className="border-t">
+                  <tr key={idx} className="border-t border-neutral-200 dark:border-slate-800">
                     <td className="py-2 px-2 align-top">{ex.title}</td>
                     <td className="py-2 px-2 align-top">
                       {formatDate(ex.date)}

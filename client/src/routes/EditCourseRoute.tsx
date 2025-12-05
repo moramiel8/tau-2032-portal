@@ -1,5 +1,5 @@
 // client/src/routes/EditCourseRoute.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ALL_COURSES, type Course, type AssessmentItem } from "../data/years";
 
@@ -11,8 +11,14 @@ import {
   IMG_NET,
 } from "../constants/icons";
 
-type CourseContent = Course & {
-  [key: string]: any;
+/* -------------------------------------------------
+   TYPES
+---------------------------------------------------*/
+
+type VaadUser = {
+  id: string;
+  email: string;
+  displayName: string | null;
 };
 
 type ExternalMaterial = {
@@ -21,17 +27,98 @@ type ExternalMaterial = {
   icon?: string;
 };
 
+/**
+ * CourseContent = גרסה ״נוחה״ לעבודה
+ * שבה reps תמיד string[]
+ * ושאר השדות המערכיים/אובייקטים תמיד קיימים.
+ */
+type CourseContent = Omit<
+  Course,
+  "reps" | "assignments" | "exams" | "externalMaterials" | "links"
+> & {
+  reps: string[];
+  assignments: AssessmentItem[];
+  exams: AssessmentItem[];
+  externalMaterials: ExternalMaterial[];
+  links: { drive?: string; moodle?: string; whatsapp?: string };
+};
+
+/* -------------------------------------------------
+   NORMALIZATION HELPERS
+---------------------------------------------------*/
+
+function normalizeReps(raw: any): string[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string" && raw.trim() !== "") return [raw];
+  return [];
+}
+
+function normalizeLoadedContent(raw: any): CourseContent {
+  return {
+    ...raw,
+    reps: normalizeReps(raw.reps),
+    externalMaterials: Array.isArray(raw.externalMaterials)
+      ? raw.externalMaterials
+      : [],
+    assignments: Array.isArray(raw.assignments) ? raw.assignments : [],
+    exams: Array.isArray(raw.exams) ? raw.exams : [],
+    links: raw.links && typeof raw.links === "object" ? raw.links : {},
+  };
+}
+
+function normalizeBaseCourse(c: Course | null): CourseContent | null {
+  if (!c) return null;
+  return {
+    ...c,
+    reps: normalizeReps(c.reps),
+    externalMaterials: Array.isArray(c.externalMaterials)
+      ? c.externalMaterials
+      : [],
+    assignments: Array.isArray(c.assignments) ? c.assignments : [],
+    exams: Array.isArray(c.exams) ? c.exams : [],
+    links: c.links && typeof c.links === "object" ? c.links : {},
+  };
+}
+
+/* ===============================================
+   ICON OPTIONS
+===============================================*/
+const ICON_OPTIONS = [
+  { label: "Drive", value: IMG_DRIVE },
+  { label: "PDF", value: IMG_PDF },
+  { label: "Moodle", value: IMG_MOODLE },
+  { label: "WhatsApp", value: IMG_WHATSAPP },
+  { label: "General Website", value: IMG_NET },
+];
+
+/* ===============================================
+   UTILITY FOR DATE CLEANUP
+===============================================*/
+const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
+
+/* -------------------------------------------------
+   COMPONENT
+---------------------------------------------------*/
+
 export default function EditCourseRoute() {
   const { id } = useParams();
   const nav = useNavigate();
 
-  const baseCourse = ALL_COURSES.find((c) => c.id === id) || null;
+  const baseCourse: CourseContent | null = useMemo(
+    () =>
+      normalizeBaseCourse(
+        ALL_COURSES.find((c) => c.id === id) || null
+      ),
+    [id]
+  );
 
   const [content, setContent] = useState<CourseContent | null>(baseCourse);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // מצב שמירת אוטומטית
+  const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
+  const [repSearch, setRepSearch] = useState("");
+
   const [autoStatus, setAutoStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
@@ -41,28 +128,29 @@ export default function EditCourseRoute() {
   const [uploadingSyllabus, setUploadingSyllabus] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // טעינה ראשונית מהשרת
+  /* -------------------------------------------------
+     LOAD COURSE CONTENT FROM SERVER
+  ---------------------------------------------------*/
   useEffect(() => {
     (async () => {
       if (!id) return;
+
       try {
         const res = await fetch(`/api/admin/course-content/${id}`, {
           credentials: "include",
         });
+
         if (!res.ok) {
           setContent(baseCourse);
-          setLoading(false);
-          loadedRef.current = true;
-          return;
-        }
-        const data = await res.json();
-        if (data.exists && data.content) {
-          setContent(data.content as CourseContent);
         } else {
-          setContent(baseCourse);
+          const data = await res.json();
+          if (data.exists && data.content) {
+            setContent(normalizeLoadedContent(data.content));
+          } else {
+            setContent(baseCourse);
+          }
         }
-      } catch (e) {
-        console.warn("[EditCourseRoute] failed to load content", e);
+      } catch {
         setContent(baseCourse);
       } finally {
         setLoading(false);
@@ -71,368 +159,387 @@ export default function EditCourseRoute() {
     })();
   }, [id, baseCourse]);
 
-  // שמירה ידנית
-  const manualSave = async () => {
-    if (!id || !content) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/admin/course-content/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(content),
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("save failed");
-      await res.json();
-      alert("נשמר בהצלחה!");
-    } catch (e) {
-      console.warn("[EditCourseRoute] save failed", e);
-      alert("שמירה נכשלה");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // autosave עם debounce
+  /* -------------------------------------------------
+     AUTO SAVE (DEBOUNCE)
+  ---------------------------------------------------*/
   useEffect(() => {
     if (!id || !content) return;
     if (!loadedRef.current) return;
 
     setAutoStatus("saving");
-    if (autoTimerRef.current) {
-      window.clearTimeout(autoTimerRef.current);
-    }
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
 
     autoTimerRef.current = window.setTimeout(async () => {
       try {
         const res = await fetch(`/api/admin/course-content/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(content),
           credentials: "include",
+          body: JSON.stringify(content),
         });
-        if (!res.ok) throw new Error("autosave failed");
-        await res.json();
+
+        if (!res.ok) throw new Error("autosave fail");
+
         setAutoStatus("saved");
-      } catch (err) {
-        console.warn("[EditCourseRoute] autosave failed", err);
+      } catch {
         setAutoStatus("error");
       }
     }, 1200);
 
     return () => {
-      if (autoTimerRef.current) {
-        window.clearTimeout(autoTimerRef.current);
-      }
+      if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
     };
   }, [id, content]);
 
-  // ------- helpers לעריכת arrays -------
+  /* -------------------------------------------------
+     MANUAL SAVE
+  ---------------------------------------------------*/
+  const manualSave = async () => {
+    if (!id || !content) return;
 
-  const updateArrayItem = (
-    field: "assignments" | "exams",
-    index: number,
-    key: keyof AssessmentItem,
-    value: string
-  ) => {
-    if (!content) return;
-    const arr: AssessmentItem[] = [...(content[field] || [])];
-    arr[index] = {
-      ...arr[index],
-      [key]: value,
-    };
-    setContent({
-      ...content,
-      [field]: arr,
-    });
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/course-content/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(content),
+      });
+
+      if (!res.ok) throw new Error("save failed");
+
+      alert("נשמר בהצלחה!");
+    } catch {
+      alert("שמירה נכשלה");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const addArrayItem = (field: "assignments" | "exams") => {
-    if (!content) return;
-    const arr: AssessmentItem[] = [...(content[field] || [])];
-    arr.push({ title: "", date: "", weight: "", notes: "" });
-    setContent({
-      ...content,
-      [field]: arr,
+  /* -------------------------------------------------
+     LOAD VAAD USERS
+  ---------------------------------------------------*/
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/course-vaad-users", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setVaadUsers(data.items || []);
+      } catch {
+        // אפשר להוסיף לוג במקרה הצורך
+      }
+    })();
+  }, []);
+
+  /* -------------------------------------------------
+     FILTERED REPRESENTATIVES
+  ---------------------------------------------------*/
+  const filteredVaadUsers = useMemo(() => {
+    const q = repSearch.toLowerCase().trim();
+    if (!q) return vaadUsers;
+
+    return vaadUsers.filter((u) => {
+      const name = (u.displayName || "").toLowerCase();
+      const email = u.email.toLowerCase();
+      return name.includes(q) || email.includes(q);
     });
-  };
+  }, [vaadUsers, repSearch]);
 
-  const removeArrayItem = (field: "assignments" | "exams", index: number) => {
-    if (!content) return;
-    const arr: AssessmentItem[] = [...(content[field] || [])];
-    arr.splice(index, 1);
-    setContent({
-      ...content,
-      [field]: arr,
-    });
-  };
-
-  const updateExternalItem = (
-    index: number,
-    key: keyof ExternalMaterial,
-    value: string
-  ) => {
-    if (!content) return;
-    const arr: ExternalMaterial[] = [...(content.externalMaterials || [])];
-    arr[index] = {
-      ...arr[index],
-      [key]: value,
-    };
-    setContent({
-      ...content,
-      externalMaterials: arr,
-    });
-  };
-
-  const addExternalItem = () => {
-    if (!content) return;
-    const arr: ExternalMaterial[] = [...(content.externalMaterials || [])];
-    arr.push({
-      label: "",
-      href: "",
-      icon: IMG_NET,
-    });
-    setContent({
-      ...content,
-      externalMaterials: arr,
-    });
-  };
-
-  const removeExternalItem = (index: number) => {
-    if (!content) return;
-    const arr: ExternalMaterial[] = [...(content.externalMaterials || [])];
-    arr.splice(index, 1);
-    setContent({
-      ...content,
-      externalMaterials: arr,
-    });
-  };
-
-  const ICON_OPTIONS: { label: string; value: string }[] = [
-    { label: "Drive", value: IMG_DRIVE },
-    { label: "PDF", value: IMG_PDF },
-    { label: "Moodle", value: IMG_MOODLE },
-    { label: "WhatsApp", value: IMG_WHATSAPP },
-    { label: "Chrome (For General Website)", value: IMG_NET },
-  ];
-
-  const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
-
-  if (!id) {
-    return <div className="p-4 text-sm">לא הועבר מזהה קורס.</div>;
-  }
-
-  if (loading || !content) {
-    return <div className="p-4 text-sm">טוען נתוני קורס...</div>;
-  }
-
-  const assignments: AssessmentItem[] = content.assignments || [];
-  const exams: AssessmentItem[] = content.exams || [];
-  const links = content.links || {};
-  const externalMaterials: ExternalMaterial[] =
-    (content.externalMaterials as ExternalMaterial[]) || [];
-
+  /* -------------------------------------------------
+     SYLLABUS UPLOAD
+  ---------------------------------------------------*/
   const handleSyllabusUpload = async (file: File) => {
     if (!id || !content) return;
+
     setUploadingSyllabus(true);
     setUploadError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const fd = new FormData();
+      fd.append("file", file);
 
       const res = await fetch(
         `/api/admin/course-content/${id}/syllabus-upload`,
         {
           method: "POST",
-          body: formData,
+          body: fd,
           credentials: "include",
         }
       );
 
       if (!res.ok) throw new Error("upload failed");
-      const data = (await res.json()) as { url: string };
+
+      const data = await res.json();
 
       setContent({
         ...content,
         syllabus: data.url,
       });
-    } catch (e) {
-      console.warn("[EditCourseRoute] syllabus upload failed", e);
-      setUploadError("העלאת הקובץ נכשלה");
+    } catch {
+      setUploadError("העלאה נכשלה");
     } finally {
       setUploadingSyllabus(false);
     }
   };
 
+  /* -------------------------------------------------
+     UPDATE HELPERS
+  ---------------------------------------------------*/
+  function updateArrayItem(
+    field: "assignments" | "exams",
+    index: number,
+    key: keyof AssessmentItem,
+    value: string
+  ) {
+    const arr = [...content![field]];
+    arr[index] = { ...arr[index], [key]: value };
+    setContent({ ...content!, [field]: arr });
+  }
+
+  function addArrayItem(field: "assignments" | "exams") {
+    const arr = [...content![field]];
+    arr.push({ title: "", date: "", weight: "", notes: "" });
+    setContent({ ...content!, [field]: arr });
+  }
+
+  function removeArrayItem(field: "assignments" | "exams", index: number) {
+    const arr = [...content![field]];
+    arr.splice(index, 1);
+    setContent({ ...content!, [field]: arr });
+  }
+
+  function updateExternalItem(
+    index: number,
+    key: keyof ExternalMaterial,
+    value: string
+  ) {
+    const arr = [...content!.externalMaterials];
+    arr[index] = { ...arr[index], [key]: value };
+    setContent({ ...content!, externalMaterials: arr });
+  }
+
+  function addExternalItem() {
+    const arr = [...content!.externalMaterials];
+    arr.push({ label: "", href: "", icon: IMG_NET });
+    setContent({ ...content!, externalMaterials: arr });
+  }
+
+  function removeExternalItem(index: number) {
+    const arr = [...content!.externalMaterials];
+    arr.splice(index, 1);
+    setContent({ ...content!, externalMaterials: arr });
+  }
+
+  /* -------------------------------------------------
+     RENDER
+  ---------------------------------------------------*/
+  if (loading || !content) {
+    return <div className="p-4">טוען נתוני קורס…</div>;
+  }
+
+  const reps = content.reps;
+  const assignments = content.assignments;
+  const exams = content.exams;
+  const externalMaterials = content.externalMaterials;
+  const links = content.links || {};
+
   return (
     <div className="max-w-3xl mx-auto pb-12 px-4">
-      <h1 className="text-2xl font-semibold mb-1">
+      <h1 className="text-2xl font-semibold mb-1 dark:text-slate-100">
         עריכת קורס: {content.name}
       </h1>
+
       <p className="text-xs text-neutral-500 dark:text-slate-400 mb-4">
         מזהה קורס פנימי: <code>{id}</code>
       </p>
 
-      <div className="space-y-6 text-sm">
-        {/* פרטים בסיסיים */}
-        <section
-          className="
-            border rounded-2xl p-4
-            bg-neutral-50/60 border-neutral-200
-            dark:bg-slate-900 dark:border-slate-700
-          "
-        >
-          <h2 className="text-sm font-medium mb-3">פרטי קורס</h2>
+      <div className="space-y-6 text-sm dark:text-slate-200">
+        {/* פרטי קורס */}
+        <section className="border rounded-2xl p-4 bg-neutral-50 dark:bg-slate-900 border-neutral-200 dark:border-slate-700">
+          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">
+            פרטי קורס
+          </h2>
 
+          {/* שם הקורס */}
           <label className="block mb-3">
             <span className="block mb-1">שם הקורס:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                dark:placeholder-slate-500
-              "
-              value={content.name || ""}
-              onChange={(e) =>
-                setContent({
-                  ...content,
-                  name: e.target.value,
-                })
-              }
+              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700 text-neutral-900 dark:text-slate-100"
+              value={content.name}
+              onChange={(e) => setContent({ ...content, name: e.target.value })}
             />
           </label>
 
+          {/* רכז */}
           <label className="block mb-3">
             <span className="block mb-1">רכז/ת הקורס:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.coordinator || ""}
               onChange={(e) =>
-                setContent({
-                  ...content,
-                  coordinator: e.target.value,
-                })
+                setContent({ ...content, coordinator: e.target.value })
               }
             />
           </label>
 
+          {/* נציגי קורס */}
           <label className="block mb-3">
             <span className="block mb-1">נציגי קורס:</span>
+
+            {/* Selected reps */}
+            {reps.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {reps.map((email) => {
+                  const user = vaadUsers.find((u) => u.email === email);
+                  const label = user?.displayName
+                    ? `${user.displayName} (${email})`
+                    : email;
+
+                  return (
+                    <span
+                      key={email}
+                      className="
+                        inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs
+                        border bg-neutral-100 text-neutral-800 border-neutral-300
+                        dark:bg-neutral-800 dark:text-slate-50 dark:border-slate-600
+                      "
+                    >
+                      {label}
+                      <button
+                        type="button"
+                        className="leading-none text-[10px]"
+                        onClick={() =>
+                          setContent({
+                            ...content,
+                            reps: reps.filter((e) => e !== email),
+                          })
+                        }
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Search */}
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
-              value={content.reps || ""}
-              onChange={(e) =>
-                setContent({
-                  ...content,
-                  reps: e.target.value,
-                })
-              }
+              className="border rounded-xl px-3 py-2 w-full mb-2 text-sm bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
+              placeholder="חיפוש לפי שם / מייל"
+              value={repSearch}
+              onChange={(e) => setRepSearch(e.target.value)}
             />
+
+            {/* Results */}
+            <div
+              className="
+                max-h-40 overflow-y-auto border rounded-xl p-2 text-xs
+                bg-neutral-50 border-neutral-200
+                dark:bg-slate-800 dark:border-slate-700
+              "
+            >
+              {filteredVaadUsers.length === 0 ? (
+                <div className="text-neutral-400">לא נמצאו תוצאות.</div>
+              ) : (
+                filteredVaadUsers.map((u) => {
+                  const selected = reps.includes(u.email);
+                  const label = u.displayName
+                    ? `${u.displayName} (${u.email})`
+                    : u.email;
+
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => {
+                        if (selected) {
+                          setContent({
+                            ...content,
+                            reps: reps.filter((e) => e !== u.email),
+                          });
+                        } else {
+                          setContent({ ...content, reps: [...reps, u.email] });
+                        }
+                      }}
+                      className={
+                        "w-full text-right px-2 py-1 rounded-lg mb-1 border border-transparent " +
+                        (selected
+                          ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-500/20 dark:text-blue-50 dark:border-blue-400"
+                          : "hover:bg-neutral-100 dark:hover:bg-slate-700")
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </label>
 
+          {/* מספר קורס */}
           <label className="block mb-3">
             <span className="block mb-1">מספר קורס:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.courseNumber || ""}
               onChange={(e) =>
-                setContent({
-                  ...content,
-                  courseNumber: e.target.value,
-                })
+                setContent({ ...content, courseNumber: e.target.value })
               }
             />
           </label>
 
+          {/* הערה */}
           <label className="block mb-3">
-            <span className="block mb-1">הערה קצרה בלבד:</span>
+            <span className="block mb-1">הערה קצרה:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.note || ""}
-              onChange={(e) =>
-                setContent({
-                  ...content,
-                  note: e.target.value,
-                })
-              }
+              onChange={(e) => setContent({ ...content, note: e.target.value })}
             />
           </label>
 
+          {/* מה היה */}
           <label className="block mb-3">
             <span className="block mb-1">מה היה בשבוע האחרון?</span>
             <textarea
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.whatwas || ""}
               onChange={(e) =>
-                setContent({
-                  ...content,
-                  whatwas: e.target.value,
-                })
+                setContent({ ...content, whatwas: e.target.value })
               }
             />
           </label>
 
-          <label className="block">
+          {/* מה יהיה */}
+          <label className="block mb-1">
             <span className="block mb-1">מה יהיה בהמשך?</span>
             <textarea
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.whatwill || ""}
               onChange={(e) =>
-                setContent({
-                  ...content,
-                  whatwill: e.target.value,
-                })
+                setContent({ ...content, whatwill: e.target.value })
               }
             />
           </label>
         </section>
 
         {/* קישורים */}
-        <section
-          className="
-            border rounded-2xl p-4
-            bg-white border-neutral-200
-            dark:bg-slate-900 dark:border-slate-700
-          "
-        >
-          <h2 className="text-sm font-medium mb-3">קישורים</h2>
+        <section className="border rounded-2xl p-4 bg-white border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">
+            קישורים
+          </h2>
 
+          {/* סילבוס */}
           <label className="block mb-3">
             <span className="block mb-1">סילבוס (PDF / קישור):</span>
 
             <div className="flex flex-wrap items-center gap-2">
               <input
-                className="
-                  border rounded-xl px-3 py-2 w-full sm:flex-1
-                  border-neutral-200 bg-white text-neutral-900
-                  dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                "
+                className="border rounded-xl px-3 py-2 w-full sm:flex-1 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 value={content.syllabus || ""}
                 onChange={(e) =>
                   setContent({
@@ -443,16 +550,7 @@ export default function EditCourseRoute() {
                 placeholder="https://... או /uploads/syllabus/..."
               />
 
-              <label
-                className="
-                  text-xs border rounded-xl px-3 py-2 cursor-pointer
-                  hover:bg-neutral-50
-                  border-neutral-200 bg-white
-                  flex items-center gap-1
-                  dark:border-slate-700 dark:bg-slate-900
-                  dark:hover:bg-slate-800
-                "
-              >
+              <label className="text-xs border rounded-xl px-3 py-2 cursor-pointer hover:bg-neutral-50 border-neutral-200 bg-white flex items-center gap-1 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800">
                 📎 העלאת PDF
                 <input
                   type="file"
@@ -486,14 +584,11 @@ export default function EditCourseRoute() {
             )}
           </label>
 
+          {/* Drive */}
           <label className="block mb-3">
             <span className="block mb-1">קישור לדרייב הקורס:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="border rounded-xl px-3 py-2 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               value={links.drive || ""}
               onChange={(e) =>
                 setContent({
@@ -508,14 +603,11 @@ export default function EditCourseRoute() {
             />
           </label>
 
+          {/* Moodle */}
           <label className="block mb-3">
             <span className="block mb-1">קישור למודל:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="border rounded-xl px-3 py-2 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               value={links.moodle || ""}
               onChange={(e) =>
                 setContent({
@@ -530,14 +622,11 @@ export default function EditCourseRoute() {
             />
           </label>
 
-          <label className="block">
+          {/* WhatsApp */}
+          <label className="block mb-3">
             <span className="block mb-1">קבוצת וואטסאפ:</span>
             <input
-              className="
-                border rounded-xl px-3 py-2 w-full
-                border-neutral-200 bg-white text-neutral-900
-                dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-              "
+              className="border rounded-xl px-3 py-2 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               value={links.whatsapp || ""}
               onChange={(e) =>
                 setContent({
@@ -554,14 +643,8 @@ export default function EditCourseRoute() {
         </section>
 
         {/* חומרים חיצוניים */}
-        <section
-          className="
-            mt-2 border rounded-2xl p-4
-            bg-white border-neutral-200
-            dark:bg-slate-900 dark:border-slate-700
-          "
-        >
-          <h2 className="text-sm font-medium mb-2">
+        <section className="mt-2 border rounded-2xl p-4 bg-white border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
             חומרים חיצוניים (externalMaterials)
           </h2>
 
@@ -572,22 +655,14 @@ export default function EditCourseRoute() {
           )}
 
           <div className="space-y-3">
-            {externalMaterials.map((m, idx) => (
+            {externalMaterials.map((m: ExternalMaterial, idx: number) => (
               <div
                 key={idx}
-                className="
-                  border rounded-xl p-3 text-xs flex flex-col gap-2
-                  bg-neutral-50/80 border-neutral-200
-                  dark:bg-slate-950/40 dark:border-slate-700
-                "
+                className="border rounded-xl p-3 text-xs flex flex-col gap-2 bg-neutral-50/80 border-neutral-200 dark:bg-slate-950/40 dark:border-slate-700"
               >
                 <div className="flex flex-wrap gap-2 items-center">
                   <input
-                    className="
-                      border rounded-lg px-2 py-1 flex-1 min-w-[140px]
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="שם / תיאור הקישור"
                     value={m.label || ""}
                     onChange={(e) =>
@@ -595,11 +670,7 @@ export default function EditCourseRoute() {
                     }
                   />
                   <input
-                    className="
-                      border rounded-lg px-2 py-1 flex-[2] min-w-[180px]
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
+                    className="border rounded-lg px-2 py-1 flex-[2] min-w-[180px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="https://..."
                     value={m.href || ""}
                     onChange={(e) =>
@@ -616,11 +687,7 @@ export default function EditCourseRoute() {
                       />
                     )}
                     <select
-                      className="
-                        border rounded-lg px-2 py-1 text-[11px]
-                        border-neutral-200 bg-white text-neutral-900
-                        dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                      "
+                      className="border rounded-lg px-2 py-1 text-[11px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                       value={m.icon || ""}
                       onChange={(e) =>
                         updateExternalItem(idx, "icon", e.target.value)
@@ -650,25 +717,15 @@ export default function EditCourseRoute() {
           <button
             type="button"
             onClick={addExternalItem}
-            className="
-              mt-3 text-xs border rounded-xl px-3 py-1
-              border-neutral-200 bg-white hover:bg-neutral-50
-              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
-            "
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
             + הוספת חומר חיצוני
           </button>
         </section>
 
         {/* מטלות / עבודות */}
-        <section
-          className="
-            mt-2 border rounded-2xl p-4
-            bg-neutral-50/60 border-neutral-200
-            dark:bg-slate-900 dark:border-slate-700
-          "
-        >
-          <h2 className="text-sm font-medium mb-2">
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
             מטלות / עבודות (assignments)
           </h2>
 
@@ -679,22 +736,14 @@ export default function EditCourseRoute() {
           )}
 
           <div className="space-y-3">
-            {assignments.map((a, idx) => (
+            {assignments.map((a: AssessmentItem, idx: number) => (
               <div
                 key={idx}
-                className="
-                  border rounded-xl p-3 text-xs flex flex-col gap-1
-                  bg-white border-neutral-200
-                  dark:bg-slate-950/40 dark:border-slate-700
-                "
+                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white border-neutral-200 dark:bg-slate-950/40 dark:border-slate-700"
               >
                 <div className="flex flex-wrap gap-2">
                   <input
-                    className="
-                      border rounded-lg px-2 py-1 flex-1 min-w-[140px]
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="שם המטלה"
                     value={a.title || ""}
                     onChange={(e) =>
@@ -703,12 +752,7 @@ export default function EditCourseRoute() {
                   />
                   <input
                     type="date"
-                    className="
-                      border rounded-lg px-2 py-1 w-32
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
-                    placeholder="תאריך"
+                    className="border rounded-lg px-2 py-1 w-32 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     value={a.date || ""}
                     onChange={(e) =>
                       updateArrayItem(
@@ -720,11 +764,7 @@ export default function EditCourseRoute() {
                     }
                   />
                   <input
-                    className="
-                      border rounded-lg px-2 py-1 w-24
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
+                    className="border rounded-lg px-2 py-1 w-24 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="משקל"
                     value={a.weight || ""}
                     onChange={(e) =>
@@ -737,12 +777,9 @@ export default function EditCourseRoute() {
                     }
                   />
                 </div>
+
                 <textarea
-                  className="
-                    border rounded-lg px-2 py-1 w-full
-                    border-neutral-200 bg-white text-neutral-900
-                    dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                  "
+                  className="border rounded-lg px-2 py-1 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                   placeholder="הערות (אופציונלי)"
                   value={a.notes || ""}
                   onChange={(e) =>
@@ -754,6 +791,7 @@ export default function EditCourseRoute() {
                     )
                   }
                 />
+
                 <button
                   type="button"
                   onClick={() => removeArrayItem("assignments", idx)}
@@ -768,25 +806,17 @@ export default function EditCourseRoute() {
           <button
             type="button"
             onClick={() => addArrayItem("assignments")}
-            className="
-              mt-3 text-xs border rounded-xl px-3 py-1
-              border-neutral-200 bg-white hover:bg-neutral-50
-              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
-            "
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
             + הוספת מטלה
           </button>
         </section>
 
         {/* בחנים / מבחנים */}
-        <section
-          className="
-            mt-2 border rounded-2xl p-4
-            bg-neutral-50/60 border-neutral-200
-            dark:bg-slate-900 dark:border-slate-700
-          "
-        >
-          <h2 className="text-sm font-medium mb-2">בחנים / מבחנים (exams)</h2>
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
+            בחנים / מבחנים (exams)
+          </h2>
 
           {exams.length === 0 && (
             <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
@@ -795,22 +825,14 @@ export default function EditCourseRoute() {
           )}
 
           <div className="space-y-3">
-            {exams.map((ex, idx) => (
+            {exams.map((ex: AssessmentItem, idx: number) => (
               <div
                 key={idx}
-                className="
-                  border rounded-xl p-3 text-xs flex flex-col gap-1
-                  bg-white border-neutral-200
-                  dark:bg-slate-950/40 dark:border-slate-700
-                "
+                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white border-neutral-200 dark:bg-slate-950/40 dark:border-slate-700"
               >
                 <div className="flex flex-wrap gap-2">
                   <input
-                    className="
-                      border rounded-lg px-2 py-1 flex-1 min-w-[140px]
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="שם הבחינה"
                     value={ex.title || ""}
                     onChange={(e) =>
@@ -819,12 +841,7 @@ export default function EditCourseRoute() {
                   />
                   <input
                     type="date"
-                    className="
-                      border rounded-lg px-2 py-1 w-32
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
-                    placeholder="תאריך"
+                    className="border rounded-lg px-2 py-1 w-32 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     value={ex.date || ""}
                     onChange={(e) =>
                       updateArrayItem(
@@ -836,11 +853,7 @@ export default function EditCourseRoute() {
                     }
                   />
                   <input
-                    className="
-                      border rounded-lg px-2 py-1 w-24
-                      border-neutral-200 bg-white text-neutral-900
-                      dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                    "
+                    className="border rounded-lg px-2 py-1 w-24 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="משקל"
                     value={ex.weight || ""}
                     onChange={(e) =>
@@ -848,18 +861,16 @@ export default function EditCourseRoute() {
                     }
                   />
                 </div>
+
                 <textarea
-                  className="
-                    border rounded-lg px-2 py-1 w-full
-                    border-neutral-200 bg-white text-neutral-900
-                    dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100
-                  "
+                  className="border rounded-lg px-2 py-1 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                   placeholder="הערות (אופציונלי)"
                   value={ex.notes || ""}
                   onChange={(e) =>
                     updateArrayItem("exams", idx, "notes", e.target.value)
                   }
                 />
+
                 <button
                   type="button"
                   onClick={() => removeArrayItem("exams", idx)}
@@ -874,32 +885,23 @@ export default function EditCourseRoute() {
           <button
             type="button"
             onClick={() => addArrayItem("exams")}
-            className="
-              mt-3 text-xs border rounded-xl px-3 py-1
-              border-neutral-200 bg-white hover:bg-neutral-50
-              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
-            "
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
             + הוספת בחינה
           </button>
         </section>
 
-        {/* כפתורי שמירה וכו' */}
+        {/* כפתורי שמירה */}
         <div className="flex flex-wrap gap-3 items-center mt-4">
           <button
             type="button"
             onClick={manualSave}
             disabled={saving}
-            className="
-              border rounded-xl px-4 py-2 text-sm
-              border-neutral-200 bg-white hover:bg-neutral-50
-              disabled:opacity-60
-              dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800
-              dark:text-slate-100
-            "
+            className="border rounded-xl px-4 py-2 text-sm border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-100"
           >
             {saving ? "שומר..." : "שמירת שינויים ידנית"}
           </button>
+
           <button
             type="button"
             onClick={() => nav("/admin/courses")}
