@@ -88,7 +88,7 @@ export type Course = {
   externalMaterials?: { label: string; href: string; icon?: string }[];
   assignments?: AssessmentItem[];
   exams?: AssessmentItem[];
-  lab?: AssessmentItem[];
+  labs?: AssessmentItem[];
 };
 
 export type Semester = { id: string; title: string; courses: Course[] };
@@ -315,10 +315,93 @@ export const YEARS: Year[] = [
         id: "y1s2",
         title: "סמסטר ב",
         courses: [
-          {
-            id: "demo-1-b",
-            name: "קורס לדוגמה שנה א סמסטר ב",
-            note: "בחירה",
+
+           {
+            id: "basis-molec",
+            name: "יסודות מולקולריים של הרפואה",
+            note: "חצי סמסטריאלי - מחצית שניה",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+    {
+            id: "basis-genetic",
+            name: "יסודות גנטיים של הרפואה",
+            note: "חצי סמסטריאלי - מחצית שניה",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+          
+              {
+            id: "neuroscience",
+            name: "מבוא למדעי העצב",
+            note: "חצי סמסטריאלי - מחצית שניה",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+
+             {
+            id: "medical-physics",
+            name: "פיזיקה רפואית",
+            note: "שבועי",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+
+             {
+            id: "bacteriology",
+            name: "בקטריולוגיה",
+            note: "חצי סמסטריאלי - מחצית שניה",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+
+               {
+            id: "bio-cell",
+            name: "ביולוגיה של התא",
+            note: "שבועי",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+               {
+            id: "advanced-statistical",
+            name: "שיטות סטטיסטיות מתקדמות",
+            note: "שבועי",
+            coordinator: 'ד"ר הדגמה',
+            reps: "—",
+            courseNumber: "001-1002",
+            syllabus: "",
+            links: { drive: "", moodle: "", whatsapp: "" },
+            externalMaterials: [],
+          },
+
+               {
+            id: "pro-healthy-lifestyle",
+            name: "קידום אורח חיים בריא",
+            note: "שבועי",
             coordinator: 'ד"ר הדגמה',
             reps: "—",
             courseNumber: "001-1002",
