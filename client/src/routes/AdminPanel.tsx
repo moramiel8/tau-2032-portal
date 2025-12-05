@@ -1,5 +1,6 @@
 // client/src/routes/AdminPanel.tsx
 import { useState, useEffect, useMemo } from "react";
+import type React from "react";
 import type { User } from "../utils/auth";
 import { YEARS } from "../data/years";
 import type { Course } from "../data/years";
@@ -75,7 +76,13 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="student@mail.tau.ac.il"
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 lex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
+        className="
+          w-full border rounded-2xl px-3 py-3
+          text-sm
+          border-neutral-300
+          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          placeholder:text-neutral-400
+        "
       />
 
       <input
@@ -83,14 +90,19 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         placeholder="שם תצוגה (למשל: ועד כללי)"
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 lex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
-
+        className="
+          w-full border rounded-2xl px-3 py-3
+          text-sm
+          border-neutral-300
+          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          placeholder:text-neutral-400
+        "
       />
 
       <select
         value={role}
         onChange={(e) => setRole(e.target.value as "admin" | "vaad")}
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 lex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
+        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
       >
         <option value="vaad">ועד כללי</option>
         <option value="admin">מנהל מערכת</option>
@@ -99,7 +111,7 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
       <button
         type="submit"
         disabled={saving}
-              className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
       >
         הוספה
       </button>
@@ -139,6 +151,9 @@ export default function AdminPanel({
     []
   );
 
+  const courseName = (id: string) =>
+    allCourses.find((c) => c.id === id)?.name ?? id;
+
   // ---------- טעינת הקצאות + תפקידי־על ----------
   const loadAssignments = async () => {
     try {
@@ -162,11 +177,11 @@ export default function AdminPanel({
 
       setCourseVaad(courseVaadData);
 
-      // ⬅️ חשוב: רק אדמין מקבל בכלל רשימת תפקידי־על ל־state
+      // רק אדמין מקבל רשימת תפקידי־על
       if (isAdmin) {
         setGlobalRoles(globalRolesData);
       } else {
-        setGlobalRoles([]); // ליתר ביטחון
+        setGlobalRoles([]);
       }
     } catch (e) {
       console.warn("[AdminPanel] failed to load assignments", e);
@@ -314,6 +329,7 @@ export default function AdminPanel({
     }
   };
 
+  // --- גלובאל רולס ---
   const handleAddGlobalRole = async (
     email: string,
     role: "admin" | "vaad",
@@ -329,7 +345,7 @@ export default function AdminPanel({
       });
       if (!res.ok) throw new Error("save failed");
 
-      await loadAssignments();
+      await loadAssignments(); // מרענן את הטבלה
     } catch (e) {
       console.warn("[AdminPanel] add global role failed", e);
     }
@@ -349,9 +365,6 @@ export default function AdminPanel({
     }
   };
 
-  const courseName = (id: string) =>
-    allCourses.find((c) => c.id === id)?.name ?? id;
-
   return (
     <div className="max-w-4xl mx-auto pb-12">
       <h1 className="text-2xl font-semibold mb-2">פאנל מנהל</h1>
@@ -360,72 +373,140 @@ export default function AdminPanel({
         <span className="text-xs text-neutral-500">({user.role})</span>
       </p>
 
-     {/* 1. הקצאת ועד קורס – אדמין + ועד כללי */}
-{(isAdmin || isGlobalVaad) && (
-  <section className="mb-8 border rounded-2xl p-4">
-    <h2 className="text-lg font-medium mb-3">
-      הקצאת תפקיד &quot;ועד קורס&quot;
-    </h2>
+      {/* 1. הקצאת ועד קורס – אדמין + ועד כללי */}
+      {(isAdmin || isGlobalVaad) && (
+        <section className="mb-8 border rounded-2xl p-4">
+          <h2 className="text-lg font-medium mb-3">
+            הקצאת תפקיד &quot;ועד קורס&quot;
+          </h2>
 
-    <label className="block text-sm mb-2">
-      מייל של הסטודנט:
-      <input
-        type="email"
-        value={selectedUserEmail}
-        onChange={(e) => setSelectedUserEmail(e.target.value)}
-        className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
-        placeholder="student@mail.tau.ac.il"
-      />
-    </label>
-
-    <label className="block text-sm mb-2">
-      שם תצוגה (אופציונלי):
-      <input
-        type="text"
-        value={selectedUserDisplayName}
-        onChange={(e) => setSelectedUserDisplayName(e.target.value)}
-        className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
-        placeholder="למשל: מור עמיאל רבייב"
-      />
-    </label>
-
-    <div className="mt-4">
-      <div className="text-sm font-medium mb-2">בחר קורסים:</div>
-      <div className="max-h-72 overflow-y-auto border rounded-xl p-2 text-sm space-y-1">
-        {allCourses.map((c) => (
-          <label key={c.id} className="flex items-center gap-2">
+          <label className="block text-sm mb-2">
+            מייל של הסטודנט:
             <input
-              type="checkbox"
-              checked={selectedCourseIds.includes(c.id)}
-              onChange={() => toggleCourse(c.id)}
+              type="email"
+              value={selectedUserEmail}
+              onChange={(e) => setSelectedUserEmail(e.target.value)}
+              className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
+              placeholder="student@mail.tau.ac.il"
             />
-            <span>{c.name}</span>
           </label>
-        ))}
-      </div>
-    </div>
 
-    <div className="mt-4 flex gap-2">
-      <button
-        onClick={handleSaveCourseVaad}
-        disabled={saving}
+          <label className="block text-sm mb-2">
+            שם תצוגה (אופציונלי):
+            <input
+              type="text"
+              value={selectedUserDisplayName}
+              onChange={(e) => setSelectedUserDisplayName(e.target.value)}
+              className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
+              placeholder="למשל: מור עמיאל רבייב"
+            />
+          </label>
+
+          <div className="mt-4">
+            <div className="text-sm font-medium mb-2">בחר קורסים:</div>
+            <div className="max-h-72 overflow-y-auto border rounded-xl p-2 text-sm space-y-1">
+              {allCourses.map((c) => (
+                <label key={c.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedCourseIds.includes(c.id)}
+                    onChange={() => toggleCourse(c.id)}
+                  />
+                  <span>{c.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={handleSaveCourseVaad}
+              disabled={saving}
               className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-      >
-        {editingCourseVaadId ? "עדכון הקצאה" : "שמירת הקצאה"}
-      </button>
+            >
+              {editingCourseVaadId ? "עדכון הקצאה" : "שמירת הקצאה"}
+            </button>
 
-      {editingCourseVaadId && (
-        <button
-          type="button"
-          onClick={resetForm}
-          className="text-xs text-neutral-500 underline"
-        >
-          ביטול עריכה
-        </button>
+            {editingCourseVaadId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-xs text-neutral-500 underline"
+              >
+                ביטול עריכה
+              </button>
+            )}
+          </div>
+        </section>
       )}
-    </div>
-  </section>
-)}
+
+      {/* 2. רשימת הקצאות ועד קורס */}
+      {(isAdmin || isGlobalVaad) && (
+        <section className="mb-8 border rounded-2xl p-4">
+          <h2 className="text-lg font-medium mb-3">ועדי קורסים קיימים</h2>
+
+          {courseVaad.length === 0 ? (
+            <div className="text-sm text-neutral-500">
+              אין עדיין משתמשים שהוגדרו כ&quot;ועד קורס&quot;.
+            </div>
+          ) : (
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b text-xs text-neutral-500 dark:border-slate-700">
+                  <th className="text-right py-2">מייל</th>
+                  <th className="text-right py-2">קורסים</th>
+                  <th className="text-right py-2 w-24">פעולות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {courseVaad.map((entry) => (
+                  <tr key={entry.id} className="border-b last:border-b-0">
+                    {/* מייל + שם תצוגה */}
+                    <td className="py-2 align-top">
+                      <div>{entry.email}</div>
+                      {entry.displayName && (
+                        <div className="text-[11px] text-neutral-500">
+                          {entry.displayName}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* קורסים – אחד מתחת לשני */}
+                    <td className="py-2 text-xs align-top">
+                      <ul className="space-y-1">
+                        {entry.courseIds.map((cid) => (
+                          <li key={cid} className="leading-snug">
+                            {courseName(cid)}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+
+                    {/* פעולות */}
+                    <td className="py-2 align-top">
+                      <div className="flex flex-col items-start gap-1">
+                        <button
+                          onClick={() => handleEditCourseVaad(entry)}
+                          className="text-xs underline text-blue-600"
+                        >
+                          עריכה
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCourseVaad(entry.id)}
+                          className="text-xs underline text-red-600"
+                          title="מחיקה"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
 
       {/* 3. ועד כללי / מנהלים – רק אדמין */}
       {isAdmin && (
@@ -491,7 +572,7 @@ export default function AdminPanel({
                 <button
                   type="button"
                   onClick={() => nav("/admin/home")}
-              className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+                  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
                 >
                   עריכת עמוד הבית
                 </button>
@@ -500,7 +581,7 @@ export default function AdminPanel({
                 <button
                   type="button"
                   onClick={() => nav("/admin/courses")}
-              className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+                  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
                 >
                   עריכת דפי הקורסים
                 </button>
@@ -566,7 +647,7 @@ export default function AdminPanel({
               <label className="block mb-2">
                 <span className="block mb-1">שייך לקורס (לא חובה):</span>
                 <select
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 w-full dark:hover:bg-slate-800 dark:border-slate-700"
+                  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 w-full dark:hover:bg-slate-800 dark:border-slate-700"
                   value={newAnnCourseId}
                   onChange={(e) => setNewAnnCourseId(e.target.value)}
                 >
@@ -582,7 +663,7 @@ export default function AdminPanel({
               <button
                 type="button"
                 onClick={handleAddAnnouncement}
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 lex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
+                className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
               >
                 הוספת מודעה
               </button>
