@@ -62,7 +62,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
   // טווח להצגת מטלות/מבחנים
-const [range, setRange] = useState<"week" | "month" | "all">("all");
+const [range, setRange] = useState<"week" | "month" | "all">("week");
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
