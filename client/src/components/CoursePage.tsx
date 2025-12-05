@@ -64,11 +64,8 @@ export default function CoursePage({ course, onBack }: Props) {
         const data = (await res.json()) as { items: CourseAnnouncement[] };
 
         const relevant = (data.items || []).filter(
-  (a) => a.courseId === course.id
-);
-
-setAnnouncements(relevant);
-
+          (a) => a.courseId === course.id
+        );
 
         setAnnouncements(relevant);
       } catch (e) {
@@ -78,20 +75,20 @@ setAnnouncements(relevant);
   }, [course.id]);
 
   // --- טעינת רשימת ועדי קורס (לשם + מייל) ---
-useEffect(() => {
-  (async () => {
-    try {
-      const res = await fetch("/api/admin/course-vaad-users", {
-        credentials: "include",
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setVaadUsers(data.items || []);
-    } catch (e) {
-      console.warn("[CoursePage] failed to load vaad users", e);
-    }
-  })();
-}, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/course-vaad-users", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setVaadUsers(data.items || []);
+      } catch (e) {
+        console.warn("[CoursePage] failed to load vaad users", e);
+      }
+    })();
+  }, []);
 
   const formatAnnouncementMeta = (a: CourseAnnouncement) => {
     const ts = a.updatedAt || a.createdAt;
@@ -133,6 +130,7 @@ useEffect(() => {
 
   const assignments: AssessmentItem[] = effectiveCourse.assignments || [];
   const exams: AssessmentItem[] = effectiveCourse.exams || [];
+  const labs: AssessmentItem[] = effectiveCourse.labs || [];
 
   // --- נירמול reps למערך + תצוגה עם השם ---
   const repsArray: string[] = useMemo(() => {
@@ -147,7 +145,8 @@ useEffect(() => {
     return repsArray.map((email) => {
       const normalizedEmail = (email || "").trim().toLowerCase();
       const user = vaadUsers.find(
-        (u) => (u.email || "").trim().toLowerCase() === normalizedEmail
+        (u) =>
+          (u.email || "").trim().toLowerCase() === normalizedEmail
       );
       return user?.displayName ? `${user.displayName} (${email})` : email;
     });
@@ -168,7 +167,9 @@ useEffect(() => {
       <h1 className="text-2xl font-semibold mb-1">{name}</h1>
 
       <div className="text-sm text-neutral-600 mb-2">
-        {courseNumber && <span className="ml-2">מס׳ קורס: {courseNumber}</span>}
+        {courseNumber && (
+          <span className="ml-2">מס׳ קורס: {courseNumber}</span>
+        )}
         {place && <span> · מקום: {place}</span>}
       </div>
 
@@ -185,9 +186,7 @@ useEffect(() => {
           {repsDisplay.length > 0 && (
             <span>
               נציגי ועד:{" "}
-              <span dir="ltr">
-                {repsDisplay.join(", ")}
-              </span>
+              <span dir="ltr">{repsDisplay.join(", ")}</span>
             </span>
           )}
           {whatwas && (
@@ -211,7 +210,10 @@ useEffect(() => {
           <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
           <ul className="text-xs space-y-2">
             {announcements.map((a) => (
-              <li key={a.id} className="border-b last:border-b-0 pb-2">
+              <li
+                key={a.id}
+                className="border-b last:border-b-0 pb-2"
+              >
                 <div className="font-semibold">{a.title}</div>
                 <div className="text-neutral-700 whitespace-pre-line">
                   {a.body}
@@ -299,14 +301,16 @@ useEffect(() => {
           </div>
         </section>
       )}
-
-      {/* מטלות */}
+ {/* מטלות */}
       {assignments.length > 0 && (
         <section className="mb-4 border rounded-2xl p-3">
           <h2 className="text-sm font-medium mb-2">מטלות / עבודות</h2>
           <ul className="text-xs space-y-2">
             {assignments.map((a, idx) => (
-              <li key={idx} className="border-b last:border-b-0 pb-2">
+              <li
+                key={idx}
+                className="border-b last:border-b-0 pb-2"
+              >
                 <div className="font-semibold">{a.title}</div>
                 <div className="text-neutral-700">
                   {a.date && <span>תאריך: {a.date}</span>}
@@ -330,7 +334,10 @@ useEffect(() => {
           <h2 className="text-sm font-medium mb-2">בחנים / מבחנים</h2>
           <ul className="text-xs space-y-2">
             {exams.map((ex, idx) => (
-              <li key={idx} className="border-b last:border-b-0 pb-2">
+              <li
+                key={idx}
+                className="border-b last:border-b-0 pb-2"
+              >
                 <div className="font-semibold">{ex.title}</div>
                 <div className="text-neutral-700">
                   {ex.date && <span>תאריך: {ex.date}</span>}
@@ -340,6 +347,33 @@ useEffect(() => {
                 {ex.notes && (
                   <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
                     {ex.notes}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* מעבדות */}
+      {labs.length > 0 && (
+        <section className="mb-4 border rounded-2xl p-3">
+          <h2 className="text-sm font-medium mb-2">מעבדות</h2>
+          <ul className="text-xs space-y-2">
+            {labs.map((lab, idx) => (
+              <li
+                key={idx}
+                className="border-b last:border-b-0 pb-2"
+              >
+                <div className="font-semibold">{lab.title}</div>
+                <div className="text-neutral-700">
+                  {lab.date && <span>תאריך: {lab.date}</span>}
+                  {lab.date && lab.weight && <span> · </span>}
+                  {lab.weight && <span>משקל: {lab.weight}</span>}
+                </div>
+                {lab.notes && (
+                  <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
+                    {lab.notes}
                   </div>
                 )}
               </li>

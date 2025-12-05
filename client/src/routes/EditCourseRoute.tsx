@@ -11,10 +11,10 @@ import {
   IMG_NET,
 } from "../constants/icons";
 
-// TODO: WYSIWYG maybe? 
+// TODO: WYSIWYG maybe?
 
 /* -------------------------------------------------
-   TYPES
+TYPES
 ---------------------------------------------------*/
 
 type VaadUser = {
@@ -36,17 +36,18 @@ type ExternalMaterial = {
  */
 type CourseContent = Omit<
   Course,
-  "reps" | "assignments" | "exams" | "externalMaterials" | "links"
+  "reps" | "assignments" | "exams" | "labs" | "externalMaterials" | "links"
 > & {
   reps: string[];
   assignments: AssessmentItem[];
   exams: AssessmentItem[];
+  labs: AssessmentItem[];
   externalMaterials: ExternalMaterial[];
   links: { drive?: string; moodle?: string; whatsapp?: string };
 };
 
 /* -------------------------------------------------
-   NORMALIZATION HELPERS
+NORMALIZATION HELPERS
 ---------------------------------------------------*/
 
 function normalizeReps(raw: any): string[] {
@@ -64,6 +65,7 @@ function normalizeLoadedContent(raw: any): CourseContent {
       : [],
     assignments: Array.isArray(raw.assignments) ? raw.assignments : [],
     exams: Array.isArray(raw.exams) ? raw.exams : [],
+    labs: Array.isArray(raw.labs) ? raw.labs : [],
     links: raw.links && typeof raw.links === "object" ? raw.links : {},
   };
 }
@@ -78,12 +80,13 @@ function normalizeBaseCourse(c: Course | null): CourseContent | null {
       : [],
     assignments: Array.isArray(c.assignments) ? c.assignments : [],
     exams: Array.isArray(c.exams) ? c.exams : [],
+    labs: Array.isArray(c.labs) ? c.labs : [],
     links: c.links && typeof c.links === "object" ? c.links : {},
   };
 }
 
 /* ===============================================
-   ICON OPTIONS
+ICON OPTIONS
 ===============================================*/
 const ICON_OPTIONS = [
   { label: "Drive", value: IMG_DRIVE },
@@ -94,12 +97,12 @@ const ICON_OPTIONS = [
 ];
 
 /* ===============================================
-   UTILITY FOR DATE CLEANUP
+UTILITY FOR DATE CLEANUP
 ===============================================*/
 const sanitizeDate = (raw: string) => raw.replace(/[^0-9./-]/g, "");
 
 /* -------------------------------------------------
-   COMPONENT
+COMPONENT
 ---------------------------------------------------*/
 
 export default function EditCourseRoute() {
@@ -108,9 +111,7 @@ export default function EditCourseRoute() {
 
   const baseCourse: CourseContent | null = useMemo(
     () =>
-      normalizeBaseCourse(
-        ALL_COURSES.find((c) => c.id === id) || null
-      ),
+      normalizeBaseCourse(ALL_COURSES.find((c) => c.id === id) || null),
     [id]
   );
 
@@ -131,7 +132,7 @@ export default function EditCourseRoute() {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   /* -------------------------------------------------
-     LOAD COURSE CONTENT FROM SERVER
+  LOAD COURSE CONTENT FROM SERVER
   ---------------------------------------------------*/
   useEffect(() => {
     (async () => {
@@ -162,7 +163,7 @@ export default function EditCourseRoute() {
   }, [id, baseCourse]);
 
   /* -------------------------------------------------
-     AUTO SAVE (DEBOUNCE)
+  AUTO SAVE (DEBOUNCE)
   ---------------------------------------------------*/
   useEffect(() => {
     if (!id || !content) return;
@@ -194,7 +195,7 @@ export default function EditCourseRoute() {
   }, [id, content]);
 
   /* -------------------------------------------------
-     MANUAL SAVE
+  MANUAL SAVE
   ---------------------------------------------------*/
   const manualSave = async () => {
     if (!id || !content) return;
@@ -219,7 +220,7 @@ export default function EditCourseRoute() {
   };
 
   /* -------------------------------------------------
-     LOAD VAAD USERS
+  LOAD VAAD USERS
   ---------------------------------------------------*/
   useEffect(() => {
     (async () => {
@@ -237,7 +238,7 @@ export default function EditCourseRoute() {
   }, []);
 
   /* -------------------------------------------------
-     FILTERED REPRESENTATIVES
+  FILTERED REPRESENTATIVES
   ---------------------------------------------------*/
   const filteredVaadUsers = useMemo(() => {
     const q = repSearch.toLowerCase().trim();
@@ -251,7 +252,7 @@ export default function EditCourseRoute() {
   }, [vaadUsers, repSearch]);
 
   /* -------------------------------------------------
-     SYLLABUS UPLOAD
+  SYLLABUS UPLOAD
   ---------------------------------------------------*/
   const handleSyllabusUpload = async (file: File) => {
     if (!id || !content) return;
@@ -288,10 +289,10 @@ export default function EditCourseRoute() {
   };
 
   /* -------------------------------------------------
-     UPDATE HELPERS
+  UPDATE HELPERS
   ---------------------------------------------------*/
   function updateArrayItem(
-    field: "assignments" | "exams",
+    field: "assignments" | "exams" | "labs",
     index: number,
     key: keyof AssessmentItem,
     value: string
@@ -301,13 +302,16 @@ export default function EditCourseRoute() {
     setContent({ ...content!, [field]: arr });
   }
 
-  function addArrayItem(field: "assignments" | "exams") {
+  function addArrayItem(field: "assignments" | "exams" | "labs") {
     const arr = [...content![field]];
     arr.push({ title: "", date: "", weight: "", notes: "" });
     setContent({ ...content!, [field]: arr });
   }
 
-  function removeArrayItem(field: "assignments" | "exams", index: number) {
+  function removeArrayItem(
+    field: "assignments" | "exams" | "labs",
+    index: number
+  ) {
     const arr = [...content![field]];
     arr.splice(index, 1);
     setContent({ ...content!, [field]: arr });
@@ -336,7 +340,7 @@ export default function EditCourseRoute() {
   }
 
   /* -------------------------------------------------
-     RENDER
+  RENDER
   ---------------------------------------------------*/
   if (loading || !content) {
     return <div className="p-4">טוען נתוני קורס…</div>;
@@ -345,6 +349,7 @@ export default function EditCourseRoute() {
   const reps = content.reps;
   const assignments = content.assignments;
   const exams = content.exams;
+  const labs = content.labs;
   const externalMaterials = content.externalMaterials;
   const links = content.links || {};
 
@@ -731,7 +736,12 @@ export default function EditCourseRoute() {
                     placeholder="שם המטלה"
                     value={a.title || ""}
                     onChange={(e) =>
-                      updateArrayItem("assignments", idx, "title", e.target.value)
+                      updateArrayItem(
+                        "assignments",
+                        idx,
+                        "title",
+                        e.target.value
+                      )
                     }
                   />
                   <input
@@ -874,6 +884,86 @@ export default function EditCourseRoute() {
             + הוספת בחינה
           </button>
         </section>
+
+        {/* מעבדות */}
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
+            מעבדות (labs)
+          </h2>
+
+          {labs.length === 0 && (
+            <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
+              אין מעבדות מוגדרות. אפשר להוסיף.
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {labs.map((lab: AssessmentItem, idx: number) => (
+              <div
+                key={idx}
+                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white border-neutral-200 dark:bg-slate-950/40 dark:border-slate-700"
+              >
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    placeholder="שם המעבדה"
+                    value={lab.title || ""}
+                    onChange={(e) =>
+                      updateArrayItem("labs", idx, "title", e.target.value)
+                    }
+                  />
+                  <input
+                    type="date"
+                    className="border rounded-lg px-2 py-1 w-32 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    value={lab.date || ""}
+                    onChange={(e) =>
+                      updateArrayItem(
+                        "labs",
+                        idx,
+                        "date",
+                        sanitizeDate(e.target.value)
+                      )
+                    }
+                  />
+                  <input
+                    className="border rounded-lg px-2 py-1 w-24 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    placeholder="משקל"
+                    value={lab.weight || ""}
+                    onChange={(e) =>
+                      updateArrayItem("labs", idx, "weight", e.target.value)
+                    }
+                  />
+                </div>
+
+                <textarea
+                  className="border rounded-lg px-2 py-1 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  placeholder="הערות (אופציונלי)"
+                  value={lab.notes || ""}
+                  onChange={(e) =>
+                    updateArrayItem("labs", idx, "notes", e.target.value)
+                  }
+                />
+
+                <button
+                  type="button"
+                  onClick={() => removeArrayItem("labs", idx)}
+                  className="self-start text-[11px] text-red-600 underline mt-1"
+                >
+                  הסרת מעבדה
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => addArrayItem("labs")}
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+          >
+            + הוספת מעבדה
+          </button>
+        </section>
+
 
         {/* כפתורי שמירה */}
         <div className="flex flex-wrap gap-3 items-center mt-4">

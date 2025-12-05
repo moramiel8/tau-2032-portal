@@ -165,6 +165,7 @@ export default function CourseRoute() {
 
   const assignments: AssessmentItem[] = course.assignments || [];
   const exams: AssessmentItem[] = course.exams || [];
+  const labs: AssessmentItem[] = course.labs || [];
 
   const hasLinks =
     !!course.links?.whatsapp ||
@@ -192,7 +193,9 @@ export default function CourseRoute() {
     if (isNaN(d.getTime())) return null;
 
     const name =
-      c.lastEditedByName || getDisplayNameByEmail(c.lastEditedByEmail) || "המערכת";
+      c.lastEditedByName ||
+      getDisplayNameByEmail(c.lastEditedByEmail) ||
+      "המערכת";
 
     const dayStr = d.toLocaleDateString("he-IL", {
       weekday: "long",
@@ -487,6 +490,48 @@ export default function CourseRoute() {
                     </td>
                     <td className="py-2 px-2 align-top">
                       {ex.notes || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* מעבדות */}
+      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800">
+        <h2 className="text-sm font-semibold mb-3">מעבדות</h2>
+        {labs.length === 0 ? (
+          <div className="text-xs text-neutral-500">
+            עדיין לא הוגדרו מעבדות לקורס זה.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead className="bg-neutral-50 text-[11px] text-neutral-500 dark:bg-slate-800 dark:text-slate-300">
+                <tr>
+                  <th className="text-right py-2 px-2">שם המעבדה</th>
+                  <th className="text-right py-2 px-2">תאריך</th>
+                  <th className="text-right py-2 px-2">משקל</th>
+                  <th className="text-right py-2 px-2">הערות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {labs.map((lab, idx) => (
+                  <tr
+                    key={idx}
+                    className="border-t border-neutral-200 dark:border-slate-800"
+                  >
+                    <td className="py-2 px-2 align-top">{lab.title}</td>
+                    <td className="py-2 px-2 align-top">
+                      {formatDate(lab.date)}
+                    </td>
+                    <td className="py-2 px-2 align-top">
+                      {lab.weight || "—"}
+                    </td>
+                    <td className="py-2 px-2 align-top">
+                      {lab.notes || "—"}
                     </td>
                   </tr>
                 ))}

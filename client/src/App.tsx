@@ -9,6 +9,8 @@ import AdminCoursesRoute from "./routes/AdminCoursesRoute";
 import EditCourseRoute from "./routes/EditCourseRoute";
 import EditHomepageRoute from "./routes/EditHomepageRoute";
 
+import type { ReactNode } from "react"; 
+
 import { useTheme } from "./hooks/useTheme";
 
 import {
@@ -32,8 +34,6 @@ import {
 } from "./constants/icons";
 
 const AUTH_ENABLED = true;
-
-// TODO: Dark mode for calendar maybe? 
 
 // ---- types ללוח מודעות בעמוד הבית ----
 type AnnouncementPublic = {
@@ -63,7 +63,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
   // טווח להצגת מטלות/מבחנים
-const [range, setRange] = useState<"week" | "month" | "all">("week");
+  const [range, setRange] = useState<"week" | "month" | "all">("week");
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
@@ -120,8 +120,8 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
-            })}{" "},
-            בשעה{" "}
+            })}{" "}
+            , בשעה{" "}
             {d.toLocaleTimeString("he-IL", {
               hour: "2-digit",
               minute: "2-digit",
@@ -151,6 +151,51 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
       </>
     );
   };
+
+  // הופך URL-ים בטקסט ללינקים לחיצים
+const renderAnnouncementBodyWithLinks = (text: string): ReactNode => {
+  if (!text) return null;
+
+  // תופס http/https וגם www.
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = urlRegex.exec(text)) !== null) {
+    const start = match.index;
+    const url = match[0];
+
+    // הטקסט שלפני ה־URL
+    if (start > lastIndex) {
+      parts.push(text.slice(lastIndex, start));
+    }
+
+    const href = url.startsWith("http") ? url : `https://${url}`;
+
+    parts.push(
+      <a
+        key={href + start}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline text-blue-600 dark:text-blue-400 break-all"
+      >
+        {url}
+      </a>
+    );
+
+    lastIndex = start + url.length;
+  }
+
+  // שאר הטקסט אחרי ה־URL האחרון
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+};
 
   // טעינת תוכן עמוד הבית (ציבורי)
   useEffect(() => {
@@ -227,7 +272,7 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
     title: string;
     date: string;
     dateObj: Date;
-    type: "assignment" | "exam";
+    type: "assignment" | "exam" | "lab";
     notes?: string;
   };
 
@@ -255,6 +300,7 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
         sem.courses.forEach((course) => {
           const assignments = (course.assignments || []) as AssessmentItem[];
           const exams = (course.exams || []) as AssessmentItem[];
+          const labs = (course.labs || []) as AssessmentItem[];
 
           assignments.forEach((a) => {
             if (!a.date) return;
@@ -289,6 +335,24 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
               });
             }
           });
+
+          // מעבדות
+          labs.forEach((lab) => {
+            if (!lab.date) return;
+            const d = parseHebrewDate(lab.date);
+            if (!d) return;
+            if (d >= today && (!maxDate || d <= maxDate)) {
+              items.push({
+                courseId: course.id,
+                courseName: course.name,
+                title: lab.title || "",
+                date: lab.date,
+                dateObj: d,
+                type: "lab",
+                notes: lab.notes,
+              });
+            }
+          });
         });
       });
     });
@@ -302,13 +366,13 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
       {/* HERO מתוך עמוד הבית */}
       {homepage && (
         <section
-  className="
-    mb-6 border rounded-2xl p-5 shadow-sm
-    bg-gradient-to-l from-blue-50 to-cyan-50
-    dark:from-slate-800 dark:to-slate-900
-    border-neutral-200 dark:border-slate-700
-  "
->
+          className="
+            mb-6 border rounded-2xl p-5 shadow-sm
+            bg-gradient-to-l from-blue-50 to-cyan-50
+            dark:from-slate-800 dark:to-slate-900
+            border-neutral-200 dark:border-slate-700
+          "
+        >
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
@@ -327,22 +391,21 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
       {/* לוח מודעות */}
       {announcements.length > 0 && (
         <section
-  className="
-    mb-6 border rounded-2xl p-4 shadow-sm
-    bg-white dark:bg-slate-900
-    border-neutral-200 dark:border-slate-700
-  "
->
+          className="
+            mb-6 border rounded-2xl p-4 shadow-sm
+            bg-white dark:bg-slate-900
+            border-neutral-200 dark:border-slate-700
+          "
+        >
           <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
           <ul className="space-y-2 text-sm">
             {announcements.map((a) => (
               <li key={a.id} className="border-b last:border-b-0 pb-2">
                 <div className="font-medium">{a.title}</div>
-  <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
-                  {a.body}
+                <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
+              {renderAnnouncementBodyWithLinks(a.body || "")}
                 </div>
 
-                {/* מראים מטא־דאטה רק אם באמת יש משהו */}
                 {formatAnnouncementMeta(a) && (
                   <div className="text-[10px] text-neutral-400 mt-1">
                     {formatAnnouncementMeta(a)}
@@ -356,112 +419,115 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
 
       {/* טבלת מטלות + מבחנים קרובים */}
       <section
-  className="
-    mb-8 border rounded-2xl p-4 shadow-sm
-    bg-white dark:bg-slate-900
-    border-neutral-200 dark:border-slate-700
-  "
->
-  <div className="flex items-center justify-between mb-2 gap-2">
-    <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
-
-    {/* כפתורי טווח – בדיוק כמו שיש לך */}
-    <div className="flex gap-1 text-[11px] sm:text-xs">
-      <button
-        onClick={() => setRange("week")}
-        className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-          ${
-            range === "week"
-              ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-              : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-          }
-        `}
+        className="
+          mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+        "
       >
-        📅 שבוע
-      </button>
+<div className="flex flex-row items-center justify-between mb-2 gap-2">
+          <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
 
-      <button
-        onClick={() => setRange("month")}
-        className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-          ${
-            range === "month"
-              ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-              : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-          }
-        `}
-      >
-        🗓️ חודש
-      </button>
-
-      <button
-        onClick={() => setRange("all")}
-        className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-          ${
-            range === "all"
-              ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-              : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-          }
-        `}
-      >
-        ⏭️ הכול
-      </button>
-    </div>
-  </div>
-
-  {latestItems.length === 0 ? (
-    <div className="text-xs text-neutral-500 mt-2">
-      אין מטלות או מבחנים בטווח שנבחר.
-    </div>
-  ) : (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs sm:text-sm border-collapse">
-        <thead className="bg-neutral-50 dark:bg-slate-800 text-[11px] text-neutral-500 dark:text-slate-300">
-          <tr>
-            <th className="text-right py-2 px-2">קורס</th>
-            <th className="text-right py-2 px-2">סוג</th>
-            <th className="text-right py-2 px-2">שם</th>
-            <th className="text-right py-2 px-2">תאריך</th>
-            <th className="text-right py-2 px-2 hidden sm:table-cell">
-              הערות
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {latestItems.map((item, index) => {
-            const isFirst = index === 0;
-            return (
-              <tr
-                key={item.courseId + item.title + index}
-                className={
-                  "border-t border-neutral-200 dark:border-slate-700" +
-                  (isFirst ? " bg-yellow-50/60 dark:bg-yellow-900/20" : "")
+          {/* כפתורי טווח */}
+          <div className="flex gap-1 text-[11px] sm:text-xs">
+            <button
+              onClick={() => setRange("week")}
+              className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+                ${
+                  range === "week"
+                    ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+                    : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
                 }
-              >
-                <td className="py-2 px-2 align-top">
-                  <span className="font-medium flex items-center gap-1">
-                    {isFirst && <span>📌</span>}
-                    {item.courseName}
-                  </span>
-                </td>
-                <td className="py-2 px-2 align-top whitespace-nowrap">
-                  {item.type === "assignment" ? "📝 מטלה" : "💯 בחינה" }
-                </td>
-                <td className="py-2 px-2 align-top">{item.title}</td>
-                <td className="py-2 px-2 align-top whitespace-nowrap">
-                  {item.dateObj.toLocaleDateString("he-IL")}
-                </td>
-                <td className="py-2 px-2 align-top text-neutral-500 hidden sm:table-cell">
-                  {item.notes || "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  )}
-</section>
+              `}
+            >
+              📅 שבוע
+            </button>
 
+            <button
+              onClick={() => setRange("month")}
+              className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+                ${
+                  range === "month"
+                    ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+                    : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+                }
+              `}
+            >
+              🗓️ חודש
+            </button>
+
+            <button
+              onClick={() => setRange("all")}
+              className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
+                ${
+                  range === "all"
+                    ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
+                    : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+                }
+              `}
+            >
+              ⏭️ הכול
+            </button>
+          </div>
+        </div>
+
+        {latestItems.length === 0 ? (
+          <div className="text-xs text-neutral-500 mt-2">
+            אין מטלות או מבחנים בטווח שנבחר.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm border-collapse">
+              <thead className="bg-neutral-50 dark:bg-slate-800 text-[11px] text-neutral-500 dark:text-slate-300">
+                <tr>
+                  <th className="text-right py-2 px-2">קורס</th>
+                  <th className="text-right py-2 px-2">סוג</th>
+                  <th className="text-right py-2 px-2">שם</th>
+                  <th className="text-right py-2 px-2">תאריך</th>
+                  <th className="text-right py-2 px-2 hidden sm:table-cell">
+                    הערות
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {latestItems.map((item, index) => {
+                  const isFirst = index === 0;
+                  return (
+                    <tr
+                      key={item.courseId + item.title + index}
+                      className={
+                        "border-t border-neutral-200 dark:border-slate-700" +
+                        (isFirst
+                          ? " bg-yellow-50/60 dark:bg-yellow-900/20"
+                          : "")
+                      }
+                    >
+                      <td className="py-2 px-2 align-top">
+                        <span className="font-medium flex items-center gap-1">
+                          {isFirst && <span>📌</span>}
+                          {item.courseName}
+                        </span>
+                      </td>
+                      <td className="py-2 px-2 align-top whitespace-nowrap">
+                        {item.type === "assignment" && "📝 מטלה"}
+                        {item.type === "exam" && "💯 בחינה"}
+                        {item.type === "lab" && "🔬 מעבדה"}
+                      </td>
+                      <td className="py-2 px-2 align-top">{item.title}</td>
+                      <td className="py-2 px-2 align-top whitespace-nowrap">
+                        {item.dateObj.toLocaleDateString("he-IL")}
+                      </td>
+                      <td className="py-2 px-2 align-top text-neutral-500 hidden sm:table-cell">
+                        {item.notes || "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* יומן */}
       <section className="mb-8">
@@ -604,7 +670,6 @@ export default function App() {
     ) : null;
 
   return (
-    // 👈 מזה Tailwind מזהה דארק מוד (darkMode: "class")
     <div className={theme === "dark" ? "dark" : ""}>
       <div
         className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors"
@@ -649,31 +714,30 @@ export default function App() {
 
                   {canSeeAdminPanel && (
                     <button
-               onClick={() => nav("/admin")}
-              className="
-              border rounded-2xl px-3 py-2 text-sm
-              hover:bg-neutral-50
-              dark:hover:bg-slate-800
-              flex items-center gap-1 cursor-pointer
-               "
-              >
-              פאנל מנהל
-            </button>
-
+                      onClick={() => nav("/admin")}
+                      className="
+                        border rounded-2xl px-3 py-2 text-sm
+                        hover:bg-neutral-50
+                        dark:hover:bg-slate-800
+                        flex items-center gap-1 cursor-pointer
+                      "
+                    >
+                      פאנל מנהל
+                    </button>
                   )}
 
-                 <button
-  onClick={handleLogout}
-  className="
-    border rounded-2xl px-3 py-2 text-sm
-    hover:bg-neutral-50
-    dark:hover:bg-slate-800
-    flex items-center gap-1 cursor-pointer
-    title='התנתקות'
-  "
->
-  <span className="inline">התנתקות</span>
-</button>
+                  <button
+                    onClick={handleLogout}
+                    className="
+                      border rounded-2xl px-3 py-2 text-sm
+                      hover:bg-neutral-50
+                      dark:hover:bg-slate-800
+                      flex items-center gap-1 cursor-pointer
+                    "
+                    title="התנתקות"
+                  >
+                    <span className="inline">התנתקות</span>
+                  </button>
                 </>
               )}
             </div>
@@ -686,8 +750,7 @@ export default function App() {
           ) : !user ? (
             <div className="border rounded-2xl p-6 text-sm">
               כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
-              בחר/י חשבון עם הדומיין
-              <b> mail.tau.ac.il</b>.
+              בחר/י חשבון עם הדומיין <b>mail.tau.ac.il</b>.
               <div className="mt-3">
                 <button
                   onClick={handleSignIn}
@@ -764,25 +827,23 @@ export default function App() {
           )}
         </main>
 
-<footer className="
-  max-w-6xl mx-auto px-4 py-8 text-xs
-  text-neutral-500 dark:text-slate-300
-">
+        <footer
+          className="
+            max-w-6xl mx-auto px-4 py-8 text-xs
+            text-neutral-500 dark:text-slate-300
+          "
+        >
           <div className="flex flex-col gap-2">
-            {/* שורה עליונה – טקסט */}
             <span>
               נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן
               לאחרונה {lastUpdatedText || "—"}
             </span>
 
-            {/* שורה שניה – מספר מבקרים */}
             <span className="flex items-center gap-1 text-neutral-400">
               מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
             </span>
 
-            {/* שורה שלישית – אייקונים */}
             <div className="flex items-center gap-4 mt-2">
-              {/* Facebook */}
               <a
                 href="https://www.facebook.com/mork0/"
                 target="_blank"
@@ -792,21 +853,19 @@ export default function App() {
                 <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
               </a>
 
-              {/* GitHub */}
               <a
                 href="https://github.com/moramiel8"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="opacity-70 hover:opacity-100 transition"
               >
-               <img
-  src={IMG_GITHUB}
-  alt="GitHub"
-  className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
-/>
+                <img
+                  src={IMG_GITHUB}
+                  alt="GitHub"
+                  className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+                />
               </a>
 
-              {/* WhatsApp – לינק להודעה אישית */}
               <a
                 href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
                 target="_blank"
@@ -815,21 +874,16 @@ export default function App() {
               >
                 <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
               </a>
-
-              
             </div>
 
-                        {/* שורה רביעית – ביימיקופי */}
-
             <div className="flex items-center gap-4 mt-2">
-
-              {/* Buy Me a Coffee */}
-
               <a href="https://www.buymeacoffee.com/moramiel8">
-              <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&
-                emoji=&slug=moramiel8&button_colour=FFDD00&font_colour=000000&font_family=Cookie&
-                outline_colour=000000&coffee_colour=ffffff" /></a>
-              </div>
+                <img
+                  src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=moramiel8&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
+                  alt="Buy Me A Coffee"
+                />
+              </a>
+            </div>
           </div>
         </footer>
 

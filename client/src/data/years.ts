@@ -88,6 +88,7 @@ export type Course = {
   externalMaterials?: { label: string; href: string; icon?: string }[];
   assignments?: AssessmentItem[];
   exams?: AssessmentItem[];
+  lab?: AssessmentItem[];
 };
 
 export type Semester = { id: string; title: string; courses: Course[] };
