@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+// TODO: WYSIWYG maybe? 
+
 type HomepageContent = {
   heroTitle?: string;
   heroSubtitle?: string;

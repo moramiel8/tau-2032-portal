@@ -26,13 +26,14 @@ import CourseRoute from "./routes/CourseRoute";
 import AdminPanel from "./routes/AdminPanel";
 
 import {
-  IMG_BUYME,
   IMG_WHATSAPP,
   IMG_FACEBOOK,
   IMG_GITHUB,
 } from "./constants/icons";
 
 const AUTH_ENABLED = true;
+
+// TODO: Dark mode for calendar maybe? 
 
 // ---- types ללוח מודעות בעמוד הבית ----
 type AnnouncementPublic = {
