@@ -312,7 +312,7 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
-          <h2 className="text-sm text-neutral-300 mb-3 whitespace-pre-line">
+          <h2 className="text-sm text-neutral-400 mb-3 whitespace-pre-line">
             {homepage.heroSubtitle ||
               "כל המידע, הקישורים והחומרים במקום אחד"}
           </h2>
@@ -444,7 +444,7 @@ const [range, setRange] = useState<"week" | "month" | "all">("week");
                   </span>
                 </td>
                 <td className="py-2 px-2 align-top whitespace-nowrap">
-                  {item.type === "assignment" ? "📝 מטלה" : "💯 בחינה"}
+                  {item.type === "assignment" ? "📝 מטלה" : "💯 בחינה" }
                 </td>
                 <td className="py-2 px-2 align-top">{item.title}</td>
                 <td className="py-2 px-2 align-top whitespace-nowrap">
