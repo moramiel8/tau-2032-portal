@@ -142,6 +142,8 @@ export default function AdminPanel({
   const [newAnnBody, setNewAnnBody] = useState("");
   const [newAnnCourseId, setNewAnnCourseId] = useState<string>("");
 
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
+
   const [courseVaad, setCourseVaad] = useState<CourseVaadEntry[]>([]);
   const [globalRoles, setGlobalRoles] = useState<GlobalRoleEntry[]>([]);
   const [saving, setSaving] = useState(false);
@@ -217,29 +219,49 @@ export default function AdminPanel({
     })();
   }, [isAdmin, isGlobalVaad]);
 
-  const handleAddAnnouncement = async () => {
-    if (!newAnnTitle || !newAnnBody) return;
-    try {
-      const res = await fetch("/api/admin/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          title: newAnnTitle,
-          body: newAnnBody,
-          courseId: newAnnCourseId || null,
-        }),
-      });
-      if (!res.ok) throw new Error("save failed");
-      const saved: Announcement = await res.json();
-      setAnnouncements((prev) => [saved, ...prev]);
-      setNewAnnTitle("");
-      setNewAnnBody("");
-      setNewAnnCourseId("");
-    } catch (e) {
-      console.warn("[AdminPanel] add announcement failed", e);
-    }
+const handleSaveAnnouncement = async () => {
+  if (!newAnnTitle || !newAnnBody) return;
+
+  const payload = {
+    title: newAnnTitle,
+    body: newAnnBody,
+    courseId: newAnnCourseId || null,
   };
+
+  try {
+    const isEditing = !!editingAnnId;
+    const url = isEditing
+      ? `/api/admin/announcements/${editingAnnId}`
+      : "/api/admin/announcements";
+    const method = isEditing ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error("save failed");
+
+    const saved: Announcement = await res.json();
+
+    setAnnouncements((prev) =>
+      isEditing
+        ? prev.map((a) => (a.id === saved.id ? saved : a))
+        : [saved, ...prev]
+    );
+
+    // איפוס טופס
+    setNewAnnTitle("");
+    setNewAnnBody("");
+    setNewAnnCourseId("");
+    setEditingAnnId(null);
+  } catch (e) {
+    console.warn("[AdminPanel] save announcement failed", e);
+  }
+};
+
 
   const handleDeleteAnnouncement = async (id: string) => {
     if (!window.confirm("למחוק את המודעה?")) return;
@@ -596,36 +618,51 @@ export default function AdminPanel({
               <div className="text-sm text-neutral-500">אין עדיין מודעות.</div>
             ) : (
               <ul className="text-sm space-y-2 mb-4 max-h-64 overflow-y-auto">
-                {announcements.map((a) => (
-                  <li
-                    key={a.id}
-                    className="mt-2 border rounded-xl px-3 py-2 flex justify-between gap-2"
-                  >
-                    <div>
-                      <div className="font-medium">{a.title}</div>
-                      <div className="text-xs text-neutral-600 whitespace-pre-line">
-                        {a.body}
-                      </div>
-                      <div className="text-[10px] text-neutral-400 mt-1">
-                        {a.courseId
-                          ? `קורס: ${courseName(a.courseId)}`
-                          : "מודעה כללית"}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteAnnouncement(a.id)}
-                      className="text-xs underline text-red-600 self-start"
-                    >
-                      מחיקה
-                    </button>
-                  </li>
-                ))}
+              {announcements.map((a) => (
+  <li
+    key={a.id}
+    className="mt-2 border rounded-xl px-3 py-2 flex justify-between gap-2"
+  >
+    <div>
+      <div className="font-medium">{a.title}</div>
+      <div className="text-xs text-neutral-600 whitespace-pre-line">
+        {a.body}
+      </div>
+      <div className="text-[10px] text-neutral-400 mt-1">
+        {a.courseId ? `קורס: ${courseName(a.courseId)}` : "מודעה כללית"}
+      </div>
+    </div>
+
+    <div className="flex flex-col gap-1 self-start">
+      <button
+        onClick={() => {
+          setEditingAnnId(a.id);
+          setNewAnnTitle(a.title);
+          setNewAnnBody(a.body);
+          setNewAnnCourseId(a.courseId || "");
+        }}
+        className="text-xs underline text-blue-600"
+      >
+        עריכה
+      </button>
+
+      <button
+        onClick={() => handleDeleteAnnouncement(a.id)}
+        className="text-xs underline text-red-600"
+      >
+        מחיקה
+      </button>
+    </div>
+  </li>
+))}
+
               </ul>
             )}
 
             <div className="border-t pt-3 mt-3 text-sm">
-              <h3 className="font-medium mb-2">הוספת מודעה חדשה</h3>
-
+<h3 className="font-medium mb-2">
+  {editingAnnId ? "עריכת מודעה" : "הוספת מודעה חדשה"}
+</h3>
               <label className="block mb-2">
                 <span className="block mb-1">כותרת:</span>
                 <input
@@ -661,12 +698,27 @@ export default function AdminPanel({
               </label>
 
               <button
-                type="button"
-                onClick={handleAddAnnouncement}
-                className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                הוספת מודעה
-              </button>
+  type="button"
+  onClick={handleSaveAnnouncement}
+  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
+>
+  {editingAnnId ? "שמירת שינויים" : "הוספת מודעה"}
+</button>
+
+{editingAnnId && (
+  <button
+    type="button"
+    onClick={() => {
+      setEditingAnnId(null);
+      setNewAnnTitle("");
+      setNewAnnBody("");
+      setNewAnnCourseId("");
+    }}
+    className="ml-2 text-xs text-neutral-500 underline"
+  >
+    ביטול עריכה
+  </button>
+)}
             </div>
           </section>
         </>
