@@ -806,7 +806,7 @@ export default function App() {
                         flex items-center gap-1 cursor-pointer
                       "
                     >
-                      פאנל מנהל
+                      פאנל ניהול
                     </button>
                   )}
 

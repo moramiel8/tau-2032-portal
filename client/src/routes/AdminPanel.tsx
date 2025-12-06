@@ -400,7 +400,7 @@ const handleSaveAnnouncement = async () => {
 
   return (
     <div className="max-w-4xl mx-auto pb-12">
-      <h1 className="text-2xl font-semibold mb-2">פאנל מנהל</h1>
+      <h1 className="text-2xl font-semibold mb-2">פאנל ניהול</h1>
       <p className="text-sm text-neutral-600 mb-6">
         מחובר כ־<span className="font-medium">{user.email}</span>{" "}
         <span className="text-xs text-neutral-500">({user.role})</span>
