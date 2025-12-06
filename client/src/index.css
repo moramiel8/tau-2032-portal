@@ -118,3 +118,14 @@ body {
   white-space: pre-line;
   line-height: 1.6;
 }
+
+/* כפתור האימוג׳י בטולבר של Quill */
+.rtl-quill .ql-toolbar button.ql-emoji::before {
+  content: "😊";
+  font-size: 16px;
+}
+
+/* לוודא שלא מופיע אייקון SVG מוזר */
+.rtl-quill .ql-toolbar button.ql-emoji svg {
+  display: none;
+}
