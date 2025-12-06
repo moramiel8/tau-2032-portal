@@ -75,6 +75,7 @@ export type Course = {
   id: string;
   name: string;
   note?: string;
+  shortName?: string;
   whatwas?: string;
   whatwill?: string;
   coordinator?: string;

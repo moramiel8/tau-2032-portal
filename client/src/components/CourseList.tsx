@@ -177,8 +177,8 @@ export default function CourseList({ years, onOpenCourse }: Props) {
               onClick={() => setOpenPre((v) => !v)}
               className="
                 text-xs border rounded-xl px-2 py-1
-                bg-white hover:bg-neutral-50
-                border-neutral-200 text-neutral-700
+                bg-blue-700 hover:bg-blue-500
+                border-neutral-200 text-white
                 dark:bg-slate-900 dark:border-slate-700
                 dark:text-slate-100 dark:hover:bg-slate-800
                 transition-colors
@@ -201,8 +201,8 @@ export default function CourseList({ years, onOpenCourse }: Props) {
               onClick={() => setOpenClinical((v) => !v)}
               className="
                 text-xs border rounded-xl px-2 py-1
-                bg-white hover:bg-neutral-50
-                border-neutral-200 text-neutral-700
+                bg-blue-700 hover:bg-blue-500
+                border-neutral-200 text-white
                 dark:bg-slate-900 dark:border-slate-700
                 dark:text-slate-100 dark:hover:bg-slate-800
                 transition-colors

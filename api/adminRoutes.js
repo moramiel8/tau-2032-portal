@@ -717,4 +717,72 @@ router.delete("/announcements/:id", requireAdminLike, async (req, res) => {
   }
 });
 
+// ----- courses (create from admin / vaad) -----
+
+// רשימת קורסים דינמיים (לא חובה, אבל שימושי לפאנל ניהול / debug)
+router.get("/courses", requireAdminLike, async (_req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT id, name, short_name, year_label, semester_label, course_code, created_at
+      FROM courses_extra
+      ORDER BY year_label, semester_label, name
+      `
+    );
+
+    res.json({
+      items: result.rows.map((r) => ({
+        id: String(r.id),
+        name: r.name,
+        shortName: r.short_name,
+        yearLabel: r.year_label,
+        semesterLabel: r.semester_label,
+        courseCode: r.course_code,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error("[GET /admin/courses] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// יצירת קורס חדש (admin / vaad)
+router.post("/courses", requireAdminLike, async (req, res) => {
+  const { name, shortName, yearLabel, semesterLabel, courseCode } = req.body || {};
+
+  if (!name || !yearLabel || !semesterLabel) {
+    return res.status(400).json({ error: "invalid_body" });
+  }
+
+  try {
+    const result = await query(
+      `
+      INSERT INTO courses_extra (name, short_name, year_label, semester_label, course_code)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, short_name, year_label, semester_label, course_code, created_at
+      `,
+      [name, shortName || null, yearLabel, semesterLabel, courseCode || null]
+    );
+
+    const r = result.rows[0];
+
+    const payload = {
+      id: String(r.id),          // זה ה־courseId שה־client יקבל
+      name: r.name,
+      shortName: r.short_name,
+      yearLabel: r.year_label,
+      semesterLabel: r.semester_label,
+      courseCode: r.course_code,
+      createdAt: r.created_at,
+    };
+
+    res.json(payload);
+  } catch (err) {
+    console.error("[POST /admin/courses] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+
 export default router;

@@ -412,6 +412,64 @@ app.get("/api/my/course-vaad", async (req, res) => {
   }
 });
 
+// --- public dynamic courses (for homepage & students) ---
+app.get("/api/courses", async (_req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT id, name, short_name, year_label, semester_label, course_code, created_at
+      FROM courses_extra
+      ORDER BY year_label, semester_label, name
+      `
+    );
+
+    res.json({
+      items: result.rows.map((r) => ({
+        id: String(r.id),
+        name: r.name,
+        shortName: r.short_name,
+        yearLabel: r.year_label,
+        semesterLabel: r.semester_label,
+        courseCode: r.course_code,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error("[GET /api/courses] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// --- public dynamic courses list (לשימוש בעמוד הבית) ---
+app.get("/api/courses", async (_req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT id, name, short_name, year_label, semester_label, course_code, created_at
+      FROM courses_extra
+      ORDER BY year_label, semester_label, name
+      `
+    );
+
+    res.json({
+      items: result.rows.map((r) => ({
+        id: String(r.id),
+        name: r.name,
+        shortName: r.short_name,
+        yearLabel: r.year_label,
+        semesterLabel: r.semester_label,
+        courseCode: r.course_code,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error("[GET /api/courses] error", err);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+
+
 export default app;
 
 if (process.env.NODE_ENV !== "production") {

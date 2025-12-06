@@ -3,11 +3,13 @@ import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Routes, Route, useNavigate, Link } from "react-router-dom";
 
 import CourseList from "./components/CourseList";
-import { YEARS, type Course, type AssessmentItem } from "./data/years";
+import { YEARS, type Course, type AssessmentItem, type Year } from "./data/years";
 
 import AdminCoursesRoute from "./routes/AdminCoursesRoute";
 import EditCourseRoute from "./routes/EditCourseRoute";
 import EditHomepageRoute from "./routes/EditHomepageRoute";
+
+import NewCourseForm from "./components/NewCourseForm";
 
 import { useTheme } from "./hooks/useTheme";
 
@@ -53,13 +55,32 @@ type HomepageContent = {
   introText?: string;
 };
 
+type HomeContentProps = {
+  openCourse: (course: Course) => void;
+  canCreateCourse: boolean;
+};
+
+
 // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
-function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
+function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
   const [announcements, setAnnouncements] = useState<AnnouncementPublic[]>([]);
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
+
+  // קורסים נוספים מה־DB
+  type ExtraCourse = {
+    id: string;
+    name: string;
+    shortName?: string | null;
+    yearLabel: string;
+    semesterLabel: string;
+    courseCode?: string | null;
+  };
+
+  const [extraCourses, setExtraCourses] = useState<ExtraCourse[]>([]);
+  const [extraCoursesReloadKey, setExtraCoursesReloadKey] = useState(0);
 
   // טווח להצגת מטלות/מבחנים
   const [range, setRange] = useState<"week" | "month" | "all">("week");
@@ -119,7 +140,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       body.includes("<a ");
 
     if (looksLikeHtml) {
-      // תוכן שמגיע מה־Quill – שומרים על הסטייל של .announcement-body
       return (
         <div
           className="announcement-body"
@@ -128,7 +148,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       );
     }
 
-    // הודעה ישנה – טקסט רגיל → הופכים לינקים לכחול + underline
     return (
       <div className="announcement-body">
         {renderAnnouncementBodyWithLinks(body)}
@@ -165,63 +184,12 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
         if (!res.ok) return;
         const data = (await res.json()) as { items: AnnouncementPublic[] };
 
-        // בעמוד הבית – רק מודעות כלליות (בלי courseId)
         setAnnouncements((data.items || []).filter((a) => !a.courseId));
       } catch (e) {
         console.warn("[HomeContent] failed to load announcements", e);
       }
     })();
   }, []);
-
-  const formatAnnouncementMeta = (a: AnnouncementPublic) => {
-    const dateStr = a.updatedAt || a.createdAt;
-    const hasAuthor = !!(a.authorName || a.authorEmail);
-
-    if (!dateStr && !hasAuthor) return null;
-
-    const d = dateStr ? new Date(dateStr) : null;
-
-    return (
-      <>
-        {d && (
-          <>
-            עודכן ב{" "}
-            {d.toLocaleDateString("he-IL", {
-              weekday: "long",
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })}{" "}
-            , בשעה{" "}
-            {d.toLocaleTimeString("he-IL", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </>
-        )}
-
-        {hasAuthor && (
-          <>
-            {" "}
-            ע"י{" "}
-            {a.authorName ? (
-              <>
-                {a.authorName}
-                {a.authorEmail && (
-                  <span className="text-neutral-500">
-                    {" "}
-                    ({a.authorEmail})
-                  </span>
-                )}
-              </>
-            ) : (
-              a.authorEmail
-            )}
-          </>
-        )}
-      </>
-    );
-  };
 
   // טעינת תוכן עמוד הבית (ציבורי)
   useEffect(() => {
@@ -240,6 +208,25 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     })();
   }, []);
 
+  // טעינת קורסים דינמיים מהשרת
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/courses");
+        if (!res.ok) return;
+
+        const json = await res.json();
+        const items: ExtraCourse[] = Array.isArray(json)
+          ? json
+          : json.items || [];
+
+        setExtraCourses(items);
+      } catch (e) {
+        console.warn("[HomeContent] failed to load extra courses", e);
+      }
+    })();
+  }, [extraCoursesReloadKey]);
+
   // YEARS אחרי merge עם overrides
   const yearsWithOverrides = useMemo(() => {
     if (!Object.keys(overrides).length) return YEARS;
@@ -256,12 +243,66 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
     }));
   }, [overrides]);
 
+  // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel
+  // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel
+  const yearsMerged = useMemo<Year[]>(() => {
+    // נתחיל מה־YEARS הקיימים + overrides, בלי לגעת במקור
+    const base: Year[] = yearsWithOverrides.map((year) => ({
+      ...year,
+      semesters: year.semesters.map((sem) => ({
+        ...sem,
+        courses: [...sem.courses],
+      })),
+    }));
+
+    extraCourses.forEach((c) => {
+      // 1. מוצאים / יוצרים שנה לפי title (אין לנו label ב-Year)
+      let year = base.find((y) => y.title === c.yearLabel);
+      if (!year) {
+        year = {
+          id: `extra-year-${c.yearLabel}`,
+          title: c.yearLabel,
+          // ברירת מחדל – אם תרצה, אפשר לשנות לפי yearLabel
+          kind: "preclinical",
+          semesters: [],
+        };
+        base.push(year);
+      }
+
+      // 2. מוצאים / יוצרים סמסטר לפי title (גם פה אין label)
+      let sem = year.semesters.find((s) => s.title === c.semesterLabel);
+      if (!sem) {
+        sem = {
+          id: `extra-sem-${c.yearLabel}-${c.semesterLabel}`,
+          title: c.semesterLabel,
+          courses: [],
+        };
+        year.semesters.push(sem);
+      }
+
+      // 3. מוסיפים קורס אם לא קיים כבר
+      if (!sem.courses.some((course) => course.id === c.id)) {
+        const newCourse: Course = {
+          id: c.id,
+          name: c.name,
+          shortName: c.shortName || undefined,
+          assignments: [],
+          exams: [],
+          labs: [],
+        };
+        sem.courses.push(newCourse);
+      }
+    });
+
+    return base;
+  }, [yearsWithOverrides, extraCourses]);
+
+
   // עוזר לפענח תאריך
   const parseHebrewDate = (value: string): Date | null => {
     if (!value) return null;
     const trimmed = value.trim();
 
-    // 1) פורמט HTML input type="date" → YYYY-MM-DD
     const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
     if (isoMatch) {
       const year = Number(isoMatch[1]);
@@ -271,7 +312,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       return isNaN(d.getTime()) ? null : d;
     }
 
-    // 2) פורמט "ישראלי" חופשי
     const m = trimmed.replace(/\s+/g, "").match(
       /(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/
     );
@@ -284,14 +324,13 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       return isNaN(d.getTime()) ? null : d;
     }
 
-    // 3) ניסיון אחרון – אם הדפדפן יודע לפרש
     const fallback = new Date(trimmed);
     if (!isNaN(fallback.getTime())) return fallback;
 
     return null;
   };
 
-  // מטלות + מבחנים קרובים מכל הקורסים
+  // מטלות + מבחנים קרובים (על בסיס YEARS / overrides בלבד כרגע)
   type UpcomingItem = {
     courseId: string;
     courseName: string;
@@ -318,7 +357,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       maxDate.setMonth(maxDate.getMonth() + 1);
       maxDate.setHours(23, 59, 59, 999);
     } else {
-      maxDate = null; // הכל
+      maxDate = null;
     }
 
     yearsWithOverrides.forEach((year) => {
@@ -362,7 +401,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
             }
           });
 
-          // מעבדות
           labs.forEach((lab) => {
             if (!lab.date) return;
             const d = parseHebrewDate(lab.date);
@@ -399,6 +437,8 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
             border-neutral-200 dark:border-slate-700
           "
         >
+
+          
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
@@ -431,12 +471,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
                 <div className="text-xs text-neutral-700 dark:text-slate-300">
                   {renderAnnouncementBody(a.body || "")}
                 </div>
-
-                {formatAnnouncementMeta(a) && (
-                  <div className="text-[10px] text-neutral-400 mt-1">
-                    {formatAnnouncementMeta(a)}
-                  </div>
-                )}
               </li>
             ))}
           </ul>
@@ -444,6 +478,7 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       )}
 
       {/* טבלת מטלות + מבחנים קרובים */}
+           {/* טבלת מטלות + מבחנים קרובים */}
       <section
         className="
           mb-8 border rounded-2xl p-4 shadow-sm
@@ -451,112 +486,101 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
           border-neutral-200 dark:border-slate-700
         "
       >
-        <div className="flex flex-row items-center justify-between mb-2 gap-2">
-          <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">מטלות ומועדי מבחנים קרובים</h2>
 
-          {/* כפתורי טווח */}
-          <div className="flex gap-1 text-[11px] sm:text-xs">
+          <div className="flex gap-2 text-xs">
             <button
+              className={
+                "px-2 py-1 rounded-2xl border " +
+                (range === "week"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-transparent text-neutral-600 dark:text-slate-200")
+              }
               onClick={() => setRange("week")}
-              className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-                ${
-                  range === "week"
-                    ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-                    : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-                }
-              `}
             >
-              📅 שבוע
+              שבוע
             </button>
-
             <button
+              className={
+                "px-2 py-1 rounded-2xl border " +
+                (range === "month"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-transparent text-neutral-600 dark:text-slate-200")
+              }
               onClick={() => setRange("month")}
-              className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-                ${
-                  range === "month"
-                    ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-                    : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-                }
-              `}
             >
-              🗓️ חודש
+              חודש
             </button>
-
             <button
+              className={
+                "px-2 py-1 rounded-2xl border " +
+                (range === "all"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-transparent text-neutral-600 dark:text-slate-200")
+              }
               onClick={() => setRange("all")}
-              className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs transition-colors
-                ${
-                  range === "all"
-                    ? "bg-blue-100 border-blue-400 text-blue-900 dark:bg-blue-500/20 dark:border-blue-300 dark:text-blue-100"
-                    : "bg-white border-neutral-200 text-neutral-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-                }
-              `}
             >
-              ⏭️ הכול
+              הכל
             </button>
           </div>
         </div>
 
         {latestItems.length === 0 ? (
-          <div className="text-xs text-neutral-500 mt-2">
+          <div className="text-xs text-neutral-500">
             אין מטלות או מבחנים בטווח שנבחר.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm border-collapse">
-              <thead className="bg-neutral-50 dark:bg-slate-800 text-[11px] text-neutral-500 dark:text-slate-300">
-                <tr>
-                  <th className="text-right py-2 px-2">קורס</th>
-                  <th className="text-right py-2 px-2">סוג</th>
-                  <th className="text-right py-2 px-2">שם</th>
-                  <th className="text-right py-2 px-2">תאריך</th>
-                  <th className="text-right py-2 px-2 hidden sm:table-cell">
-                    הערות
-                  </th>
+              <thead>
+                <tr className="border-b border-neutral-200 dark:border-slate-700">
+                  <th className="text-right py-2">תאריך</th>
+                  <th className="text-right py-2">קורס</th>
+                  <th className="text-right py-2">סוג</th>
+                  <th className="text-right py-2">כותרת</th>
+                  <th className="text-right py-2">הערות</th>
                 </tr>
               </thead>
               <tbody>
-                {latestItems.map((item, index) => {
-                  const isFirst = index === 0;
-                  return (
-                    <tr
-                      key={item.courseId + item.title + index}
-                      className={
-                        "border-t border-neutral-200 dark:border-slate-700" +
-                        (isFirst
-                          ? " bg-yellow-50/60 dark:bg-yellow-900/20"
-                          : "")
-                      }
-                    >
-                      <td className="py-2 px-2 align-top">
-                        <span className="font-medium flex items-center gap-1">
-                          {isFirst && <span>📌</span>}
-                          {item.courseName}
-                        </span>
-                      </td>
-                      <td className="py-2 px-2 align-top whitespace-nowrap">
-                        {item.type === "assignment" && "📝 מטלה"}
-                        {item.type === "exam" && "💯 בחינה"}
-                        {item.type === "lab" && "🔬 מעבדה"}
-                      </td>
-                      <td className="py-2 px-2 align-top">{item.title}</td>
-                      <td className="py-2 px-2 align-top whitespace-nowrap">
-                        {item.dateObj.toLocaleDateString("he-IL")}
-                      </td>
-                      <td className="py-2 px-2 align-top text-neutral-500 hidden sm:table-cell">
-                        {item.notes || "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {latestItems.map((item) => (
+                  <tr
+                    key={`${item.type}-${item.courseId}-${item.title}-${item.date}`}
+                    className="border-b last:border-b-0 border-neutral-100 dark:border-slate-800"
+                  >
+                    <td className="py-1 whitespace-nowrap">
+                      {item.date}
+                    </td>
+                    <td className="py-1 whitespace-nowrap">
+                      <Link
+                        to={`/course/${item.courseId}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {item.courseName}
+                      </Link>
+                    </td>
+                    <td className="py-1 whitespace-nowrap">
+                      {item.type === "assignment"
+                        ? "📝 מטלה"
+                        : item.type === "exam"
+                        ? "💯 מבחן"
+                        : "🔬 מעבדה"}
+                    </td>
+                    <td className="py-1">{item.title}</td>
+                    <td className="py-1 text-neutral-500">
+                      {item.notes || ""}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </section>
 
+
       {/* יומן */}
-      <section className="mb-8">
+      <section className="mb-4">
         <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
         <CalendarEmbed
           mode="WEEK"
@@ -571,11 +595,45 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
         />
       </section>
 
+      {/* ⭐ הוספת קורס חדש – מתחת ליומן + ממוזער */}
+      {canCreateCourse && (
+        <section
+          className="
+            mb-8 border rounded-2xl p-3 shadow-sm
+            bg-white dark:bg-slate-900
+            border-neutral-200 dark:border-slate-700
+          "
+        >
+          <details>
+            <summary className="cursor-pointer text-sm font-medium flex items-center gap-2">
+              <span>➕ הוספת קורס חדש</span>
+              <span className="text-xs text-neutral-500">
+                (לחצו לפתיחה)
+              </span>
+            </summary>
+
+            <div className="mt-4">
+              <p className="text-xs text-neutral-500 mb-3">
+                יצירת קורס חדש במערכת, כולל שיוך לשנה ולסמסטר.
+              </p>
+
+              <NewCourseForm
+                onCreated={() => {
+                  // מרענן את רשימת הקורסים מהשרת אחרי יצירה
+                  setExtraCoursesReloadKey((x) => x + 1);
+                }}
+              />
+            </div>
+          </details>
+        </section>
+      )}
+
       {/* רשימת קורסים */}
-      <CourseList years={yearsWithOverrides} onOpenCourse={openCourse} />
+      <CourseList years={yearsMerged} onOpenCourse={openCourse} />
     </>
   );
 }
+
 
 // ---- App ----
 export default function App() {
@@ -589,10 +647,9 @@ export default function App() {
 
   const { theme, toggleTheme } = useTheme();
 
-  // set last updated on footer
   const buildTimeRaw = import.meta.env.VITE_BUILD_TIME as string | undefined;
   const lastUpdatedText = useMemo(() => {
-    const src = buildTimeRaw || new Date().toISOString(); // fallback לפיתוח
+    const src = buildTimeRaw || new Date().toISOString();
     const d = new Date(src);
     if (isNaN(d.getTime())) return null;
 
@@ -743,7 +800,8 @@ export default function App() {
                       onClick={() => nav("/admin")}
                       className="
                         border rounded-2xl px-3 py-2 text-sm
-                        hover:bg-neutral-50
+                         bg-blue-600 text-white
+                         hover:bg-blue-700
                         dark:hover:bg-slate-800
                         flex items-center gap-1 cursor-pointer
                       "
@@ -793,7 +851,16 @@ export default function App() {
             </div>
           ) : (
             <Routes>
-              <Route path="/" element={<HomeContent openCourse={openCourse} />} />
+              <Route
+                path="/"
+                element={
+                  <HomeContent
+                    openCourse={openCourse}
+                    canCreateCourse={isAdmin || isGlobalVaad}
+                  />
+                }
+              />
+
               <Route path="/course/:id" element={<CourseRoute />} />
 
               {/* admin routes */}
@@ -809,7 +876,10 @@ export default function App() {
                       myCourseVaadIds={myCourseVaadIds}
                     />
                   ) : (
-                    <HomeContent openCourse={openCourse} />
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
                   )
                 }
               />
@@ -820,7 +890,10 @@ export default function App() {
                   isAdmin || isGlobalVaad ? (
                     <EditHomepageRoute />
                   ) : (
-                    <HomeContent openCourse={openCourse} />
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
                   )
                 }
               />
@@ -831,7 +904,10 @@ export default function App() {
                   isAdmin || isGlobalVaad ? (
                     <AdminCoursesRoute />
                   ) : (
-                    <HomeContent openCourse={openCourse} />
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
                   )
                 }
               />
@@ -842,13 +918,24 @@ export default function App() {
                   canSeeAdminPanel ? (
                     <EditCourseRoute />
                   ) : (
-                    <HomeContent openCourse={openCourse} />
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
                   )
                 }
               />
 
               {/* fallback */}
-              <Route path="*" element={<HomeContent openCourse={openCourse} />} />
+              <Route
+                path="*"
+                element={
+                  <HomeContent
+                    openCourse={openCourse}
+                    canCreateCourse={isAdmin || isGlobalVaad}
+                  />
+                }
+              />
             </Routes>
           )}
         </main>

@@ -6,6 +6,8 @@ import { YEARS } from "../data/years";
 import type { Course } from "../data/years";
 import { useNavigate } from "react-router-dom";
 
+import NewCourseForm from "../components/NewCourseForm";
+
 import RichTextEditor from "../components/RichTextEditor";
 
 // ---------- types ----------
@@ -453,7 +455,8 @@ const handleSaveAnnouncement = async () => {
             <button
               onClick={handleSaveCourseVaad}
               disabled={saving}
-              className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+              className="border rounded-xl px-3 py-1  bg-blue-600 text-white
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
             >
               {editingCourseVaadId ? "עדכון הקצאה" : "שמירת הקצאה"}
             </button>
@@ -603,7 +606,8 @@ const handleSaveAnnouncement = async () => {
                 <button
                   type="button"
                   onClick={() => nav("/admin/home")}
-                  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+                  className="border rounded-xl px-3 py-1  bg-blue-600 text-white
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
                 >
                   עריכת עמוד הבית
                 </button>
@@ -612,13 +616,33 @@ const handleSaveAnnouncement = async () => {
                 <button
                   type="button"
                   onClick={() => nav("/admin/courses")}
-                  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+                  className="border rounded-xl px-3 py-1  bg-blue-600 text-white
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
                 >
                   עריכת דפי הקורסים
                 </button>
               </li>
             </ul>
           </section>
+
+                {/* 4b. הוספת קורס חדש – מתוך פאנל המנהל */}
+      {(isAdmin || isGlobalVaad) && (
+        <section className="mb-8 border rounded-2xl p-4">
+          <h2 className="text-lg font-medium mb-3">הוספת קורס חדש</h2>
+          <p className="text-sm text-neutral-600 mb-3">
+            יצירת קורס חדש במערכת. לאחר היצירה אפשר לערוך את דף הקורס
+            (תוכן, מטלות, מבחנים) מתוך &quot;עריכת דפי הקורסים&quot;.
+          </p>
+
+          <NewCourseForm
+            onCreated={(courseId) => {
+              // נווט ישירות לעמוד עריכת הקורס שנוצר:
+              nav(`/admin/course/${courseId}/edit`);
+            }}
+          />
+        </section>
+      )}
+
 
           <section className="mt-6 mb-8 border rounded-2xl p-4">
             <h2 className="text-lg font-medium mb-3">לוח מודעות</h2>
@@ -727,7 +751,8 @@ const handleSaveAnnouncement = async () => {
   <button
     type="button"
     onClick={handleSaveAnnouncement}
-    className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
+    className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px]  bg-blue-600 text-white
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
   >
     {editingAnnId ? "שמירת שינויים" : "הוספת מודעה"}
   </button>
