@@ -1,5 +1,5 @@
 // client/src/App.tsx
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Routes, Route, useNavigate, Link } from "react-router-dom";
 
 import CourseList from "./components/CourseList";
@@ -8,8 +8,6 @@ import { YEARS, type Course, type AssessmentItem } from "./data/years";
 import AdminCoursesRoute from "./routes/AdminCoursesRoute";
 import EditCourseRoute from "./routes/EditCourseRoute";
 import EditHomepageRoute from "./routes/EditHomepageRoute";
-
-import type { ReactNode } from "react"; 
 
 import { useTheme } from "./hooks/useTheme";
 
@@ -65,6 +63,78 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
 
   // טווח להצגת מטלות/מבחנים
   const [range, setRange] = useState<"week" | "month" | "all">("week");
+
+  // ---- הופך URL-ים בטקסט ללינקים לחיצים ----
+  const renderAnnouncementBodyWithLinks = (text: string): ReactNode => {
+    if (!text) return null;
+
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+
+    const parts: ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      const start = match.index;
+      const url = match[0];
+
+      if (start > lastIndex) {
+        parts.push(text.slice(lastIndex, start));
+      }
+
+      const href = url.startsWith("http") ? url : `https://${url}`;
+
+      parts.push(
+        <a
+          key={href + start}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {url}
+        </a>
+      );
+
+      lastIndex = start + url.length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    return parts;
+  };
+
+  // ---- בוחר בין HTML מה־WYSIWYG לבין טקסט רגיל עם לינקים ----
+  const renderAnnouncementBody = (body: string): ReactNode => {
+    if (!body) return null;
+
+    const looksLikeHtml =
+      body.includes("<p") ||
+      body.includes("<br") ||
+      body.includes("<div") ||
+      body.includes("<span") ||
+      body.includes("<strong") ||
+      body.includes("<em") ||
+      body.includes("<a ");
+
+    if (looksLikeHtml) {
+      // תוכן שמגיע מה־Quill – שומרים על הסטייל של .announcement-body
+      return (
+        <div
+          className="announcement-body"
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+      );
+    }
+
+    // הודעה ישנה – טקסט רגיל → הופכים לינקים לכחול + underline
+    return (
+      <div className="announcement-body">
+        {renderAnnouncementBodyWithLinks(body)}
+      </div>
+    );
+  };
 
   // טעינת overrides לקורסים מה-DB
   useEffect(() => {
@@ -152,51 +222,6 @@ function HomeContent({ openCourse }: { openCourse: (course: Course) => void }) {
       </>
     );
   };
-
-  // הופך URL-ים בטקסט ללינקים לחיצים
-const renderAnnouncementBodyWithLinks = (text: string): ReactNode => {
-  if (!text) return null;
-
-  // תופס http/https וגם www.
-  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-
-  const parts: ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = urlRegex.exec(text)) !== null) {
-    const start = match.index;
-    const url = match[0];
-
-    // הטקסט שלפני ה־URL
-    if (start > lastIndex) {
-      parts.push(text.slice(lastIndex, start));
-    }
-
-    const href = url.startsWith("http") ? url : `https://${url}`;
-
-    parts.push(
-      <a
-        key={href + start}
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline text-blue-600 dark:text-blue-400 break-all"
-      >
-        {url}
-      </a>
-    );
-
-    lastIndex = start + url.length;
-  }
-
-  // שאר הטקסט אחרי ה־URL האחרון
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts;
-};
 
   // טעינת תוכן עמוד הבית (ציבורי)
   useEffect(() => {
@@ -403,8 +428,8 @@ const renderAnnouncementBodyWithLinks = (text: string): ReactNode => {
             {announcements.map((a) => (
               <li key={a.id} className="border-b last:border-b-0 pb-2">
                 <div className="font-medium">{a.title}</div>
-                <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
-              {renderAnnouncementBodyWithLinks(a.body || "")}
+                <div className="text-xs text-neutral-700 dark:text-slate-300">
+                  {renderAnnouncementBody(a.body || "")}
                 </div>
 
                 {formatAnnouncementMeta(a) && (
@@ -426,7 +451,7 @@ const renderAnnouncementBodyWithLinks = (text: string): ReactNode => {
           border-neutral-200 dark:border-slate-700
         "
       >
-<div className="flex flex-row items-center justify-between mb-2 gap-2">
+        <div className="flex flex-row items-center justify-between mb-2 gap-2">
           <h2 className="text-lg font-semibold">מטלות ומבחנים קרובים</h2>
 
           {/* כפתורי טווח */}
@@ -867,7 +892,7 @@ export default function App() {
                 />
               </a>
 
- <a
+              <a
                 href="https://www.buymeacoffee.com/moramiel8"
                 target="_blank"
                 rel="noopener noreferrer"

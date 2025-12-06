@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ALL_COURSES, type Course, type AssessmentItem } from "../data/years";
 
+import RichTextEditor from "../components/RichTextEditor";
+
 import {
   IMG_DRIVE,
   IMG_PDF,
@@ -491,26 +493,27 @@ export default function EditCourseRoute() {
             />
           </label>
 
-          {/* מה היה */}
-          <label className="block mb-3">
-            <span className="block mb-1">מה היה בשבוע האחרון?</span>
-            <textarea
-              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
-              value={content.whatwas || ""}
-              onChange={(e) =>
-                setContent({ ...content, whatwas: e.target.value })
-              }
-            />
-          </label>
+         {/* מה היה */}
+<label className="block mb-3">
+  <span className="block mb-1">מה היה בשבוע האחרון?</span>
+
+  <RichTextEditor
+    value={content.whatwas || ""}                // אותו סטייט כמו קודם
+    onChange={(value) =>
+      setContent({ ...content, whatwas: value }) // שומר את ה-HTML שחוזר מה-editor
+    }
+    placeholder="מה היה בשבוע האחרון…"
+    className="mt-2"
+  />
+</label>
 
           {/* מה יהיה */}
           <label className="block mb-1">
             <span className="block mb-1">מה יהיה בהמשך?</span>
-            <textarea
-              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
+              <RichTextEditor
               value={content.whatwill || ""}
-              onChange={(e) =>
-                setContent({ ...content, whatwill: e.target.value })
+              onChange={(value) =>
+                setContent({ ...content, whatwill: value })
               }
             />
           </label>
@@ -772,19 +775,16 @@ export default function EditCourseRoute() {
                   />
                 </div>
 
-                <textarea
-                  className="border rounded-lg px-2 py-1 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                  placeholder="הערות (אופציונלי)"
-                  value={a.notes || ""}
-                  onChange={(e) =>
-                    updateArrayItem(
-                      "assignments",
-                      idx,
-                      "notes",
-                      e.target.value
-                    )
-                  }
-                />
+
+
+<RichTextEditor
+  value={a.notes || ""}
+  onChange={(value) => updateArrayItem("assignments", idx, "notes", value)}
+  placeholder="הערות (אופציונלי)"
+  className="mt-2"
+/>
+
+      
 
                 <button
                   type="button"
@@ -856,14 +856,15 @@ export default function EditCourseRoute() {
                   />
                 </div>
 
-                <textarea
-                  className="border rounded-lg px-2 py-1 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                  placeholder="הערות (אופציונלי)"
-                  value={ex.notes || ""}
-                  onChange={(e) =>
-                    updateArrayItem("exams", idx, "notes", e.target.value)
-                  }
-                />
+
+
+              <RichTextEditor
+  value={ex.notes || ""}
+  onChange={(value) => updateArrayItem("exams", idx, "notes", value)}
+  placeholder="הערות (אופציונלי)"
+  className="mt-2"
+/>
+
 
                 <button
                   type="button"
@@ -935,14 +936,13 @@ export default function EditCourseRoute() {
                   />
                 </div>
 
-                <textarea
-                  className="border rounded-lg px-2 py-1 w-full border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                  placeholder="הערות (אופציונלי)"
-                  value={lab.notes || ""}
-                  onChange={(e) =>
-                    updateArrayItem("labs", idx, "notes", e.target.value)
-                  }
-                />
+
+<RichTextEditor
+  value={lab.notes || ""}
+  onChange={(value) => updateArrayItem("labs", idx, "notes", value)}
+  placeholder="הערות (אופציונלי)"
+  className="mt-2"
+/>
 
                 <button
                   type="button"

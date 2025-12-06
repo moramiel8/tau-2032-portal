@@ -11,3 +11,110 @@ html {
 body {
   @apply bg-white text-black;
 }
+
+/* מראה כללי יפה + מסגרת עגולה */
+.rtl-quill {
+  border-radius: 1rem;
+  border: 1px solid #d4d4d8;
+  background-color: #ffffff;
+  resize: vertical;
+  overflow: auto;
+}
+
+/* שלא יהיה בורדר כפול */
+.rtl-quill .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+.rtl-quill .ql-container.ql-snow {
+  border: none;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+/* גובה מינימלי נעים */
+.rtl-quill .ql-container {
+  min-height: 120px;
+}
+
+/* === RTL BASE === */
+.rtl-quill .ql-toolbar,
+.rtl-quill .ql-editor,
+.rtl-quill .ql-container {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* הקבוצות בטולבר יהיו מיושרות לימין */
+.rtl-quill .ql-toolbar .ql-formats {
+  float: right !important;
+}
+
+/* מניעת הדבקה מוזרה */
+.rtl-quill .ql-toolbar .ql-formats:last-child {
+  margin-right: 0 !important;
+}
+
+/* === HEADER PICKER === */
+
+/* המיקום הכללי שלו – בצד שמאל של הטולבר */
+.rtl-quill .ql-picker.ql-header {
+  float: left !important;
+}
+
+/* אבל הטקסט והחץ בפנים – LTR כדי שלא יעלו אחד על השני */
+.rtl-quill .ql-picker.ql-header .ql-picker-label {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* האופציות עצמן עדיין נפתחות מימין */
+.rtl-quill .ql-picker.ql-header .ql-picker-options {
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* מניעת סגירה מיידית של הדרופדאון + שכבה מעל האדיטור */
+.rtl-quill .ql-toolbar {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 5;
+}
+
+/* הדרופדאון עצמו */
+.rtl-quill .ql-picker-options {
+  z-index: 10;
+  background: white;
+}
+
+/* רשימות (נקודות וממוספרות) ב-RTL */
+.rtl-quill .ql-editor ol,
+.rtl-quill .ql-editor ul {
+  direction: rtl !important;
+  text-align: right !important;
+  padding-right: 1.5em !important; /* הזחה מימין */
+  padding-left: 0 !important;
+}
+
+/* מיקום הבולט / המספר בצד ימין */
+.rtl-quill .ql-editor li::before {
+  margin-right: -1.5em !important; /* מושך את הבולט פנימה מימין */
+  margin-left: 0 !important;
+}
+
+/* לינקים בתוך תוכן מודעה בעמוד הבית */
+.announcement-body a {
+  color: #2563eb; /* כחול יפה כמו Quill */
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.announcement-body {
+  direction: rtl;
+  text-align: right;
+  white-space: pre-line;
+  line-height: 1.6;
+}

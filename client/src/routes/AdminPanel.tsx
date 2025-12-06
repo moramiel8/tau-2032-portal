@@ -6,6 +6,8 @@ import { YEARS } from "../data/years";
 import type { Course } from "../data/years";
 import { useNavigate } from "react-router-dom";
 
+import RichTextEditor from "../components/RichTextEditor";
+
 // ---------- types ----------
 type Props = {
   user: User;
@@ -144,6 +146,8 @@ export default function AdminPanel({
 
   const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
 
+  const [annError, setAnnError] = useState<string | null>(null);
+
   const [courseVaad, setCourseVaad] = useState<CourseVaadEntry[]>([]);
   const [globalRoles, setGlobalRoles] = useState<GlobalRoleEntry[]>([]);
   const [saving, setSaving] = useState(false);
@@ -220,7 +224,12 @@ export default function AdminPanel({
   }, [isAdmin, isGlobalVaad]);
 
 const handleSaveAnnouncement = async () => {
-  if (!newAnnTitle || !newAnnBody) return;
+  // אם אחד מהם חסר – הודעת שגיאה קטנה ולא שומרים
+  if (!newAnnTitle || !newAnnBody) {
+    setAnnError("חובה למלא גם כותרת וגם תוכן המודעה.");
+    return;
+  }
+  setAnnError(null);
 
   const payload = {
     title: newAnnTitle,
@@ -252,7 +261,6 @@ const handleSaveAnnouncement = async () => {
         : [saved, ...prev]
     );
 
-    // איפוס טופס
     setNewAnnTitle("");
     setNewAnnBody("");
     setNewAnnCourseId("");
@@ -261,6 +269,7 @@ const handleSaveAnnouncement = async () => {
     console.warn("[AdminPanel] save announcement failed", e);
   }
 };
+
 
 
   const handleDeleteAnnouncement = async (id: string) => {
@@ -618,108 +627,127 @@ const handleSaveAnnouncement = async () => {
               <div className="text-sm text-neutral-500">אין עדיין מודעות.</div>
             ) : (
               <ul className="text-sm space-y-2 mb-4 max-h-64 overflow-y-auto">
-              {announcements.map((a) => (
-  <li
-    key={a.id}
-    className="mt-2 border rounded-xl px-3 py-2 flex justify-between gap-2"
-  >
-    <div>
-      <div className="font-medium">{a.title}</div>
-      <div className="text-xs text-neutral-600 whitespace-pre-line">
-        {a.body}
-      </div>
-      <div className="text-[10px] text-neutral-400 mt-1">
-        {a.courseId ? `קורס: ${courseName(a.courseId)}` : "מודעה כללית"}
-      </div>
-    </div>
+                {announcements.map((a) => (
+                  <li
+                    key={a.id}
+                    className="mt-2 border rounded-xl px-3 py-2 flex justify-between gap-2"
+                  >
+                    <div>
+                      <div className="font-medium">{a.title}</div>
+                      <div className="text-xs text-neutral-600">
+                        {a.body?.includes("<") ? (
+                          <div dangerouslySetInnerHTML={{ __html: a.body }} />
+                        ) : (
+                         <div
+  className="announcement-body"
+  dangerouslySetInnerHTML={{ __html: a.body }}
+/>
 
-    <div className="flex flex-col gap-1 self-start">
-      <button
-        onClick={() => {
-          setEditingAnnId(a.id);
-          setNewAnnTitle(a.title);
-          setNewAnnBody(a.body);
-          setNewAnnCourseId(a.courseId || "");
-        }}
-        className="text-xs underline text-blue-600"
-      >
-        עריכה
-      </button>
+                        )}
+                      </div>
 
-      <button
-        onClick={() => handleDeleteAnnouncement(a.id)}
-        className="text-xs underline text-red-600"
-      >
-        מחיקה
-      </button>
-    </div>
-  </li>
-))}
+                      <div className="text-[10px] text-neutral-400 mt-1">
+                        {a.courseId
+                          ? `קורס: ${courseName(a.courseId)}`
+                          : "מודעה כללית"}
+                      </div>
+                    </div>
 
+                    <div className="flex flex-col gap-1 self-start">
+                      <button
+                        onClick={() => {
+                          setEditingAnnId(a.id);
+                          setNewAnnTitle(a.title);
+                          setNewAnnBody(a.body);
+                          setNewAnnCourseId(a.courseId || "");
+                        }}
+                        className="text-xs underline text-blue-600"
+                      >
+                        עריכה
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteAnnouncement(a.id)}
+                        className="text-xs underline text-red-600"
+                      >
+                        מחיקה
+                      </button>
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
 
-            <div className="border-t pt-3 mt-3 text-sm">
-<h3 className="font-medium mb-2">
-  {editingAnnId ? "עריכת מודעה" : "הוספת מודעה חדשה"}
-</h3>
-              <label className="block mb-2">
-                <span className="block mb-1">כותרת:</span>
-                <input
-                  className="border rounded-xl px-3 py-2 w-full dark:hover:bg-slate-800 dark:border-slate-700"
-                  value={newAnnTitle}
-                  onChange={(e) => setNewAnnTitle(e.target.value)}
-                />
-              </label>
+           <div className="border-t pt-3 mt-3 text-sm">
+  <h3 className="font-medium mb-2">
+    {editingAnnId ? "עריכת מודעה" : "הוספת מודעה חדשה"}
+  </h3>
 
-              <label className="block mb-2">
-                <span className="block mb-1">תוכן:</span>
-                <textarea
-                  className="border rounded-xl px-3 py-2 w-full min-h-[80px] dark:hover:bg-slate-800 dark:border-slate-700"
-                  value={newAnnBody}
-                  onChange={(e) => setNewAnnBody(e.target.value)}
-                />
-              </label>
+  <label className="block mb-2">
+    <span className="block mb-1">כותרת:</span>
+    <input
+      className="border rounded-xl px-3 py-2 w-full dark:hover:bg-slate-800 dark:border-slate-700"
+      value={newAnnTitle}
+      onChange={(e) => setNewAnnTitle(e.target.value)}
+    />
+  </label>
 
-              <label className="block mb-2">
-                <span className="block mb-1">שייך לקורס (לא חובה):</span>
-                <select
-                  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 w-full dark:hover:bg-slate-800 dark:border-slate-700"
-                  value={newAnnCourseId}
-                  onChange={(e) => setNewAnnCourseId(e.target.value)}
-                >
-                  <option value="">מודעה כללית</option>
-                  {allCourses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+<div className="block mb-2">
+  <span className="block mb-1">תוכן:</span>
+  <RichTextEditor
+    value={newAnnBody}
+    onChange={setNewAnnBody}
+    placeholder="תוכן ההודעה…"
+    className="mt-2"
+  />
+</div>
 
-              <button
-  type="button"
-  onClick={handleSaveAnnouncement}
-  className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
->
-  {editingAnnId ? "שמירת שינויים" : "הוספת מודעה"}
-</button>
+{annError && (
+  <div className="mt-1 text-xs text-red-500">
+    {annError}
+  </div>
+)}
 
-{editingAnnId && (
+  <label className="block mb-2">
+    <span className="block mb-1">שייך לקורס (לא חובה):</span>
+    <select
+      className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 w-full dark:hover:bg-slate-800 dark:border-slate-700"
+      value={newAnnCourseId}
+      onChange={(e) => setNewAnnCourseId(e.target.value)}
+    >
+      <option value="">מודעה כללית</option>
+      {allCourses.map((c) => (
+        <option key={c.id} value={c.id}>
+          {c.name}
+        </option>
+      ))}
+    </select>
+  </label>
+
   <button
     type="button"
-    onClick={() => {
-      setEditingAnnId(null);
-      setNewAnnTitle("");
-      setNewAnnBody("");
-      setNewAnnCourseId("");
-    }}
-    className="ml-2 text-xs text-neutral-500 underline"
+    onClick={handleSaveAnnouncement}
+    className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
   >
-    ביטול עריכה
+    {editingAnnId ? "שמירת שינויים" : "הוספת מודעה"}
   </button>
-)}
-            </div>
+
+  {editingAnnId && (
+    <button
+      type="button"
+      onClick={() => {
+        setEditingAnnId(null);
+        setNewAnnTitle("");
+        setNewAnnBody("");
+        setNewAnnCourseId("");
+        setAnnError(null);
+      }}
+    className="text-xs text-neutral-500 underline mr-4"    >
+      ביטול עריכה
+    </button>
+  )}
+</div>
+
           </section>
         </>
       )}

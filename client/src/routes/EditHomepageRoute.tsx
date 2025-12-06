@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import RichTextEditor from "../components/RichTextEditor";
+
 // TODO: WYSIWYG maybe? 
 
 type HomepageContent = {
@@ -100,13 +102,17 @@ export default function EditHomepageRoute() {
 
         <label className="block">
           <span className="block mb-1">טקסט פתיחה / הסבר:</span>
-          <textarea
-            className="border rounded-xl px-3 py-2 w-full min-h-[100px]"
-            value={content.introText || ""}
-            onChange={(e) =>
-              setContent((prev) => ({ ...prev, introText: e.target.value }))
-            }
-          />
+
+          
+         <RichTextEditor
+  value={content.introText || ""}
+  onChange={(value) =>
+    setContent((prev) => ({ ...prev, introText: value }))
+  }
+  placeholder="טקסט פתיח לעמוד הבית…"
+  className="min-h-[100px]"
+/>
+
         </label>
 
         <div className="flex gap-2 mt-6">

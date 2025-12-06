@@ -33,3 +33,41 @@ a, button, .clickable, [role="button"] {
   cursor: pointer;
 }
 
+/* מראה כללי יפה + מסגרת עגולה */
+.rtl-quill {
+  border-radius: 1rem;
+  border: 1px solid #d4d4d8;
+  background-color: #ffffff;
+  resize: vertical;
+  overflow: auto;
+}
+
+/* שלא יהיה בורדר כפול */
+.rtl-quill .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+.rtl-quill .ql-container.ql-snow {
+  border: none;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+/* כאן ה-RTL עצמו – עם !important כדי לוודא שזה מנצח את ה-CSS של Quill */
+.rtl-quill .ql-editor {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* גובה מינימלי נעים */
+.rtl-quill .ql-container {
+  min-height: 120px;
+}
+
+/* כדי שהתפריט של Heading לא “ייכנס” לתוך האזור */
+.rtl-quill .ql-toolbar {
+  overflow: visible;
+}
