@@ -23,7 +23,7 @@ body::before {
   pointer-events: none;
 
   /* שים לב לנתיב – מתוך public */
-   background-image: url("/med-bg.jpg");
+  background-image: url("./med-bg.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
