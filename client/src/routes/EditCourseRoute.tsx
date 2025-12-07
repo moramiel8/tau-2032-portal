@@ -716,7 +716,7 @@ export default function EditCourseRoute() {
         </section>
 
         {/* מטלות / עבודות */}
-        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
           <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
             מטלות / עבודות (assignments)
           </h2>
@@ -807,7 +807,7 @@ export default function EditCourseRoute() {
         </section>
 
         {/* בחנים / מבחנים */}
-        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
           <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
             בחנים / מבחנים (exams)
           </h2>
@@ -887,7 +887,7 @@ export default function EditCourseRoute() {
         </section>
 
         {/* מעבדות */}
-        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50/60 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
           <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
             מעבדות (labs)
           </h2>

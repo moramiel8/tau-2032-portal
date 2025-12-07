@@ -13,6 +13,9 @@ import NewCourseForm from "./components/NewCourseForm";
 
 import { useTheme } from "./hooks/useTheme";
 
+import { stripHtml } from "./utils/stripHtml";
+
+
 import {
   fetchSession,
   isTauEmail,
@@ -379,7 +382,8 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                 date: a.date,
                 dateObj: d,
                 type: "assignment",
-                notes: a.notes,
+                notes: a.notes ? stripHtml(a.notes) : "",
+
               });
             }
           });
@@ -396,7 +400,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                 date: ex.date,
                 dateObj: d,
                 type: "exam",
-                notes: ex.notes,
+                notes: ex.notes ? stripHtml(ex.notes) : "",
               });
             }
           });
@@ -413,7 +417,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                 date: lab.date,
                 dateObj: d,
                 type: "lab",
-                notes: lab.notes,
+                notes: lab.notes ? stripHtml(lab.notes) : "",
               });
             }
           });

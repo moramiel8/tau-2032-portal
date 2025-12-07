@@ -141,6 +141,7 @@ export default function AdminPanel({
   if (!user) return null;
 
   const nav = useNavigate();
+   const navback = useNavigate(); 
 
   const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
@@ -166,6 +167,14 @@ const cardClass =
   "mb-8 border rounded-2xl p-4 sm:p-6 " +
    "bg-white dark:bg-slate-900 " +  
   "border-neutral-200 dark:border-slate-700 shadow-sm";
+
+   const handleBack = () => {
+    if (window.history.length > 1) {
+      navback(-1);
+    } else {
+      navback("/"); // אם נכנסו ישר ללינק, נחזור לדף הראשי
+    }
+  };
 
 
   const allCourses: Course[] = useMemo(
@@ -414,6 +423,19 @@ const handleSaveAnnouncement = async () => {
 
   return (
     <div className="max-w-4xl mx-auto pb-12">
+       {/* כפתור חזור */}
+<button
+  onClick={handleBack}
+  className="
+    group mb-2 inline-flex items-center gap-1
+    rounded-2xl border px-3 py-1 text-xs cursor-pointer
+    border-neutral-300 text-neutral-700 bg-white
+    dark:border-slate-600 dark:text-slate-200 dark:bg-slate-900
+  "
+>
+  <span className="animate-pulse">→</span>
+  חזרה
+</button>
       <h1 className="text-2xl font-semibold mb-2">פאנל ניהול</h1>
       <p className="text-sm text-neutral-600 mb-6">
         מחובר כ־<span className="font-medium">{user.email}</span>{" "}

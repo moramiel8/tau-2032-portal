@@ -1,6 +1,8 @@
 // client/src/routes/CourseRoute.tsx
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { stripHtml } from "../utils/stripHtml";
+
 import {
   ALL_COURSES,
   type Course,
@@ -38,10 +40,21 @@ type CourseAnnouncement = {
 
 export default function CourseRoute() {
   const { id } = useParams();
+  const navigate = useNavigate();  
   const [course, setCourse] = useState<CourseContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
+
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/"); // אם נכנסו ישר ללינק, נחזור לדף הראשי
+    }
+  };
+
 
   /* --- טענת משתמשי ועד (לשמות יפים וכו') --- */
   useEffect(() => {
@@ -249,6 +262,19 @@ export default function CourseRoute() {
   return (
     <div className="max-w-4xl mx-auto pb-12 px-4">
       <header className="mb-5 border-b pb-3 border-neutral-200 dark:border-slate-800">
+         {/* כפתור חזור */}
+<button
+  onClick={handleBack}
+  className="
+    group mb-2 inline-flex items-center gap-1
+    rounded-2xl border px-3 py-1 text-xs cursor-pointer
+    border-neutral-300 text-neutral-700 bg-white
+    dark:border-slate-600 dark:text-slate-200 dark:bg-slate-900
+  "
+>
+  <span className="animate-pulse">→</span>
+  חזרה
+</button>
         <h1 className="text-2xl font-semibold mb-1 dark:text-slate-100">
           {course.name}
         </h1>
@@ -347,19 +373,19 @@ export default function CourseRoute() {
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
 ">
-          <h2 className="text-sm font-semibold mb-3">מידע כללי</h2>
+          <h2 className="text-l font-semibold mb-3">מידע כללי</h2>
           <div className="space-y-2">
             {course.coordinator && (
               <div>
-                <span className="font-medium">רכז/ת הקורס: </span>
+                <span className="font-medium font-semibold">רכז/ת הקורס: </span>
                 {course.coordinator}
               </div>
             )}
 
             {repsDisplay.length > 0 && (
               <div>
-                <span className="font-medium">נציגי קורס: </span>
-                <span className="text-xs">
+                <span className="font-medium font-semibold">נציגי קורס: </span>
+                <span className="text-s text-blue-400">
                   {repsDisplay.join("; ")}
                 </span>
               </div>
@@ -367,28 +393,32 @@ export default function CourseRoute() {
 
             {course.place && (
               <div>
-                <span className="font-medium">מיקום עיקרי: </span>
+                <span className="font-medium font-semibold">מיקום עיקרי: </span>
                 {course.place}
               </div>
             )}
 
-            {course.whatwas && (
-              <div className="mt-3">
-                <div className="font-medium">➡️ מה היה בשבוע האחרון?</div>
-                <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
-                  {course.whatwas}
-                </div>
-              </div>
-            )}
+          {course.whatwas && (
+  <div className="mt-3">
+    <div className="font-medium font-semibold">➡️ מה היה בשבוע האחרון?</div>
+    <div
+      className="text-s text-neutral-700 dark:text-slate-300 announcement-body"
+      dangerouslySetInnerHTML={{ __html: course.whatwas }}
+    />
+  </div>
+)}
 
-            {course.whatwill && (
-              <div className="mt-3">
-                <div className="font-medium">⬅️ מה יהיה בהמשך?</div>
-                <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
-                  {course.whatwill}
-                </div>
-              </div>
-            )}
+{course.whatwill && (
+  <div className="mt-3">
+    <div className="font-medium font-semibold">⬅️ מה יהיה בהמשך?</div>
+    <div
+      className="text-s text-neutral-700 dark:text-slate-300 announcement-body"
+      dangerouslySetInnerHTML={{ __html: course.whatwill }}
+    />
+  </div>
+)}
+
+
 
             {lastEditedMeta && (
               <div className="text-[10px] text-neutral-400 mt-1">
@@ -458,9 +488,10 @@ export default function CourseRoute() {
                     <td className="py-2 px-2 align-top">
                       {a.weight || "—"}
                     </td>
-                    <td className="py-2 px-2 align-top">
-                      {a.notes || "—"}
-                    </td>
+                   <td className="py-2 px-2 align-top">
+                  {a.notes ? stripHtml(a.notes) : "—"}
+                  </td>
+
                   </tr>
                 ))}
               </tbody>
@@ -503,8 +534,9 @@ export default function CourseRoute() {
                       {ex.weight || "—"}
                     </td>
                     <td className="py-2 px-2 align-top">
-                      {ex.notes || "—"}
+                    {ex.notes ? stripHtml(ex.notes) : "—"}
                     </td>
+
                   </tr>
                 ))}
               </tbody>
@@ -547,8 +579,9 @@ export default function CourseRoute() {
                       {lab.weight || "—"}
                     </td>
                     <td className="py-2 px-2 align-top">
-                      {lab.notes || "—"}
+                    {lab.notes ? stripHtml(lab.notes) : "—"}
                     </td>
+
                   </tr>
                 ))}
               </tbody>
