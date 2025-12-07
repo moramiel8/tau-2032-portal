@@ -463,13 +463,12 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     {/* לוח מודעות */}
 {announcements.length > 0 && (
   <section
-    className="
-      mb-6
-      w-full border 
-      rounded-2xl px-3 py-2 text-sm 
-      border-neutral-300 bg-white dark:bg-slate-900 
-      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-  >
+      className="
+          mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+        "
+      >
     <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
     <ul className="space-y-2 text-sm">
       {announcements.map((a) => (
