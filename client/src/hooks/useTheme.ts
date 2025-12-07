@@ -11,6 +11,17 @@ export function useTheme() {
     return stored || "light";
   });
 
+  // מוסיף/מוריד את ה-class="dark" על <html>
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [theme]);
+
   useEffect(() => {
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);

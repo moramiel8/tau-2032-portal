@@ -201,6 +201,7 @@ className="w-full border bg-white
           bg-blue-600 text-white
           hover:bg-blue-700
           disabled:opacity-60 disabled:cursor-not-allowed
+          dark: border-blue-600
           cursor-pointer
         "
       >

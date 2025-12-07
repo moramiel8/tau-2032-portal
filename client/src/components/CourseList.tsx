@@ -178,9 +178,10 @@ export default function CourseList({ years, onOpenCourse }: Props) {
               className="
                 text-xs border rounded-xl px-2 py-1
                 bg-blue-700 hover:bg-blue-500
-                border-neutral-200 text-white
-                dark:bg-slate-900 dark:border-slate-700
-                dark:text-slate-100 dark:hover:bg-slate-800
+                border-blue-200 text-white
+                dark:text-slate-100 dark:hover:bg-slate-500
+                dark: bg-blue-700 hover:bg-blue-500
+                dark: border-blue-700 text-white
                 transition-colors cursor-pointer
               "
             >
@@ -199,12 +200,13 @@ export default function CourseList({ years, onOpenCourse }: Props) {
             <button
               type="button"
               onClick={() => setOpenClinical((v) => !v)}
-              className="
+                className="
                 text-xs border rounded-xl px-2 py-1
                 bg-blue-700 hover:bg-blue-500
-                border-neutral-200 text-white
-                dark:bg-slate-900 dark:border-slate-700
-                dark:text-slate-100 dark:hover:bg-slate-800
+                border-blue-200 text-white
+                dark:text-slate-100 dark:hover:bg-slate-500
+                dark: bg-blue-700 hover:bg-blue-500
+                dark: border-blue-700 text-white
                 transition-colors cursor-pointer
               "
             >

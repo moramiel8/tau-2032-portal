@@ -6,6 +6,16 @@
 @layer base {
   html {
     direction: rtl;
+
+    /* ברירת מחדל (מצב light) */
+    --bg-img-opacity: 0.18;
+    --bg-img-filter: none;
+  }
+
+  /* כשה־<html> מקבל class="dark" */
+  html.dark {
+    --bg-img-opacity: 0.4;
+    --bg-img-filter: brightness(0.7) saturate(0.9);
   }
 
   body {
@@ -19,18 +29,19 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
+
+    /* הנתיב שעובד אצלך עכשיו */
     background-image: url("./med-bg.jpg");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
 
-    opacity: 0.15;
-  }
-
-  .dark body::before {
-    opacity: 0.35;
+    opacity: var(--bg-img-opacity);
+    filter: var(--bg-img-filter);
+    transition: opacity 0.3s ease, filter 0.3s ease;
   }
 }
+
 
 /* =====================================================
    🟩 COMPONENTS — שאר החוקים (Quill וכו')

@@ -456,28 +456,68 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
       )}
 
       {/* לוח מודעות */}
-      {announcements.length > 0 && (
-        <section
-          className="
-          mb-6
-         w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
-          <ul className="space-y-2 text-sm">
-            {announcements.map((a) => (
-              <li key={a.id} className="border-b last:border-b-0 pb-2">
-                <div className="font-medium">{a.title}</div>
-                <div className="text-xs text-neutral-700 dark:text-slate-300">
-                  {renderAnnouncementBody(a.body || "")}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+    {/* לוח מודעות */}
+{announcements.length > 0 && (
+  <section
+    className="
+      mb-6
+      w-full border 
+      rounded-2xl px-3 py-2 text-sm 
+      border-neutral-300 bg-white dark:bg-slate-900 
+      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  >
+    <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
+    <ul className="space-y-2 text-sm">
+      {announcements.map((a) => (
+        <li key={a.id} className="border-b last:border-b-0 pb-2">
+          <div className="font-medium">{a.title}</div>
+
+          <div className="text-xs text-neutral-700 dark:text-slate-300">
+            {renderAnnouncementBody(a.body || "")}
+          </div>
+
+         {(a.authorName || a.authorEmail || a.updatedAt) && (
+  <div className="mt-1 text-[11px] text-neutral-400">
+
+    נערך על ידי {a.authorName || a.authorEmail || "מערכת האתר"}
+
+    {a.updatedAt && (() => {
+      const d = new Date(a.updatedAt);
+
+      const dayName = d.toLocaleDateString("he-IL", {
+        weekday: "long",
+      });
+
+      const dateStr = d.toLocaleDateString("he-IL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+      const timeStr = d.toLocaleTimeString("he-IL", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return (
+        <>
+          {" ב"} 
+          {dayName}{" , "}
+          {dateStr}
+          {" בשעה "}
+          {timeStr}
+        </>
+      );
+    })()}
+  </div>
+)}
+
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
 
       {/* טבלת מטלות + מבחנים קרובים */}
            {/* טבלת מטלות + מבחנים קרובים */}
@@ -491,46 +531,50 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">מטלות ומועדי מבחנים קרובים</h2>
 
-          <div className="flex gap-2 text-xs">
+         <div className="flex gap-2 text-xs">
+  {/* שבוע */}
   <button
     className={
-      "px-3 py-1 rounded-2xl border text-xs transition-colors " +
+      "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
       (range === "week"
-         ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
-    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer cursor-pointer" + 
-            "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-      }
+        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
+        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
+          "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+    }
     onClick={() => setRange("week")}
   >
     שבוע
   </button>
 
+  {/* חודש */}
   <button
     className={
-      "px-3 py-1 rounded-2xl border text-xs transition-colors " +
+      "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
       (range === "month"
-       ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
-    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer cursor-pointer" + 
-            "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-      }
+        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
+        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
+          "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+    }
     onClick={() => setRange("month")}
   >
     חודש
   </button>
 
+  {/* הכל */}
   <button
     className={
-      "px-3 py-1 rounded-2xl border text-xs transition-colors " +
+      "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
       (range === "all"
-         ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
-    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer cursor-pointer" + 
-            "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-      }
+        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
+        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
+          "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+    }
     onClick={() => setRange("all")}
   >
     הכל
   </button>
 </div>
+
         </div>
 
         {latestItems.length === 0 ? (
@@ -760,15 +804,16 @@ export default function App() {
     ) : null;
 
   return (
-    <div className={theme === "dark" ? "dark" : ""}>
       <div
-        className="min-h-screen 
-         bg-transparent
-         text-black 
-         dark:bg-slate-950 
-         dark:text-slate-100 
-         transition-colors"
-        dir="rtl"
+        className="
+    min-h-screen 
+    bg-black/15               // לייט – כמעט שקוף
+    text-black 
+    dark:bg-black/70         // דארק – חצי שקוף, רואים את התמונה מתחת
+    dark:text-slate-100 
+    transition-colors
+  "
+  dir="rtl"
       >
         {/* toolbar קבוע */}
         <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
@@ -810,7 +855,7 @@ export default function App() {
 
               {user && (
                 <>
-                  <span className="text-xs text-neutral-600 hidden sm:inline">
+                  <span className="text-xs text-neutral-400 hidden sm:inline">
                     {user.email}
                   </span>
 
@@ -1044,6 +1089,6 @@ export default function App() {
 
         <Toast />
       </div>
-    </div>
+   
   );
 }

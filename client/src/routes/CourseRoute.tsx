@@ -210,7 +210,7 @@ export default function CourseRoute() {
       minute: "2-digit",
     });
 
-    return `נערך ע״י ${name} ביום ${dayStr}, תאריך ${dateStr} בשעה ${timeStr}`;
+    return `נערך ע״י ${name} ב${dayStr}, תאריך ${dateStr} בשעה ${timeStr}`;
   };
 
   const lastEditedMeta = formatLastEditedMeta(course);
@@ -265,7 +265,10 @@ export default function CourseRoute() {
 
       {/* לינקים ואייקונים */}
       {hasLinks && (
-        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+">
           <h2 className="text-sm font-semibold mb-3 text-neutral-800 dark:text-slate-100">
             קישורים חשובים
           </h2>
@@ -340,7 +343,10 @@ export default function CourseRoute() {
 
       {/* מידע כללי + מה היה/יהיה */}
       {hasGeneralInfo && (
-        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+        <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+">
           <h2 className="text-sm font-semibold mb-3">מידע כללי</h2>
           <div className="space-y-2">
             {course.coordinator && (
@@ -395,7 +401,10 @@ export default function CourseRoute() {
 
       {/* 🔔 מודעות לקורס */}
       {announcements.length > 0 && (
-        <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
+        <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+">
           <h2 className="text-sm font-semibold mb-3">מודעות לקורס זה</h2>
           <ul className="text-xs space-y-2">
             {announcements.map((a) => (
@@ -416,7 +425,10 @@ export default function CourseRoute() {
       )}
 
       {/* מטלות */}
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800">
+      <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+">
         <h2 className="text-sm font-semibold mb-3">מטלות / עבודות</h2>
         {assignments.length === 0 ? (
           <div className="text-xs text-neutral-500">
@@ -458,8 +470,10 @@ export default function CourseRoute() {
       </section>
 
       {/* בחנים / מבחנים */}
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800">
-        <h2 className="text-sm font-semibold mb-3">בחנים / מבחנים</h2>
+<section className=" mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+">        <h2 className="text-sm font-semibold mb-3">בחנים / מבחנים</h2>
         {exams.length === 0 ? (
           <div className="text-xs text-neutral-500">
             עדיין לא הוגדרו בחנים/מבחנים לקורס זה.
@@ -500,8 +514,10 @@ export default function CourseRoute() {
       </section>
 
       {/* מעבדות */}
-      <section className="mb-6 border rounded-2xl p-4 bg-white shadow-sm text-sm dark:bg-slate-900 dark:border-slate-800">
-        <h2 className="text-sm font-semibold mb-3">מעבדות</h2>
+<section className=" mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+">        <h2 className="text-sm font-semibold mb-3">מעבדות</h2>
         {labs.length === 0 ? (
           <div className="text-xs text-neutral-500">
             עדיין לא הוגדרו מעבדות לקורס זה.
