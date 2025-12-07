@@ -432,13 +432,15 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
         <section
           className="
             mb-6 border rounded-2xl p-5 shadow-sm
-            bg-gradient-to-l from-blue-100 to-cyan-100
-            dark:from-slate-800 dark:to-slate-900
-            border-neutral-200 dark:border-slate-700
+            bg-gradient-to-l from-blue-100 to-blue-300
+            dark:from-slate-800 
+            dark:to-slate-900
+            border-neutral-200 
+            dark:border-slate-700 
+            dark: bg-gradient-to-l from-blue-100 to-blue-300
           "
         >
 
-          
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>

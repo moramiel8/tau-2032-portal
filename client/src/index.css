@@ -3,154 +3,140 @@
 /* מצב דארק לפי class="dark" על ה־root */
 @custom-variant dark (&:where(.dark, .dark *));
 
-html {
-  direction: rtl;
+/* =====================================================
+   🟦 BASE — נשמר תמיד בבילד
+===================================================== */
+@layer base {
+  html {
+    direction: rtl;
+  }
+
+  body {
+    position: relative;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    background-image: url("/med-bg.jpg");  /* חשוב! */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    opacity: 0.15;
+  }
+
+  .dark body::before {
+    opacity: 0.35;
+  }
 }
 
-/* === רקע כללי לאתר === */
+/* =====================================================
+   🟩 COMPONENTS — שאר החוקים (Quill וכו')
+===================================================== */
+@layer components {
+  .rtl-quill {
+    border-radius: 1rem;
+    border: 1px solid #d4d4d8;
+    background-color: #ffffff;
+    resize: vertical;
+    overflow: auto;
+  }
 
-body {
-  position: relative;                 /* חשוב בשביל ה־::before */
-  min-height: 100vh;
-}
+  .rtl-quill .ql-toolbar.ql-snow {
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+  }
 
-/* התמונה + האופסיטי (שכבה מתחת לכל התוכן) */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;                        /* מאחורי כל התוכן */
-  pointer-events: none;
+  .rtl-quill .ql-container.ql-snow {
+    border: none;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
 
-  /* שים לב לנתיב – מתוך public */
-  background-image: url("/med-bg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  .rtl-quill .ql-container {
+    min-height: 120px;
+  }
 
-  opacity: 0.15;                      /* תכוון כמה בהיר/כהה */
-}
+  .rtl-quill .ql-toolbar,
+  .rtl-quill .ql-editor,
+  .rtl-quill .ql-container {
+    direction: rtl !important;
+    text-align: right !important;
+  }
 
-/* אם תרצה שהרקע יתחזק בדארק־מוד */
-.dark body::before {
-  opacity: 0.3;
-}
+  .rtl-quill .ql-toolbar .ql-formats {
+    float: right !important;
+  }
 
+  .rtl-quill .ql-toolbar .ql-formats:last-child {
+    margin-right: 0 !important;
+  }
 
-/* מראה כללי יפה + מסגרת עגולה */
-.rtl-quill {
-  border-radius: 1rem;
-  border: 1px solid #d4d4d8;
-  background-color: #ffffff;
-  resize: vertical;
-  overflow: auto;
-}
+  .rtl-quill .ql-picker.ql-header {
+    float: left !important;
+  }
 
-/* שלא יהיה בורדר כפול */
-.rtl-quill .ql-toolbar.ql-snow {
-  border: none;
-  border-bottom: 1px solid #e5e7eb;
-  border-top-left-radius: 1rem;
-  border-top-right-radius: 1rem;
-}
+  .rtl-quill .ql-picker.ql-header .ql-picker-label {
+    direction: ltr !important;
+    text-align: left !important;
+  }
 
-.rtl-quill .ql-container.ql-snow {
-  border: none;
-  border-bottom-left-radius: 1rem;
-  border-bottom-right-radius: 1rem;
-}
+  .rtl-quill .ql-picker.ql-header .ql-picker-options {
+    right: 0 !important;
+    left: auto !important;
+  }
 
-/* גובה מינימלי נעים */
-.rtl-quill .ql-container {
-  min-height: 120px;
-}
+  .rtl-quill .ql-toolbar {
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 5;
+  }
 
-/* === RTL BASE === */
-.rtl-quill .ql-toolbar,
-.rtl-quill .ql-editor,
-.rtl-quill .ql-container {
-  direction: rtl !important;
-  text-align: right !important;
-}
+  .rtl-quill .ql-picker-options {
+    z-index: 10;
+    background: white;
+  }
 
-/* הקבוצות בטולבר יהיו מיושרות לימין */
-.rtl-quill .ql-toolbar .ql-formats {
-  float: right !important;
-}
+  .rtl-quill .ql-editor ol,
+  .rtl-quill .ql-editor ul {
+    direction: rtl !important;
+    text-align: right !important;
+    padding-right: 1.5em !important;
+    padding-left: 0 !important;
+  }
 
-/* מניעת הדבקה מוזרה */
-.rtl-quill .ql-toolbar .ql-formats:last-child {
-  margin-right: 0 !important;
-}
+  .rtl-quill .ql-editor li::before {
+    margin-right: -1.5em !important;
+    margin-left: 0 !important;
+  }
 
-/* === HEADER PICKER === */
+  .announcement-body a {
+    color: #2563eb;
+    text-decoration: underline;
+    word-break: break-all;
+  }
 
-/* המיקום הכללי שלו – בצד שמאל של הטולבר */
-.rtl-quill .ql-picker.ql-header {
-  float: left !important;
-}
+  .announcement-body {
+    direction: rtl;
+    text-align: right;
+    white-space: pre-line;
+    line-height: 1.6;
+  }
 
-/* אבל הטקסט והחץ בפנים – LTR כדי שלא יעלו אחד על השני */
-.rtl-quill .ql-picker.ql-header .ql-picker-label {
-  direction: ltr !important;
-  text-align: left !important;
-}
+  .rtl-quill .ql-toolbar button.ql-emoji::before {
+    content: "😊";
+    font-size: 16px;
+  }
 
-/* האופציות עצמן עדיין נפתחות מימין */
-.rtl-quill .ql-picker.ql-header .ql-picker-options {
-  right: 0 !important;
-  left: auto !important;
-}
-
-/* מניעת סגירה מיידית של הדרופדאון + שכבה מעל האדיטור */
-.rtl-quill .ql-toolbar {
-  overflow: visible !important;
-  position: relative !important;
-  z-index: 5;
-}
-
-/* הדרופדאון עצמו */
-.rtl-quill .ql-picker-options {
-  z-index: 10;
-  background: white;
-}
-
-/* רשימות (נקודות וממוספרות) ב-RTL */
-.rtl-quill .ql-editor ol,
-.rtl-quill .ql-editor ul {
-  direction: rtl !important;
-  text-align: right !important;
-  padding-right: 1.5em !important; /* הזחה מימין */
-  padding-left: 0 !important;
-}
-
-/* מיקום הבולט / המספר בצד ימין */
-.rtl-quill .ql-editor li::before {
-  margin-right: -1.5em !important; /* מושך את הבולט פנימה מימין */
-  margin-left: 0 !important;
-}
-
-/* לינקים בתוך תוכן מודעה בעמוד הבית */
-.announcement-body a {
-  color: #2563eb; /* כחול יפה כמו Quill */
-  text-decoration: underline;
-  word-break: break-all;
-}
-
-.announcement-body {
-  direction: rtl;
-  text-align: right;
-  white-space: pre-line;
-  line-height: 1.6;
-}
-
-/* כפתור האימוג׳י בטולבר של Quill */
-.rtl-quill .ql-toolbar button.ql-emoji::before {
-  content: "😊";
-  font-size: 16px;
-}
-
-/* לוודא שלא מופיע אייקון SVG מוזר */
-.rtl-quill .ql-toolbar button.ql-emoji svg {
-  display: none;
+  .rtl-quill .ql-toolbar button.ql-emoji svg {
+    display: none;
+  }
 }
