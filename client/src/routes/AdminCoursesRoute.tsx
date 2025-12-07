@@ -142,7 +142,7 @@ export default function AdminCoursesRoute() {
           <td className="py-2 px-3 align-top text-xs">
             <button
               type="button"
-              onClick={() => nav(`/admin/course/${c.id}/edit`)}
+              onClick={() => nav(`/admin/course/${c.id}/edit`)} 
               className="border rounded-xl px-3 py-1 bg-blue-600 text-white
                          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
             >
