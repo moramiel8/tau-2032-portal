@@ -602,10 +602,10 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                     key={`${item.type}-${item.courseId}-${item.title}-${item.date}`}
                     className="border-b last:border-b-0 border-neutral-100 dark:border-slate-800"
                   >
-                    <td className="py-1 whitespace-nowrap">
+                    <td className="py-1 px-2 whitespace-nowrap">
                       {item.date}
                     </td>
-                    <td className="py-1 whitespace-nowrap">
+                    <td className="py-1  px-2 whitespace-nowrap">
                       <Link
                         to={`/course/${item.courseId}`}
                         className="text-blue-600 hover:underline"
@@ -613,14 +613,14 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                         {item.courseName}
                       </Link>
                     </td>
-                    <td className="py-1 whitespace-nowrap">
+                    <td className="py-1   px-2 whitespace-nowrap">
                       {item.type === "assignment"
                         ? "📝 מטלה"
                         : item.type === "exam"
                         ? "💯 מבחן"
                         : "🔬 מעבדה"}
                     </td>
-                    <td className="py-1">{item.title}</td>
+                    <td className="py-1  px-2">{item.title}</td>
                     <td className="py-1 text-neutral-500">
                       {item.notes || ""}
                     </td>
