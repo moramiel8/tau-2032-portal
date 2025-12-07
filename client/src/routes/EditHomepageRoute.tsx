@@ -21,6 +21,11 @@ export default function EditHomepageRoute() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const cardClass =
+  "mb-8 border rounded-2xl p-4 bg-white/90 dark:bg-slate-900/90 w-full " +
+  "border-neutral-200 dark:border-slate-700 shadow-sm";
+
+
   // טעינה מהשרת
   useEffect(() => {
     (async () => {
@@ -81,7 +86,7 @@ export default function EditHomepageRoute() {
         <label className="block">
           <span className="block mb-1">כותרת ראשית (Hero title):</span>
           <input
-            className="border rounded-xl px-3 py-2 w-full"
+            className={cardClass}
             value={content.heroTitle || ""}
             onChange={(e) =>
               setContent((prev) => ({ ...prev, heroTitle: e.target.value }))
@@ -92,7 +97,7 @@ export default function EditHomepageRoute() {
         <label className="block">
           <span className="block mb-1">כותרת משנה:</span>
           <input
-            className="border rounded-xl px-3 py-2 w-full"
+              className={cardClass}
             value={content.heroSubtitle || ""}
             onChange={(e) =>
               setContent((prev) => ({ ...prev, heroSubtitle: e.target.value }))
@@ -120,7 +125,8 @@ export default function EditHomepageRoute() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="border rounded-xl px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-60"
+            className="border rounded-xl px-3 py-1  bg-blue-600 text-white
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
           >
             {saving ? "שומר..." : "שמירת שינויים"}
           </button>

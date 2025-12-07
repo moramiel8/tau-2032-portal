@@ -376,7 +376,7 @@ export default function EditCourseRoute() {
           <label className="block mb-3">
             <span className="block mb-1">שם הקורס:</span>
             <input
-              className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700 text-neutral-900 dark:text-slate-100"
+              className="bg-white w-full border rounded-xl px-3 py-2 dark:bg-slate-950 border-neutral-300 dark:border-slate-700 text-neutral-900 dark:text-slate-100"
               value={content.name}
               onChange={(e) => setContent({ ...content, name: e.target.value })}
             />
@@ -429,7 +429,7 @@ export default function EditCourseRoute() {
             <div
               className="
                 max-h-40 overflow-y-auto border rounded-xl p-2 text-xs
-                bg-neutral-50 border-neutral-200
+                bg-white border-neutral-200
                 dark:bg-slate-800 dark:border-slate-700
               "
             >

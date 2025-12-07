@@ -56,6 +56,7 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -153,6 +154,13 @@ export default function AdminPanel({
   const [courseVaad, setCourseVaad] = useState<CourseVaadEntry[]>([]);
   const [globalRoles, setGlobalRoles] = useState<GlobalRoleEntry[]>([]);
   const [saving, setSaving] = useState(false);
+
+    // בתוך AdminPanel.tsx, למעלה בתוך הקומפוננטה לפני ה-return:
+const cardClass =
+  "mb-8 border rounded-2xl p-4 sm:p-6 " +
+   "bg-white dark:bg-slate-900 " +  
+  "border-neutral-200 dark:border-slate-700 shadow-sm";
+
 
   const allCourses: Course[] = useMemo(
     () => YEARS.flatMap((y) => y.semesters.flatMap((s) => s.courses)),
@@ -408,8 +416,8 @@ const handleSaveAnnouncement = async () => {
 
       {/* 1. הקצאת ועד קורס – אדמין + ועד כללי */}
       {(isAdmin || isGlobalVaad) && (
-        <section className="mb-8 border rounded-2xl p-4">
-          <h2 className="text-lg font-medium mb-3">
+      <section className={cardClass}>
+            <h2 className="text-lg font-medium mb-3">
             הקצאת תפקיד &quot;ועד קורס&quot;
           </h2>
 
@@ -419,7 +427,11 @@ const handleSaveAnnouncement = async () => {
               type="email"
               value={selectedUserEmail}
               onChange={(e) => setSelectedUserEmail(e.target.value)}
-              className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
+               className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500"
               placeholder="student@mail.tau.ac.il"
             />
           </label>
@@ -430,25 +442,49 @@ const handleSaveAnnouncement = async () => {
               type="text"
               value={selectedUserDisplayName}
               onChange={(e) => setSelectedUserDisplayName(e.target.value)}
-              className="border rounded-xl px-3 py-2 mt-1 w-full text-sm"
+               className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500"
               placeholder="למשל: מור עמיאל רבייב"
             />
           </label>
 
           <div className="mt-4">
-            <div className="text-sm font-medium mb-2">בחר קורסים:</div>
-            <div className="max-h-72 overflow-y-auto border rounded-xl p-2 text-sm space-y-1">
-              {allCourses.map((c) => (
-                <label key={c.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedCourseIds.includes(c.id)}
-                    onChange={() => toggleCourse(c.id)}
-                  />
-                  <span>{c.name}</span>
-                </label>
-              ))}
-            </div>
+          <div
+  className="
+    max-h-72 overflow-y-auto
+    rounded-2xl border border-neutral-200
+    bg-white p-2 text-sm space-y-1
+  "
+>
+  {allCourses.map((c) => (
+    <label
+      key={c.id}
+      className="
+        flex flex-row-reverse items-center gap-3
+        rounded-xl px-2 py-2
+        hover:bg-blue-50 cursor-pointer
+      "
+    >
+      {/* הטקסט משמאל */}
+      <span className="flex-1 truncate text-right text-neutral-800">
+        {c.name}
+      </span>
+
+      {/* הצ'קבוקס מימין לטקסט */}
+      <input
+        type="checkbox"
+        className="h-4 w-4"
+        checked={selectedCourseIds.includes(c.id)}
+        onChange={() => toggleCourse(c.id)}
+      />
+    </label>
+  ))}
+</div>
+
+
           </div>
 
           <div className="mt-4 flex gap-2">
@@ -456,7 +492,8 @@ const handleSaveAnnouncement = async () => {
               onClick={handleSaveCourseVaad}
               disabled={saving}
               className="border rounded-xl px-3 py-1  bg-blue-600 text-white
-          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700
+          cursor:pointer"
             >
               {editingCourseVaadId ? "עדכון הקצאה" : "שמירת הקצאה"}
             </button>
@@ -476,8 +513,8 @@ const handleSaveAnnouncement = async () => {
 
       {/* 2. רשימת הקצאות ועד קורס */}
       {(isAdmin || isGlobalVaad) && (
-        <section className="mb-8 border rounded-2xl p-4">
-          <h2 className="text-lg font-medium mb-3">ועדי קורסים קיימים</h2>
+        <section className={cardClass}>
+       <h2 className="text-lg font-medium mb-3">ועדי קורסים קיימים</h2>
 
           {courseVaad.length === 0 ? (
             <div className="text-sm text-neutral-500">
@@ -544,7 +581,7 @@ const handleSaveAnnouncement = async () => {
 
       {/* 3. ועד כללי / מנהלים – רק אדמין */}
       {isAdmin && (
-        <section className="mb-8 border rounded-2xl p-4">
+        <section className={cardClass}>
           <h2 className="text-lg font-medium mb-3">ועד כללי / מנהלים</h2>
 
           {globalRoles.length === 0 ? (
@@ -596,7 +633,7 @@ const handleSaveAnnouncement = async () => {
       {/* 4. ניהול תוכן + לוח מודעות */}
       {(isAdmin || isGlobalVaad) && (
         <>
-          <section className="border rounded-2xl p-4 mb-8">
+          <section className={cardClass}>
             <h2 className="text-lg font-medium mb-3">ניהול תוכן האתר</h2>
             <p className="text-sm text-neutral-600 mb-3">
               כאן אפשר לערוך את עמוד הבית ואת דפי הקורסים.
@@ -627,7 +664,7 @@ const handleSaveAnnouncement = async () => {
 
                 {/* 4b. הוספת קורס חדש – מתוך פאנל המנהל */}
       {(isAdmin || isGlobalVaad) && (
-        <section className="mb-8 border rounded-2xl p-4">
+        <section className={cardClass}>
           <h2 className="text-lg font-medium mb-3">הוספת קורס חדש</h2>
           <p className="text-sm text-neutral-600 mb-3">
             יצירת קורס חדש במערכת. לאחר היצירה אפשר לערוך את דף הקורס
@@ -644,7 +681,7 @@ const handleSaveAnnouncement = async () => {
       )}
 
 
-          <section className="mt-6 mb-8 border rounded-2xl p-4">
+        <section className={cardClass}>
             <h2 className="text-lg font-medium mb-3">לוח מודעות</h2>
 
             {announcements.length === 0 ? (
@@ -654,11 +691,11 @@ const handleSaveAnnouncement = async () => {
                 {announcements.map((a) => (
                   <li
                     key={a.id}
-                    className="mt-2 border rounded-xl px-3 py-2 flex justify-between gap-2"
-                  >
+  className="mt-2 border-t border-neutral-200 pt-3 flex justify-between gap-2"
+                      >
                     <div>
                       <div className="font-medium">{a.title}</div>
-                      <div className="text-xs text-neutral-600">
+                      <div className="text-xs text-neutral-600  ">
                         {a.body?.includes("<") ? (
                           <div dangerouslySetInnerHTML={{ __html: a.body }} />
                         ) : (
@@ -702,15 +739,18 @@ const handleSaveAnnouncement = async () => {
               </ul>
             )}
 
-           <div className="border-t pt-3 mt-3 text-sm">
-  <h3 className="font-medium mb-2">
+<div className="border-t border-neutral-200 pt-3 mt-3 text-sm">
+    <h3 className="font-medium mb-2">
     {editingAnnId ? "עריכת מודעה" : "הוספת מודעה חדשה"}
   </h3>
 
   <label className="block mb-2">
     <span className="block mb-1">כותרת:</span>
     <input
-      className="border rounded-xl px-3 py-2 w-full dark:hover:bg-slate-800 dark:border-slate-700"
+      className="w-full border 
+         rounded-2xl px-3 py-2 text-sm 
+         border-neutral-300 bg-white dark:bg-slate-900 
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       value={newAnnTitle}
       onChange={(e) => setNewAnnTitle(e.target.value)}
     />
@@ -735,7 +775,10 @@ const handleSaveAnnouncement = async () => {
   <label className="block mb-2">
     <span className="block mb-1">שייך לקורס (לא חובה):</span>
     <select
-      className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 w-full dark:hover:bg-slate-800 dark:border-slate-700"
+       className="w-full border 
+         rounded-2xl px-3 py-2 text-sm 
+         border-neutral-300 bg-white dark:bg-slate-900 
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       value={newAnnCourseId}
       onChange={(e) => setNewAnnCourseId(e.target.value)}
     >
@@ -751,8 +794,11 @@ const handleSaveAnnouncement = async () => {
   <button
     type="button"
     onClick={handleSaveAnnouncement}
-    className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px]  bg-blue-600 text-white
-          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
+    className="border-blue-600 rounded-xl px-3 py-1 flex-1 min-w-[220px]
+                         bg-blue-600 text-white
+                         hover:bg-blue-700
+                        dark:hover:bg-blue-800  border-blue-800 
+                         gap-1 cursor-pointer"
   >
     {editingAnnId ? "שמירת שינויים" : "הוספת מודעה"}
   </button>
@@ -779,7 +825,7 @@ const handleSaveAnnouncement = async () => {
 
       {/* 5. ועד־קורס – הקורסים שלו */}
       {isCourseVaad && (
-        <section className="mb-8 border rounded-2xl p-4">
+       <section className={cardClass}>
           <h2 className="text-lg font-medium mb-3">
             הקורסים שאתה/את ועד שלהם
           </h2>
@@ -801,7 +847,12 @@ const handleSaveAnnouncement = async () => {
                     <button
                       type="button"
                       onClick={() => nav(`/admin/course/${cid}/edit`)}
-                      className="border rounded-xl px-3 py-1 text-xs hover:bg-neutral-50"
+                     className="
+                       border-blue-600   rounded-2xl px-3 py-2 text-sm
+                         bg-blue-600 text-white
+                         hover:bg-blue-700
+                        dark:hover:bg-blue-800  border-blue-800 
+                        flex items-center gap-1 cursor-pointer"
                     >
                       עריכת דף הקורס
                     </button>

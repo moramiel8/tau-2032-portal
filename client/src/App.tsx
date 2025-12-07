@@ -432,7 +432,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
         <section
           className="
             mb-6 border rounded-2xl p-5 shadow-sm
-            bg-gradient-to-l from-blue-50 to-cyan-50
+            bg-gradient-to-l from-blue-100 to-cyan-100
             dark:from-slate-800 dark:to-slate-900
             border-neutral-200 dark:border-slate-700
           "
@@ -458,10 +458,11 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
       {announcements.length > 0 && (
         <section
           className="
-            mb-6 border rounded-2xl p-4 shadow-sm
-            bg-white dark:bg-slate-900
-            border-neutral-200 dark:border-slate-700
-          "
+          mb-6
+         w-full border 
+         rounded-2xl px-3 py-2 text-sm 
+         border-neutral-300 bg-white dark:bg-slate-900 
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
           <ul className="space-y-2 text-sm">
@@ -490,40 +491,45 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
           <h2 className="text-lg font-semibold">מטלות ומועדי מבחנים קרובים</h2>
 
           <div className="flex gap-2 text-xs">
-            <button
-              className={
-                "px-2 py-1 rounded-2xl border " +
-                (range === "week"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-transparent text-neutral-600 dark:text-slate-200")
-              }
-              onClick={() => setRange("week")}
-            >
-              שבוע
-            </button>
-            <button
-              className={
-                "px-2 py-1 rounded-2xl border " +
-                (range === "month"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-transparent text-neutral-600 dark:text-slate-200")
-              }
-              onClick={() => setRange("month")}
-            >
-              חודש
-            </button>
-            <button
-              className={
-                "px-2 py-1 rounded-2xl border " +
-                (range === "all"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-transparent text-neutral-600 dark:text-slate-200")
-              }
-              onClick={() => setRange("all")}
-            >
-              הכל
-            </button>
-          </div>
+  <button
+    className={
+      "px-3 py-1 rounded-2xl border text-xs transition-colors " +
+      (range === "week"
+        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
+    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer" + 
+            "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+    }
+    onClick={() => setRange("week")}
+  >
+    שבוע
+  </button>
+
+  <button
+    className={
+      "px-3 py-1 rounded-2xl border text-xs transition-colors " +
+      (range === "month"
+      ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
+        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 hover:cursor-pointer" + 
+        "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+    }
+    onClick={() => setRange("month")}
+  >
+    חודש
+  </button>
+
+  <button
+    className={
+      "px-3 py-1 rounded-2xl border text-xs transition-colors " +
+      (range === "all"
+         ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
+    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer cursor-pointer" + 
+            "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+      }
+    onClick={() => setRange("all")}
+  >
+    הכל
+  </button>
+</div>
         </div>
 
         {latestItems.length === 0 ? (
@@ -755,7 +761,12 @@ export default function App() {
   return (
     <div className={theme === "dark" ? "dark" : ""}>
       <div
-        className="min-h-screen bg-white text-black dark:bg-slate-950 dark:text-slate-100 transition-colors"
+        className="min-h-screen 
+         bg-transparent
+         text-black 
+         dark:bg-slate-950 
+         dark:text-slate-100 
+         transition-colors"
         dir="rtl"
       >
         {/* toolbar קבוע */}
@@ -782,12 +793,19 @@ export default function App() {
 
             <div className="flex items-center gap-2">
               {/* כפתור Dark Mode */}
-              <button
-                onClick={toggleTheme}
-                className="border rounded-2xl px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
-              >
-                {theme === "dark" ? "☀️" : "🌙"}
-              </button>
+            <button
+            onClick={toggleTheme}
+              className="
+            rounded-2xl px-3 py-2 text-sm
+          border border-neutral-300           /* גבול דק ואפרפר */
+        hover:bg-neutral-100
+         dark:border-slate-600 dark:hover:bg-slate-800
+        cursor-pointer flex items-center gap-1
+          "
+        >
+  {theme === "dark" ? "☀️" : "🌙"}
+</button>
+
 
               {user && (
                 <>
@@ -799,13 +817,13 @@ export default function App() {
                     <button
                       onClick={() => nav("/admin")}
                       className="
-                        border rounded-2xl px-3 py-2 text-sm
-                         bg-blue-600 text-white
-                         hover:bg-blue-700
-                        dark:hover:bg-slate-800
+                       border-red-600 rounded-2xl px-3 py-2 text-sm
+                         bg-red-600 text-white 
+                         hover:bg-red-700
+                        dark:hover:bg-red-800  border-red-800 
                         flex items-center gap-1 cursor-pointer
                       "
-                    >
+                  >
                       פאנל ניהול
                     </button>
                   )}
@@ -813,13 +831,13 @@ export default function App() {
                   <button
                     onClick={handleLogout}
                     className="
-                      border rounded-2xl px-3 py-2 text-sm
-                      hover:bg-neutral-50
-                      dark:hover:bg-slate-800
-                      flex items-center gap-1 cursor-pointer
-                    "
-                    title="התנתקות"
-                  >
+                       border-blue-600   rounded-2xl px-3 py-2 text-sm
+                         bg-blue-600 text-white
+                         hover:bg-blue-700
+                        dark:hover:bg-blue-800  border-blue-800 
+                        flex items-center gap-1 cursor-pointer
+                      "
+                    >
                     <span className="inline">התנתקות</span>
                   </button>
                 </>

@@ -1,16 +1,41 @@
 @import "tailwindcss";
 
-/* זה מה שעושה את מצב הדארק לפי class="dark" */
+/* מצב דארק לפי class="dark" על ה־root */
 @custom-variant dark (&:where(.dark, .dark *));
 
 html {
   direction: rtl;
 }
 
-/* אפשר גם לתת דיפולט ללייף־מוד */
+/* === רקע כללי לאתר === */
+
 body {
-  @apply bg-white text-black;
+  position: relative;                 /* חשוב בשביל ה־::before */
+  min-height: 100vh;
 }
+
+/* התמונה + האופסיטי (שכבה מתחת לכל התוכן) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;                        /* מאחורי כל התוכן */
+  pointer-events: none;
+
+  /* שים לב לנתיב – מתוך public */
+  background-image: url("/img/med-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  opacity: 0.15;                      /* תכוון כמה בהיר/כהה */
+}
+
+/* אם תרצה שהרקע יתחזק בדארק־מוד */
+.dark body::before {
+  opacity: 0.3;
+}
+
 
 /* מראה כללי יפה + מסגרת עגולה */
 .rtl-quill {

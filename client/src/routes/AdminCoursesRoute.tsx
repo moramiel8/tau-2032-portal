@@ -80,7 +80,7 @@ export default function AdminCoursesRoute() {
     <div className="max-w-5xl mx-auto pb-12">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">ניהול קורסים</h1>
-        <Link to="/admin" className="text-xs text-neutral-500 underline">
+        <Link to="/admin" className="text-xs text-neutral-500  underline">
           חזרה לפאנל המנהל
         </Link>
       </div>
@@ -91,17 +91,20 @@ export default function AdminCoursesRoute() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="חיפוש לפי שם קורס / מספר קורס / שנה..."
-          className="border rounded-xl px-3 py-2 text-sm flex-1 w-full"
+          className="
+            mb-8 border rounded-2xl p-3 shadow-sm w-1/2
+            bg-white dark:bg-slate-900
+            border-neutral-200 dark:border-slate-700"
         />
         <span className="text-xs text-neutral-500">
           נמצאו {filtered.length} קורסים
         </span>
       </div>
 
-      <div className="border rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
+    <div className="border border-neutral-200 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
   <table className="w-full text-sm border-collapse">
     <thead className="bg-neutral-50 text-xs text-neutral-500 dark:bg-slate-800 dark:text-slate-300">
-      <tr>
+      <tr className="border-b border-neutral-200 dark:border-slate-700">
         <th className="text-right py-2 px-3">שנה</th>
         <th className="text-right py-2 px-3">סמסטר</th>
         <th className="text-right py-2 px-3">שם הקורס</th>
@@ -113,7 +116,11 @@ export default function AdminCoursesRoute() {
       {filtered.map((c) => (
         <tr
           key={`${c.yearId}-${c.semesterId}-${c.id}`}
-          className="border-t hover:bg-neutral-50/70 dark:border-slate-800 dark:hover:bg-slate-800/70"
+          className="
+            border-t border-neutral-200
+            hover:bg-neutral-50/70
+            dark:border-slate-800 dark:hover:bg-slate-800/70
+          "
         >
           <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
             {c.yearTitle}
@@ -136,26 +143,29 @@ export default function AdminCoursesRoute() {
             <button
               type="button"
               onClick={() => nav(`/admin/course/${c.id}/edit`)}
-              className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+              className="border rounded-xl px-3 py-1 bg-blue-600 text-white
+                         hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
             >
               עריכה
             </button>
           </td>
         </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="py-4 px-3 text-center text-xs text-neutral-500"
-                >
-                  לא נמצאו קורסים התואמים לחיפוש.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      ))}
+
+      {filtered.length === 0 && (
+        <tr>
+          <td
+            colSpan={5}
+            className="py-4 px-3 text-center text-xs text-neutral-500"
+          >
+            לא נמצאו קורסים התואמים לחיפוש.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
+
     </div>
   );
 }
