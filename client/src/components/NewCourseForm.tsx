@@ -97,10 +97,13 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
         <label className="block mb-1 font-medium">שם הקורס *</label>
         <input
           type="text"
-         className="w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
           placeholder="למשל: אנטומיה א'"
           value={form.name}
           onChange={handleChange("name")}
@@ -111,7 +114,13 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
         <label className="block mb-1">שם קצר (לא חובה)</label>
         <input
           type="text"
-            className="w-full border rounded-2xl px-3 py-2 text-sm border-neutral-300 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
           placeholder="למשל: אנטומיה"
           value={form.shortName}
           onChange={handleChange("shortName")}
@@ -122,10 +131,13 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
         <div>
           <label className="block mb-1">שנה *</label>
           <select
-        className="w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
                      value={form.yearLabel}
             onChange={handleChange("yearLabel")}
           >
@@ -141,10 +153,13 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
         <div>
           <label className="block mb-1">סמסטר *</label>
           <select
-            className="w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
             value={form.semesterLabel}
             onChange={handleChange("semesterLabel")}
           >
@@ -162,10 +177,13 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
         <label className="block mb-1">קוד קורס (לא חובה)</label>
         <input
           type="text"
-          className="w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+         className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
           placeholder="למשל: 0123-4567"
           value={form.courseCode}
           onChange={handleChange("courseCode")}
@@ -183,6 +201,7 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
           bg-blue-600 text-white
           hover:bg-blue-700
           disabled:opacity-60 disabled:cursor-not-allowed
+          cursor-pointer
         "
       >
         {saving ? "שומר…" : "שמירת קורס חדש"}

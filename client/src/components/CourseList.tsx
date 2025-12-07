@@ -116,7 +116,7 @@ export default function CourseList({ years, onOpenCourse }: Props) {
                   border-neutral-200 text-neutral-700
                   dark:bg-slate-900 dark:border-slate-700
                   dark:text-slate-100 dark:hover:bg-slate-800
-                  transition-colors
+                  transition-colors cursor-pointer
                 "
               >
                 {isOpen ? "מזער שנה" : "הצג שנה"}
@@ -143,7 +143,7 @@ export default function CourseList({ years, onOpenCourse }: Props) {
                             hover:bg-neutral-50
                             dark:bg-slate-950/40 dark:border-slate-700
                             dark:text-slate-100 dark:hover:bg-slate-800
-                            transition-colors
+                            transition-colors cursor-pointer
                           "
                         >
                           <div className="font-medium">{course.name}</div>
@@ -181,7 +181,7 @@ export default function CourseList({ years, onOpenCourse }: Props) {
                 border-neutral-200 text-white
                 dark:bg-slate-900 dark:border-slate-700
                 dark:text-slate-100 dark:hover:bg-slate-800
-                transition-colors
+                transition-colors cursor-pointer
               "
             >
               {openPre ? "הסתר" : "הצג"}
@@ -205,7 +205,7 @@ export default function CourseList({ years, onOpenCourse }: Props) {
                 border-neutral-200 text-white
                 dark:bg-slate-900 dark:border-slate-700
                 dark:text-slate-100 dark:hover:bg-slate-800
-                transition-colors
+                transition-colors cursor-pointer
               "
             >
               {openClinical ? "הסתר" : "הצג"}

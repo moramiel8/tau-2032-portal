@@ -81,13 +81,13 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="student@mail.tau.ac.il"
-        className="
-          w-full border rounded-2xl px-3 py-3
-          text-sm
-          border-neutral-300
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          placeholder:text-neutral-400
-        "
+       className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
       />
 
       <input
@@ -95,20 +95,25 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         placeholder="שם תצוגה (למשל: ועד כללי)"
-        className="
-          w-full border rounded-2xl px-3 py-3
-          text-sm
-          border-neutral-300
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          placeholder:text-neutral-400
-        "
+         className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
       />
 
       <select
         value={role}
         onChange={(e) => setRole(e.target.value as "admin" | "vaad")}
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 flex-1 min-w-[220px] dark:hover:bg-slate-800 dark:border-slate-700"
-      >
+          className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"  >
         <option value="vaad">ועד כללי</option>
         <option value="admin">מנהל מערכת</option>
       </select>
@@ -116,7 +121,8 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
       <button
         type="submit"
         disabled={saving}
-        className="border rounded-xl px-3 py-1 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
+        className="border rounded-xl px-3 py-1  bg-blue-600 text-white
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700 cursor-pointer"
       >
         הוספה
       </button>
@@ -427,11 +433,13 @@ const handleSaveAnnouncement = async () => {
               type="email"
               value={selectedUserEmail}
               onChange={(e) => setSelectedUserEmail(e.target.value)}
-               className="w-full border bg-white
+              className="w-full border bg-white
           rounded-2xl px-3 py-2 text-sm 
           border-neutral-300 
           focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500"
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
               placeholder="student@mail.tau.ac.il"
             />
           </label>
@@ -442,11 +450,13 @@ const handleSaveAnnouncement = async () => {
               type="text"
               value={selectedUserDisplayName}
               onChange={(e) => setSelectedUserDisplayName(e.target.value)}
-               className="w-full border bg-white
+             className="w-full border bg-white
           rounded-2xl px-3 py-2 text-sm 
           border-neutral-300 
           focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500"
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
               placeholder="למשל: מור עמיאל רבייב"
             />
           </label>
@@ -457,7 +467,8 @@ const handleSaveAnnouncement = async () => {
     max-h-72 overflow-y-auto
     rounded-2xl border border-neutral-200
     bg-white p-2 text-sm space-y-1
-  "
+
+"
 >
   {allCourses.map((c) => (
     <label
@@ -465,7 +476,8 @@ const handleSaveAnnouncement = async () => {
       className="
         flex flex-row-reverse items-center gap-3
         rounded-xl px-2 py-2
-        hover:bg-blue-50 cursor-pointer
+        hover:bg-blue-100 cursor-pointer
+        dark:bg-slate-100 border-slate-400 
       "
     >
       {/* הטקסט משמאל */}
@@ -493,7 +505,7 @@ const handleSaveAnnouncement = async () => {
               disabled={saving}
               className="border rounded-xl px-3 py-1  bg-blue-600 text-white
           hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700
-          cursor:pointer"
+          cursor-pointer"
             >
               {editingCourseVaadId ? "עדכון הקצאה" : "שמירת הקצאה"}
             </button>
@@ -502,7 +514,7 @@ const handleSaveAnnouncement = async () => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-xs text-neutral-500 underline"
+                className="text-xs text-neutral-500 underline cursor-pointer"
               >
                 ביטול עריכה
               </button>
@@ -558,13 +570,13 @@ const handleSaveAnnouncement = async () => {
                       <div className="flex flex-col items-start gap-1">
                         <button
                           onClick={() => handleEditCourseVaad(entry)}
-                          className="text-xs underline text-blue-600"
+                          className="text-xs underline text-blue-600 cursor-pointer"
                         >
                           עריכה
                         </button>
                         <button
                           onClick={() => handleDeleteCourseVaad(entry.id)}
-                          className="text-xs underline text-red-600"
+                          className="text-xs underline text-red-600 cursor-pointer"
                           title="מחיקה"
                         >
                           🗑
@@ -644,7 +656,7 @@ const handleSaveAnnouncement = async () => {
                   type="button"
                   onClick={() => nav("/admin/home")}
                   className="border rounded-xl px-3 py-1  bg-blue-600 text-white
-          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700 cursor-pointer"
                 >
                   עריכת עמוד הבית
                 </button>
@@ -654,7 +666,7 @@ const handleSaveAnnouncement = async () => {
                   type="button"
                   onClick={() => nav("/admin/courses")}
                   className="border rounded-xl px-3 py-1  bg-blue-600 text-white
-          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700 cursor-pointer"
                 >
                   עריכת דפי הקורסים
                 </button>
@@ -722,14 +734,14 @@ const handleSaveAnnouncement = async () => {
                           setNewAnnBody(a.body);
                           setNewAnnCourseId(a.courseId || "");
                         }}
-                        className="text-xs underline text-blue-600"
+                        className="text-xs underline text-blue-600 cursor-pointer"
                       >
                         עריכה
                       </button>
 
                       <button
                         onClick={() => handleDeleteAnnouncement(a.id)}
-                        className="text-xs underline text-red-600"
+                        className="text-xs underline text-red-600 cursor-pointer" 
                       >
                         מחיקה
                       </button>
@@ -747,10 +759,13 @@ const handleSaveAnnouncement = async () => {
   <label className="block mb-2">
     <span className="block mb-1">כותרת:</span>
     <input
-      className="w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+       className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
       value={newAnnTitle}
       onChange={(e) => setNewAnnTitle(e.target.value)}
     />
@@ -775,10 +790,13 @@ const handleSaveAnnouncement = async () => {
   <label className="block mb-2">
     <span className="block mb-1">שייך לקורס (לא חובה):</span>
     <select
-       className="w-full border 
-         rounded-2xl px-3 py-2 text-sm 
-         border-neutral-300 bg-white dark:bg-slate-900 
-         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+       className="w-full border bg-white
+          rounded-2xl px-3 py-2 text-sm 
+          border-neutral-300 
+          focus:outline-none focus:ring-2 
+          focus:ring-blue-500 focus:border-blue-500
+           dark: text-black
+          dark:bg-slate-400 border-slate-400"
       value={newAnnCourseId}
       onChange={(e) => setNewAnnCourseId(e.target.value)}
     >
@@ -813,7 +831,7 @@ const handleSaveAnnouncement = async () => {
         setNewAnnCourseId("");
         setAnnError(null);
       }}
-    className="text-xs text-neutral-500 underline mr-4"    >
+    className="text-xs text-neutral-500 underline mr-4 cursor-pointer"    >
       ביטול עריכה
     </button>
   )}

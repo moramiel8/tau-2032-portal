@@ -437,7 +437,6 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
             dark:to-slate-900
             border-neutral-200 
             dark:border-slate-700 
-            dark: bg-gradient-to-l from-blue-100 to-blue-300
           "
         >
 
@@ -497,10 +496,10 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     className={
       "px-3 py-1 rounded-2xl border text-xs transition-colors " +
       (range === "week"
-        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
-    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer" + 
+         ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
+    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer cursor-pointer" + 
             "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-    }
+      }
     onClick={() => setRange("week")}
   >
     שבוע
@@ -510,10 +509,10 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     className={
       "px-3 py-1 rounded-2xl border text-xs transition-colors " +
       (range === "month"
-      ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
-        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 hover:cursor-pointer" + 
-        "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-    }
+       ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 cursor-pointer"
+    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 cursor-pointer cursor-pointer" + 
+            "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+      }
     onClick={() => setRange("month")}
   >
     חודש
@@ -852,13 +851,23 @@ export default function App() {
           {loadingUser ? (
             <div className="text-sm text-neutral-500">טוען…</div>
           ) : !user ? (
-            <div className="border rounded-2xl p-6 text-sm">
+            <div  className="
+          mb-8 border rounded-2xl p-4 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+        ">
               כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
               בחר/י חשבון עם הדומיין <b>mail.tau.ac.il</b>.
               <div className="mt-3">
                 <button
                   onClick={handleSignIn}
-                  className="border rounded-xl px-3 py-2 hover:bg-neutral-50 cursor-pointer"
+                  className="
+                       border-blue-600   rounded-2xl px-3 py-2 text-sm
+                         bg-blue-600 text-white
+                         hover:bg-blue-700
+                        dark:hover:bg-blue-800  border-blue-800 
+                        flex items-center gap-1 cursor-pointer
+                      "
                 >
                   התחברות עם Google
                 </button>
