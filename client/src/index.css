@@ -19,8 +19,7 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-
-    background-image: url("/med-bg.jpg");  /* חשוב! */
+    background-image: url("./med-bg.jpg");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
