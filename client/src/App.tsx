@@ -1089,14 +1089,7 @@ export default function App() {
             </a>
           </div>
 
-          <div className="flex items-center gap-4 mt-2">
-            <a href="https://www.buymeacoffee.com/moramiel8">
-              <img
-                src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=moramiel8&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
-                alt="Buy Me A Coffee"
-              />
-            </a>
-          </div>
+  
         </div>
       </footer>
 
