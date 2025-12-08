@@ -1,7 +1,8 @@
 // client/src/routes/EditCourseRoute.tsx
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ALL_COURSES, type Course, type AssessmentItem } from "../data/years";
+import type { Course, AssessmentItem } from "../data/years";
+import { useYearsContext } from "../context/YearsContext";
 
 import RichTextEditor from "../components/RichTextEditor";
 
@@ -12,8 +13,6 @@ import {
   IMG_MOODLE,
   IMG_NET,
 } from "../constants/icons";
-
-// TODO: WYSIWYG maybe?
 
 /* -------------------------------------------------
 TYPES
@@ -111,11 +110,18 @@ export default function EditCourseRoute() {
   const { id } = useParams();
   const nav = useNavigate();
 
-  const baseCourse: CourseContent | null = useMemo(
+   const { reload } = useYearsContext();
+
+  const { allCourses } = useYearsContext();
+
+  const baseCourse = useMemo<CourseContent | null>(
     () =>
-      normalizeBaseCourse(ALL_COURSES.find((c) => c.id === id) || null),
-    [id]
+      normalizeBaseCourse(
+        (allCourses.find((c) => c.id === id) as Course | undefined) || null
+      ),
+    [id, allCourses]
   );
+
 
   const [content, setContent] = useState<CourseContent | null>(baseCourse);
   const [loading, setLoading] = useState(true);
@@ -212,8 +218,9 @@ export default function EditCourseRoute() {
       });
 
       if (!res.ok) throw new Error("save failed");
-
+         await reload(); 
       alert("נשמר בהצלחה!");
+      
     } catch {
       alert("שמירה נכשלה");
     } finally {
@@ -299,7 +306,8 @@ export default function EditCourseRoute() {
     key: keyof AssessmentItem,
     value: string
   ) {
-    const arr = [...content![field]];
+    if (!content) return;
+    const arr = [...content[field]];
     arr[index] = { ...arr[index], [key]: value };
     setContent({ ...content!, [field]: arr });
   }
@@ -344,9 +352,18 @@ export default function EditCourseRoute() {
   /* -------------------------------------------------
   RENDER
   ---------------------------------------------------*/
-  if (loading || !content) {
-    return <div className="p-4">טוען נתוני קורס…</div>;
-  }
+if (loading) {
+  return <div className="p-4">טוען נתוני קורס…</div>;
+}
+
+if (!content) {
+  return (
+    <div className="p-4 text-sm text-red-600">
+      לא נמצאו נתונים לקורס עם המזהה <code>{id}</code>.
+    </div>
+  );
+}
+
 
   const reps = content.reps;
   const assignments = content.assignments;
@@ -512,6 +529,7 @@ export default function EditCourseRoute() {
             <span className="block mb-1">מה יהיה בהמשך?</span>
               <RichTextEditor
               value={content.whatwill || ""}
+                placeholder="מה יהיה בהמשך?"
               onChange={(value) =>
                 setContent({ ...content, whatwill: value })
               }

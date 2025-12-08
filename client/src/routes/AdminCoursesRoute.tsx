@@ -1,7 +1,8 @@
 // client/src/routes/AdminCoursesRoute.tsx
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { YEARS, type Course, type Year } from "../data/years";
+import type { Course } from "../data/years";
+import { useYearsContext } from "../context/YearsContext";
 
 type FlatCourse = Course & {
   yearId: string;
@@ -12,10 +13,15 @@ type FlatCourse = Course & {
 
 export default function AdminCoursesRoute() {
   const nav = useNavigate();
+  const { years } = useYearsContext(); // מגיע מהשרת
   const [search, setSearch] = useState("");
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
+
+  // קורסים שמחקנו ב-session הנוכחי (כדי להעלים מהטבלה בלי רענון)
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // לטעון overrides מה־DB
   useEffect(() => {
@@ -40,9 +46,11 @@ export default function AdminCoursesRoute() {
 
   const allCourses: FlatCourse[] = useMemo(() => {
     const out: FlatCourse[] = [];
-    YEARS.forEach((year: Year) => {
+    years.forEach((year) => {
       year.semesters.forEach((sem) => {
         sem.courses.forEach((c) => {
+          if (deletedIds.includes(c.id)) return; // אל תציגי קורסים שמחקנו
+
           const override = overrides[c.id] || {};
           const merged: Course = { ...c, ...override };
           out.push({
@@ -56,7 +64,7 @@ export default function AdminCoursesRoute() {
       });
     });
     return out;
-  }, [overrides]);
+  }, [years, overrides, deletedIds]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -76,11 +84,57 @@ export default function AdminCoursesRoute() {
     });
   }, [allCourses, search]);
 
+  // ------- מחיקת קורס --------
+  const handleDeleteCourse = async (course: FlatCourse) => {
+    const ok = window.confirm(
+      `האם את/ה בטוח/ה שברצונך למחוק את הקורס "${course.name}" (ID: ${course.id})?`
+    );
+    if (!ok) return;
+
+    try {
+      setDeletingId(course.id);
+
+      const res = await fetch(
+        `/api/admin/courses/${encodeURIComponent(course.id)}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.warn("[AdminCoursesRoute] delete failed", res.status, text);
+        alert("מחיקת הקורס נכשלה מצד השרת.");
+        return;
+      }
+
+      // להעלים מהטבלה בלי רענון מלא
+      setDeletedIds((prev) =>
+        prev.includes(course.id) ? prev : [...prev, course.id]
+      );
+
+      // גם לנקות override אם היה
+      setOverrides((prev) => {
+        const copy = { ...prev };
+        delete copy[course.id];
+        return copy;
+      });
+
+      alert("הקורס נמחק בהצלחה.");
+    } catch (e) {
+      console.warn("[AdminCoursesRoute] delete error", e);
+      alert("אירעה שגיאה בעת מחיקת הקורס.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto pb-12">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">ניהול קורסים</h1>
-        <Link to="/admin" className="text-xs text-neutral-500  underline">
+        <Link to="/admin" className="text-xs text-neutral-500 underline">
           חזרה לפאנל המנהל
         </Link>
       </div>
@@ -101,72 +155,88 @@ export default function AdminCoursesRoute() {
         </span>
       </div>
 
-    <div className="border border-neutral-200 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
-  <table className="w-full text-sm border-collapse">
-    <thead className="bg-neutral-50 text-xs text-neutral-500 dark:bg-slate-800 dark:text-slate-300">
-      <tr className="border-b border-neutral-200 dark:border-slate-700">
-        <th className="text-right py-2 px-3">שנה</th>
-        <th className="text-right py-2 px-3">סמסטר</th>
-        <th className="text-right py-2 px-3">שם הקורס</th>
-        <th className="text-right py-2 px-3">מספר קורס</th>
-        <th className="text-right py-2 px-3 w-32">פעולות</th>
-      </tr>
-    </thead>
-    <tbody>
-      {filtered.map((c) => (
-        <tr
-          key={`${c.yearId}-${c.semesterId}-${c.id}`}
-          className="
-            border-t border-neutral-200
-            hover:bg-neutral-50/70
-            dark:border-slate-800 dark:hover:bg-slate-800/70
-          "
-        >
-          <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
-            {c.yearTitle}
-          </td>
-          <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
-            {c.semesterTitle}
-          </td>
-          <td className="py-2 px-3 align-top">
-            <div className="font-medium text-sm text-neutral-900 dark:text-slate-50">
-              {c.name}
-            </div>
-            <div className="text-xs text-neutral-500 dark:text-slate-400">
-              {c.id}
-            </div>
-          </td>
-          <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
-            {c.courseNumber || "—"}
-          </td>
-          <td className="py-2 px-3 align-top text-xs">
-            <button
-              type="button"
-              onClick={() => nav(`/admin/course/${c.id}/edit`)} 
-              className="border rounded-xl px-3 py-1 bg-blue-600 text-white
+      <div className="border border-neutral-200 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 dark:border-slate-700">
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-neutral-50 text-xs text-neutral-500 dark:bg-slate-800 dark:text-slate-300">
+            <tr className="border-b border-neutral-200 dark:border-slate-700">
+              <th className="text-right py-2 px-3">שנה</th>
+              <th className="text-right py-2 px-3">סמסטר</th>
+              <th className="text-right py-2 px-3">שם הקורס</th>
+              <th className="text-right py-2 px-3">מספר קורס</th>
+              <th className="text-right py-2 px-3 w-40">פעולות</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((c) => (
+              <tr
+                key={`${c.yearId}-${c.semesterId}-${c.id}`}
+                className="
+                  border-t border-neutral-200
+                  hover:bg-neutral-50/70
+                  dark:border-slate-800 dark:hover:bg-slate-800/70
+                "
+              >
+                <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
+                  {c.yearTitle}
+                </td>
+                <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
+                  {c.semesterTitle}
+                </td>
+                <td className="py-2 px-3 align-top">
+                  <div className="font-medium text-sm text-neutral-900 dark:text-slate-50">
+                    {c.name}
+                  </div>
+                  <div className="text-xs text-neutral-500 dark:text-slate-400">
+                    {c.id}
+                  </div>
+                </td>
+                <td className="py-2 px-3 align-top text-xs text-neutral-700 dark:text-slate-200">
+                  {c.courseNumber || "—"}
+                </td>
+                <td className="py-2 px-3 align-top text-xs">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => nav(`/admin/course/${c.id}/edit`)}
+                      className="border rounded-xl px-3 py-1 bg-blue-600 text-white
                          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700
                          cursor-pointer"
-            >
-              עריכה
-            </button>
-          </td>
-        </tr>
-      ))}
+                    >
+                      עריכה
+                    </button>
 
-      {filtered.length === 0 && (
-        <tr>
-          <td
-            colSpan={5}
-            className="py-4 px-3 text-center text-xs text-neutral-500"
-          >
-            לא נמצאו קורסים התואמים לחיפוש.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+                    <button
+                      type="button"
+                      disabled={deletingId === c.id}
+                      onClick={() => handleDeleteCourse(c)}
+                      className="
+                        border rounded-xl px-3 py-1
+                        bg-red-600 text-white
+                        hover:bg-red-700
+                        disabled:opacity-60 disabled:cursor-not-allowed
+                        dark:border-red-700 dark:hover:bg-red-800
+                      "
+                    >
+                      {deletingId === c.id ? "מוחק…" : "מחיקה"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
 
+            {filtered.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="py-4 px-3 text-center text-xs text-neutral-500"
+                >
+                  לא נמצאו קורסים התואמים לחיפוש.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

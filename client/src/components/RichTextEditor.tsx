@@ -67,7 +67,7 @@ const BACKGROUND_PALETTE = flattenColumnMajor(BACKGROUND_MATRIX);
 // רשימת אימוג׳יז
 const EMOJIS = [
   "⬅️", "➡️", 
-  "📝", "📚", "📖", "💻", "💡", "💯", "👩🏻‍💻", "👨🏻‍💻", "📓", "✍🏻", "💡",  "🧠", "️💪",
+  "📝", "📚", "📖", "💻", "💡", "💯", "👩🏻‍💻", "👨🏻‍💻", "📓", "✍🏻", "💡",  "🧠",
   "😀", "😁","😂","🤣","😊",  "😍",  "😎",  "🤓",  "🤩",  "😅",  "🥲",  "😢",  "😴",  "🤒",
   "❤️",  "🩷", "🧡",  "💛",  "💚",  "💙",  "💜",  "🖤",  "🤍",
   "⭐",  "✨",  "🔥",
@@ -132,12 +132,15 @@ export default function RichTextEditor({
   );
 
   return (
+
+    //TODO: text color isnt white
     <div
       className={`
         rtl-quill
         ${className ?? ""}
         rounded-2xl border border-neutral-300
         overflow-hidden
+        dark:bg-slate-400
       `}
       dir="rtl"
     >

@@ -6,6 +6,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+import { generateCourseId } from "../server/utils/courseId.js";
+
+
+
 const router = express.Router();
 
 const HARD_ADMINS = (process.env.ADMIN_EMAILS || "morrabaev@mail.tau.ac.il")
@@ -117,7 +121,6 @@ export async function requireAdminOnly(req, res, next) {
     return res.status(500).json({ error: "server_error" });
   }
 }
-
 
 async function requireCourseVaadOrAdmin(req, res, next) {
   const user = req.user;
@@ -265,7 +268,6 @@ router.get("/assignments", requireAdminLike, async (_req, res) => {
   }
 });
 
-
 // כל משתמשי "ועד קורס" לבחירה כנציגים
 router.get("/course-vaad-users", requireAdminLike, async (_req, res) => {
   try {
@@ -292,14 +294,12 @@ router.get("/course-vaad-users", requireAdminLike, async (_req, res) => {
   }
 });
 
-
 // יצירת הקצאת "ועד קורס"
 router.post("/course-vaad", requireAdminLike, async (req, res) => {
   const { email, displayName, courseIds } = req.body;
 
-
   try {
-      console.log("course-vaad body:", req.body);
+    console.log("course-vaad body:", req.body);
     await query(
       `
       INSERT INTO course_vaad (email, display_name, course_ids)
@@ -364,7 +364,6 @@ router.put("/course-vaad/:id", requireAdminLike, async (req, res) => {
   }
 });
 
-
 // מחיקת הקצאת "ועד קורס"
 router.delete("/course-vaad/:id", requireAdminLike, async (req, res) => {
   const { id } = req.params;
@@ -382,7 +381,6 @@ router.delete("/course-vaad/:id", requireAdminLike, async (req, res) => {
   }
 });
 
-// הוספת תפקיד גלובלי
 // הוספת תפקיד גלובלי (ועד כללי / מנהל מערכת)
 router.post("/global-roles", requireAdminOnly, async (req, res) => {
   const { email, role, displayName } = req.body;
@@ -504,7 +502,6 @@ router.put(
     }
   }
 );
-
 
 router.post(
   "/course-content/:courseId/syllabus-upload",
@@ -719,6 +716,38 @@ router.delete("/announcements/:id", requireAdminLike, async (req, res) => {
 
 // ----- courses (create from admin / vaad) -----
 
+
+// מחיקת קורס (כולל תוכן ומודעות משויכות)
+router.delete("/courses/:courseId", requireAdminLike, async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    console.log("[DELETE /api/admin/courses/:courseId]", { courseId });
+
+    // קודם מוחקים תוכן קורס (אם יש)
+    await query("DELETE FROM course_content WHERE course_id = $1", [courseId]);
+
+    // מוחקים מודעות שקשורות לקורס
+    await query("DELETE FROM announcements WHERE course_id = $1", [courseId]);
+
+    // ורק אז את הקורס עצמו מטבלת הקורסים הדינמיים
+    const result = await query(
+      "DELETE FROM courses_extra WHERE id = $1 RETURNING id",
+      [courseId]
+    );
+
+    if (result.rowCount === 0) {
+      // לא נמצא קורס דינמי כזה – מחזירים 404 כדי שיהיה ברור בצד לקוח
+      return res.status(404).json({ error: "course_not_found" });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[DELETE /api/admin/courses/:courseId] error", err);
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // רשימת קורסים דינמיים (לא חובה, אבל שימושי לפאנל ניהול / debug)
 router.get("/courses", requireAdminLike, async (_req, res) => {
   try {
@@ -748,27 +777,32 @@ router.get("/courses", requireAdminLike, async (_req, res) => {
 });
 
 // יצירת קורס חדש (admin / vaad)
+// יצירת קורס חדש (admin / vaad)
 router.post("/courses", requireAdminLike, async (req, res) => {
-  const { name, shortName, yearLabel, semesterLabel, courseCode } = req.body || {};
+  const { name, shortName, yearLabel, semesterLabel, courseCode } =
+    req.body || {};
 
   if (!name || !yearLabel || !semesterLabel) {
     return res.status(400).json({ error: "invalid_body" });
   }
 
   try {
+    // כאן משתמשים במחולל ה-id
+    const courseId = await generateCourseId(name, courseCode);
+
     const result = await query(
       `
-      INSERT INTO courses_extra (name, short_name, year_label, semester_label, course_code)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO courses_extra (id, name, short_name, year_label, semester_label, course_code)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, name, short_name, year_label, semester_label, course_code, created_at
       `,
-      [name, shortName || null, yearLabel, semesterLabel, courseCode || null]
+      [courseId, name, shortName || null, yearLabel, semesterLabel, courseCode || null]
     );
 
     const r = result.rows[0];
 
     const payload = {
-      id: String(r.id),          // זה ה־courseId שה־client יקבל
+      id: r.id, // עכשיו זה general-chemistry / general-chemistry-2 וכו'
       name: r.name,
       shortName: r.short_name,
       yearLabel: r.year_label,

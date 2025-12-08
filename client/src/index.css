@@ -147,3 +147,24 @@
     display: none;
   }
 }
+
+/* Dark mode overrides for Quill */
+.dark .ql-editor {
+  color: #f1f5f9 !important; /* טקסט לבן/אפרפר */
+}
+
+.dark .ql-editor.ql-blank::before {
+  color: #94a3b8 !important; /* placeholder */
+}
+
+/* טולבר */
+.dark .ql-toolbar {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+  border-color: #475569 !important;
+}
+
+/* אזור כתיבה */
+.dark .ql-container {
+  background-color: transparent !important;
+  border-color: #475569 !important;
+}

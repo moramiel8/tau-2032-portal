@@ -1,11 +1,10 @@
 // client/src/routes/AdminPanel.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import type { User } from "../utils/auth";
-import { YEARS } from "../data/years";
-import type { Course } from "../data/years";
 import { useNavigate } from "react-router-dom";
 
+import { useYearsContext } from "../context/YearsContext";
 import NewCourseForm from "../components/NewCourseForm";
 
 import RichTextEditor from "../components/RichTextEditor";
@@ -82,12 +81,13 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="student@mail.tau.ac.il"
        className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+
       />
 
       <input
@@ -96,24 +96,26 @@ function GlobalRoleForm({ onAdd }: GlobalRoleFormProps) {
         onChange={(e) => setDisplayName(e.target.value)}
         placeholder="שם תצוגה (למשל: ועד כללי)"
          className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+
       />
 
       <select
         value={role}
         onChange={(e) => setRole(e.target.value as "admin" | "vaad")}
-          className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"  >
+         className="w-full border bg-white
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+  >
         <option value="vaad">ועד כללי</option>
         <option value="admin">מנהל מערכת</option>
       </select>
@@ -140,8 +142,11 @@ export default function AdminPanel({
 }: Props) {
   if (!user) return null;
 
+const { allCourses, reload } = useYearsContext();
   const nav = useNavigate();
    const navback = useNavigate(); 
+
+     const [lastCreatedCourseId, setLastCreatedCourseId] = useState<string | null>(null);
 
   const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
@@ -176,13 +181,7 @@ const cardClass =
     }
   };
 
-
-  const allCourses: Course[] = useMemo(
-    () => YEARS.flatMap((y) => y.semesters.flatMap((s) => s.courses)),
-    []
-  );
-
-  const courseName = (id: string) =>
+ const courseName = (id: string) =>
     allCourses.find((c) => c.id === id)?.name ?? id;
 
   // ---------- טעינת הקצאות + תפקידי־על ----------
@@ -455,13 +454,14 @@ const handleSaveAnnouncement = async () => {
               type="email"
               value={selectedUserEmail}
               onChange={(e) => setSelectedUserEmail(e.target.value)}
-              className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"
+          className="w-full border bg-white
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+
               placeholder="student@mail.tau.ac.il"
             />
           </label>
@@ -472,13 +472,14 @@ const handleSaveAnnouncement = async () => {
               type="text"
               value={selectedUserDisplayName}
               onChange={(e) => setSelectedUserDisplayName(e.target.value)}
-             className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"
+           className="w-full border bg-white
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+
               placeholder="למשל: מור עמיאל רבייב"
             />
           </label>
@@ -705,12 +706,31 @@ const handleSaveAnnouncement = async () => {
             (תוכן, מטלות, מבחנים) מתוך &quot;עריכת דפי הקורסים&quot;.
           </p>
 
-          <NewCourseForm
-            onCreated={(courseId) => {
-              // נווט ישירות לעמוד עריכת הקורס שנוצר:
-              nav(`/admin/course/${courseId}/edit`);
-            }}
-          />
+         <NewCourseForm
+  onCreated={async (courseId) => {
+    setLastCreatedCourseId(courseId);
+    await reload(); 
+  }}
+/>
+
+{lastCreatedCourseId && (
+  <div className="mt-3 text-xs text-green-600 flex items-center gap-2">
+    הקורס נוצר בהצלחה! מזהה:{" "}
+    <code className="px-2 py-1 bg-green-50 rounded-md text-[11px]">
+      {lastCreatedCourseId}
+    </code>
+    <button
+      type="button"
+      onClick={() => nav(`/admin/course/${lastCreatedCourseId}/edit`)}
+      className="border rounded-xl px-3 py-1 bg-blue-600 text-white
+                 hover:bg-blue-700 dark:hover:bg-blue-800 dark:border-blue-800
+                 cursor-pointer"
+    >
+      לעמוד עריכת הקורס
+    </button>
+  </div>
+)}
+
         </section>
       )}
 
@@ -734,9 +754,9 @@ const handleSaveAnnouncement = async () => {
                           <div dangerouslySetInnerHTML={{ __html: a.body }} />
                         ) : (
                          <div
-  className="announcement-body"
-  dangerouslySetInnerHTML={{ __html: a.body }}
-/>
+                          className="announcement-body text-xs text-neutral-600"
+                          dangerouslySetInnerHTML={{ __html: a.body }}
+                        />
 
                         )}
                       </div>
@@ -781,13 +801,14 @@ const handleSaveAnnouncement = async () => {
   <label className="block mb-2">
     <span className="block mb-1">כותרת:</span>
     <input
-       className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"
+      className="w-full border bg-white
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+
       value={newAnnTitle}
       onChange={(e) => setNewAnnTitle(e.target.value)}
     />
@@ -813,12 +834,13 @@ const handleSaveAnnouncement = async () => {
     <span className="block mb-1">שייך לקורס (לא חובה):</span>
     <select
        className="w-full border bg-white
-          rounded-2xl px-3 py-2 text-sm 
-          border-neutral-300 
-          focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
-          dark:bg-slate-400 border-slate-400"
+  rounded-2xl px-3 py-2 text-sm 
+  border-neutral-300 
+  focus:outline-none focus:ring-2 
+  focus:ring-blue-500 focus:border-blue-500
+  dark:text-black
+  dark:bg-slate-400 dark:border-slate-400"
+
       value={newAnnCourseId}
       onChange={(e) => setNewAnnCourseId(e.target.value)}
     >

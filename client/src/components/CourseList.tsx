@@ -1,6 +1,20 @@
 // client/src/components/CourseList.tsx
 import { useState, useEffect } from "react";
-import type { Year, Course } from "../data/years";
+import type { Course } from "../data/years"; // רק Course מיובא מכאן
+
+// מגדירים פה את הטייפים של Year + Semester
+type Semester = {
+  id: string;
+  title: string;
+  courses: Course[];
+};
+
+type Year = {
+  id: string;
+  title: string;
+  kind: "preclinical" | "clinical";
+  semesters: Semester[];
+};
 
 type Props = {
   years: Year[];
@@ -71,12 +85,12 @@ export default function CourseList({ years, onOpenCourse }: Props) {
     }
   }, [openPre, openClinical, openYears]);
 
-  // חלוקה לפרה־קליני / קליני
-  const preclinicalYears = years.filter((y) =>
-    ["y1", "y2", "y3"].includes(y.id)
+  // *** כאן ההפרדה לפי kind במקום לפי id y1/y4 ***
+  const preclinicalYears = years.filter(
+    (y) => y.kind === "preclinical"
   );
-  const clinicalYears = years.filter((y) =>
-    ["y4", "y5", "y6"].includes(y.id)
+  const clinicalYears = years.filter(
+    (y) => y.kind === "clinical"
   );
 
   const toggleYear = (yearId: string) => {
@@ -180,8 +194,7 @@ export default function CourseList({ years, onOpenCourse }: Props) {
                 bg-blue-700 hover:bg-blue-500
                 border-blue-200 text-white
                 dark:text-slate-100 dark:hover:bg-slate-500
-                dark: bg-blue-700 hover:bg-blue-500
-                dark: border-blue-700 text-white
+                dark:bg-blue-700 dark:border-blue-700
                 transition-colors cursor-pointer
               "
             >
@@ -200,13 +213,12 @@ export default function CourseList({ years, onOpenCourse }: Props) {
             <button
               type="button"
               onClick={() => setOpenClinical((v) => !v)}
-                className="
+              className="
                 text-xs border rounded-xl px-2 py-1
                 bg-blue-700 hover:bg-blue-500
                 border-blue-200 text-white
                 dark:text-slate-100 dark:hover:bg-slate-500
-                dark: bg-blue-700 hover:bg-blue-500
-                dark: border-blue-700 text-white
+                dark:bg-blue-700 dark:border-blue-700
                 transition-colors cursor-pointer
               "
             >

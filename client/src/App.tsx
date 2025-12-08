@@ -3,18 +3,18 @@ import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Routes, Route, useNavigate, Link } from "react-router-dom";
 
 import CourseList from "./components/CourseList";
-import { YEARS, type Course, type AssessmentItem, type Year } from "./data/years";
+import type { Course, AssessmentItem,  Year as StaticYear, } from "./data/years";
+import { YearsProvider } from "./context/YearsContext";
 
 import AdminCoursesRoute from "./routes/AdminCoursesRoute";
 import EditCourseRoute from "./routes/EditCourseRoute";
 import EditHomepageRoute from "./routes/EditHomepageRoute";
 
 import NewCourseForm from "./components/NewCourseForm";
+import { useYears } from "./hooks/useYears";
 
 import { useTheme } from "./hooks/useTheme";
-
 import { stripHtml } from "./utils/stripHtml";
-
 
 import {
   fetchSession,
@@ -63,7 +63,6 @@ type HomeContentProps = {
   canCreateCourse: boolean;
 };
 
-
 // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
 function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
@@ -72,7 +71,13 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
   const [announcements, setAnnouncements] = useState<AnnouncementPublic[]>([]);
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
-  // קורסים נוספים מה־DB
+  // טווח להצגת מטלות/מבחנים
+  const [range, setRange] = useState<"week" | "month" | "all">("week");
+
+  // טעינת מבנה השנים/סמסטרים/קורסים מהשרת
+const { years, allCourses, loading, error, reload } = useYears();
+
+  // קורסים נוספים מה־DB (API ישן – אפשר להסיר בהמשך)
   type ExtraCourse = {
     id: string;
     name: string;
@@ -84,9 +89,6 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
 
   const [extraCourses, setExtraCourses] = useState<ExtraCourse[]>([]);
   const [extraCoursesReloadKey, setExtraCoursesReloadKey] = useState(0);
-
-  // טווח להצגת מטלות/מבחנים
-  const [range, setRange] = useState<"week" | "month" | "all">("week");
 
   // ---- הופך URL-ים בטקסט ללינקים לחיצים ----
   const renderAnnouncementBodyWithLinks = (text: string): ReactNode => {
@@ -211,7 +213,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     })();
   }, []);
 
-  // טעינת קורסים דינמיים מהשרת
+  // טעינת קורסים דינמיים מהשרת (API ישן לקורסים נוספים)
   useEffect(() => {
     (async () => {
       try {
@@ -230,11 +232,13 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     })();
   }, [extraCoursesReloadKey]);
 
-  // YEARS אחרי merge עם overrides
+  // YEARS אחרי merge עם overrides, עם fallback ל־STATIC_YEARS אם קרתה שגיאה/עדיין טוען
   const yearsWithOverrides = useMemo(() => {
-    if (!Object.keys(overrides).length) return YEARS;
+    const baseYears = years; // אין יותר fallback ל־STATIC_YEARS
 
-    return YEARS.map((year) => ({
+    if (!Object.keys(overrides).length) return baseYears;
+
+    return baseYears.map((year) => ({
       ...year,
       semesters: year.semesters.map((sem) => ({
         ...sem,
@@ -244,62 +248,63 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
         }),
       })),
     }));
-  }, [overrides]);
+  }, [years, overrides]);
 
-  // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel
-  // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel
-  const yearsMerged = useMemo<Year[]>(() => {
-    // נתחיל מה־YEARS הקיימים + overrides, בלי לגעת במקור
-    const base: Year[] = yearsWithOverrides.map((year) => ({
-      ...year,
-      semesters: year.semesters.map((sem) => ({
-        ...sem,
-        courses: [...sem.courses],
-      })),
-    }));
 
-    extraCourses.forEach((c) => {
-      // 1. מוצאים / יוצרים שנה לפי title (אין לנו label ב-Year)
-      let year = base.find((y) => y.title === c.yearLabel);
-      if (!year) {
-        year = {
-          id: `extra-year-${c.yearLabel}`,
-          title: c.yearLabel,
-          // ברירת מחדל – אם תרצה, אפשר לשנות לפי yearLabel
-          kind: "preclinical",
-          semesters: [],
-        };
-        base.push(year);
-      }
+  // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel (אפשר להסיר אחרי שהכול עובר ל-DB)
+ const yearsMerged = useMemo<StaticYear[]>(() => {
+  const base: StaticYear[] = yearsWithOverrides.map((year) => ({
+    id: year.id,
+    title: year.title,
+    kind: "preclinical", // 👈 שדה שחייב להיות בטיפוס StaticYear
+    semesters: year.semesters.map((sem) => ({
+      id: sem.id,
+      title: sem.title,
+      // אם ב־overrides כבר יש assignments וכו' זה עדיין יעבוד
+      courses: sem.courses as unknown as Course[],
+    })),
+  }));
 
-      // 2. מוצאים / יוצרים סמסטר לפי title (גם פה אין label)
-      let sem = year.semesters.find((s) => s.title === c.semesterLabel);
-      if (!sem) {
-        sem = {
-          id: `extra-sem-${c.yearLabel}-${c.semesterLabel}`,
-          title: c.semesterLabel,
-          courses: [],
-        };
-        year.semesters.push(sem);
-      }
+  extraCourses.forEach((c) => {
+    // 1. מוצאים / יוצרים שנה לפי title
+    let year = base.find((y) => y.title === c.yearLabel);
+    if (!year) {
+      year = {
+        id: `extra-year-${c.yearLabel}`,
+        title: c.yearLabel,
+        kind: "preclinical", // 👈 שוב, כדי לעמוד בטיפוס
+        semesters: [],
+      };
+      base.push(year);
+    }
 
-      // 3. מוסיפים קורס אם לא קיים כבר
-      if (!sem.courses.some((course) => course.id === c.id)) {
-        const newCourse: Course = {
-          id: c.id,
-          name: c.name,
-          shortName: c.shortName || undefined,
-          assignments: [],
-          exams: [],
-          labs: [],
-        };
-        sem.courses.push(newCourse);
-      }
-    });
+    // 2. מוצאים / יוצרים סמסטר לפי title
+    let sem = year.semesters.find((s) => s.title === c.semesterLabel);
+    if (!sem) {
+      sem = {
+        id: `extra-sem-${c.yearLabel}-${c.semesterLabel}`,
+        title: c.semesterLabel,
+        courses: [],
+      };
+      year.semesters.push(sem);
+    }
 
-    return base;
-  }, [yearsWithOverrides, extraCourses]);
+    // 3. מוסיפים קורס אם לא קיים כבר
+    if (!sem.courses.some((course) => course.id === c.id)) {
+      const newCourse: Course = {
+        id: c.id,
+        name: c.name,
+        shortName: c.shortName || undefined,
+        assignments: [],
+        exams: [],
+        labs: [],
+      };
+      sem.courses.push(newCourse);
+    }
+  });
 
+  return base;
+}, [yearsWithOverrides, extraCourses]);
 
   // עוזר לפענח תאריך
   const parseHebrewDate = (value: string): Date | null => {
@@ -333,7 +338,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     return null;
   };
 
-  // מטלות + מבחנים קרובים (על בסיס YEARS / overrides בלבד כרגע)
+  // מטלות + מבחנים קרובים (על בסיס yearsWithOverrides בלבד כרגע)
   type UpcomingItem = {
     courseId: string;
     courseName: string;
@@ -363,67 +368,69 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
       maxDate = null;
     }
 
-    yearsWithOverrides.forEach((year) => {
-      year.semesters.forEach((sem) => {
-        sem.courses.forEach((course) => {
-          const assignments = (course.assignments || []) as AssessmentItem[];
-          const exams = (course.exams || []) as AssessmentItem[];
-          const labs = (course.labs || []) as AssessmentItem[];
+  yearsWithOverrides.forEach((year) => {
+  year.semesters.forEach((sem) => {
+    sem.courses.forEach((courseRaw) => {
+      const course = courseRaw as Course;
 
-          assignments.forEach((a) => {
-            if (!a.date) return;
-            const d = parseHebrewDate(a.date);
-            if (!d) return;
-            if (d >= today && (!maxDate || d <= maxDate)) {
-              items.push({
-                courseId: course.id,
-                courseName: course.name,
-                title: a.title || "",
-                date: a.date,
-                dateObj: d,
-                type: "assignment",
-                notes: a.notes ? stripHtml(a.notes) : "",
+      const assignments = (course.assignments || []) as AssessmentItem[];
+      const exams = (course.exams || []) as AssessmentItem[];
+      const labs = (course.labs || []) as AssessmentItem[];
 
-              });
-            }
+      assignments.forEach((a) => {
+        if (!a.date) return;
+        const d = parseHebrewDate(a.date);
+        if (!d) return;
+        if (d >= today && (!maxDate || d <= maxDate)) {
+          items.push({
+            courseId: course.id,
+            courseName: course.name,
+            title: a.title || "",
+            date: a.date,
+            dateObj: d,
+            type: "assignment",
+            notes: a.notes ? stripHtml(a.notes) : "",
           });
+        }
+      });
 
-          exams.forEach((ex) => {
-            if (!ex.date) return;
-            const d = parseHebrewDate(ex.date);
-            if (!d) return;
-            if (d >= today && (!maxDate || d <= maxDate)) {
-              items.push({
-                courseId: course.id,
-                courseName: course.name,
-                title: ex.title || "",
-                date: ex.date,
-                dateObj: d,
-                type: "exam",
-                notes: ex.notes ? stripHtml(ex.notes) : "",
-              });
-            }
+      exams.forEach((ex) => {
+        if (!ex.date) return;
+        const d = parseHebrewDate(ex.date);
+        if (!d) return;
+        if (d >= today && (!maxDate || d <= maxDate)) {
+          items.push({
+            courseId: course.id,
+            courseName: course.name,
+            title: ex.title || "",
+            date: ex.date,
+            dateObj: d,
+            type: "exam",
+            notes: ex.notes ? stripHtml(ex.notes) : "",
           });
+        }
+      });
 
-          labs.forEach((lab) => {
-            if (!lab.date) return;
-            const d = parseHebrewDate(lab.date);
-            if (!d) return;
-            if (d >= today && (!maxDate || d <= maxDate)) {
-              items.push({
-                courseId: course.id,
-                courseName: course.name,
-                title: lab.title || "",
-                date: lab.date,
-                dateObj: d,
-                type: "lab",
-                notes: lab.notes ? stripHtml(lab.notes) : "",
-              });
-            }
+      labs.forEach((lab) => {
+        if (!lab.date) return;
+        const d = parseHebrewDate(lab.date);
+        if (!d) return;
+        if (d >= today && (!maxDate || d <= maxDate)) {
+          items.push({
+            courseId: course.id,
+            courseName: course.name,
+            title: lab.title || "",
+            date: lab.date,
+            dateObj: d,
+            type: "lab",
+            notes: lab.notes ? stripHtml(lab.notes) : "",
           });
-        });
+        }
       });
     });
+  });
+});
+
 
     items.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
     return items.slice(0, 25);
@@ -443,7 +450,6 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
             dark:border-slate-700 
           "
         >
-
           <h1 className="text-2xl font-bold mb-1">
             {homepage.heroTitle || "ברוכים הבאים לאתר מחזור 2032"}
           </h1>
@@ -460,70 +466,67 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
       )}
 
       {/* לוח מודעות */}
-    {/* לוח מודעות */}
-{announcements.length > 0 && (
-  <section
-      className="
-          mb-8 border rounded-2xl p-4 shadow-sm
-          bg-white dark:bg-slate-900
-          border-neutral-200 dark:border-slate-700
-        "
-      >
-    <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
-    <ul className="space-y-2 text-sm">
-      {announcements.map((a) => (
-        <li key={a.id} className="border-b last:border-b-0 pb-2">
-          <div className="font-medium">{a.title}</div>
+      {announcements.length > 0 && (
+        <section
+          className="
+            mb-8 border rounded-2xl p-4 shadow-sm
+            bg-white dark:bg-slate-900
+            border-neutral-200 dark:border-slate-700
+          "
+        >
+          <h2 className="text-lg font-semibold mb-2">לוח מודעות</h2>
+          <ul className="space-y-2 text-sm">
+            {announcements.map((a) => (
+              <li key={a.id} className="border-b last:border-b-0 pb-2">
+                <div className="font-medium">{a.title}</div>
 
-          <div className="text-xs text-neutral-700 dark:text-slate-300">
-            {renderAnnouncementBody(a.body || "")}
-          </div>
+                <div className="text-xs text-neutral-700 dark:text-slate-300">
+                  {renderAnnouncementBody(a.body || "")}
+                </div>
 
-         {(a.authorName || a.authorEmail || a.updatedAt) && (
-  <div className="mt-1 text-[11px] text-neutral-400">
+                {(a.authorName || a.authorEmail || a.updatedAt) && (
+                  <div className="mt-1 text-[11px] text-neutral-400">
+                    נערך על ידי{" "}
+                    {a.authorName || a.authorEmail || "מערכת האתר"}
+                    {a.updatedAt &&
+                      (() => {
+                        const d = new Date(a.updatedAt);
 
-    נערך על ידי {a.authorName || a.authorEmail || "מערכת האתר"}
+                        const dayName = d.toLocaleDateString("he-IL", {
+                          weekday: "long",
+                        });
 
-    {a.updatedAt && (() => {
-      const d = new Date(a.updatedAt);
+                        const dateStr = d.toLocaleDateString("he-IL", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        });
 
-      const dayName = d.toLocaleDateString("he-IL", {
-        weekday: "long",
-      });
+                        const timeStr = d.toLocaleTimeString("he-IL", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
 
-      const dateStr = d.toLocaleDateString("he-IL", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-
-      const timeStr = d.toLocaleTimeString("he-IL", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      return (
-        <>
-          {" ב"} 
-          {dayName}{" , "}
-          {dateStr}
-          {" בשעה "}
-          {timeStr}
-        </>
-      );
-    })()}
-  </div>
-)}
-
-        </li>
-      ))}
-    </ul>
-  </section>
-)}
-
+                        return (
+                          <>
+                            {" ב"}
+                            {dayName}
+                            {" , "}
+                            {dateStr}
+                            {" בשעה "}
+                            {timeStr}
+                          </>
+                        );
+                      })()}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* טבלת מטלות + מבחנים קרובים */}
-           {/* טבלת מטלות + מבחנים קרובים */}
       <section
         className="
           mb-8 border rounded-2xl p-4 shadow-sm
@@ -534,50 +537,49 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">מטלות ומועדי מבחנים קרובים</h2>
 
-         <div className="flex gap-2 text-xs">
-  {/* שבוע */}
-  <button
-    className={
-      "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
-      (range === "week"
-        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
-        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
-          "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-    }
-    onClick={() => setRange("week")}
-  >
-    שבוע
-  </button>
+          <div className="flex gap-2 text-xs">
+            {/* שבוע */}
+            <button
+              className={
+                "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
+                (range === "week"
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
+                  : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
+                    "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+              }
+              onClick={() => setRange("week")}
+            >
+              שבוע
+            </button>
 
-  {/* חודש */}
-  <button
-    className={
-      "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
-      (range === "month"
-        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
-        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
-          "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-    }
-    onClick={() => setRange("month")}
-  >
-    חודש
-  </button>
+            {/* חודש */}
+            <button
+              className={
+                "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
+                (range === "month"
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
+                  : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
+                    "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+              }
+              onClick={() => setRange("month")}
+            >
+              חודש
+            </button>
 
-  {/* הכל */}
-  <button
-    className={
-      "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
-      (range === "all"
-        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
-        : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
-          "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
-    }
-    onClick={() => setRange("all")}
-  >
-    הכל
-  </button>
-</div>
-
+            {/* הכל */}
+            <button
+              className={
+                "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
+                (range === "all"
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500"
+                  : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100 " +
+                    "dark:bg-transparent dark:text-slate-200 dark:border-slate-500 dark:hover:bg-slate-800")
+              }
+              onClick={() => setRange("all")}
+            >
+              הכל
+            </button>
+          </div>
         </div>
 
         {latestItems.length === 0 ? (
@@ -605,7 +607,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                     <td className="py-1 px-2 whitespace-nowrap">
                       {item.date}
                     </td>
-                    <td className="py-1  px-2 whitespace-nowrap">
+                    <td className="py-1 px-2 whitespace-nowrap">
                       <Link
                         to={`/course/${item.courseId}`}
                         className="text-blue-600 hover:underline"
@@ -613,14 +615,14 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                         {item.courseName}
                       </Link>
                     </td>
-                    <td className="py-1   px-2 whitespace-nowrap">
+                    <td className="py-1 px-2 whitespace-nowrap">
                       {item.type === "assignment"
                         ? "📝 מטלה"
                         : item.type === "exam"
                         ? "💯 מבחן"
                         : "🔬 מעבדה"}
                     </td>
-                    <td className="py-1  px-2">{item.title}</td>
+                    <td className="py-1 px-2">{item.title}</td>
                     <td className="py-1 text-neutral-500">
                       {item.notes || ""}
                     </td>
@@ -632,21 +634,26 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
         )}
       </section>
 
-
       {/* יומן */}
-      <section className="mb-4">
+      <section  className="
+            mb-8 border rounded-2xl p-3 shadow-sm
+            bg-white dark:bg-slate-900
+            border-neutral-200 dark:border-slate-700">
         <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
         <CalendarEmbed
-          mode="WEEK"
-          calendars={[
-            {
-              id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com",
-            },
-            {
-              id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com",
-            },
-          ]}
-        />
+  mode="WEEK"
+  calendars={[
+    {
+      id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com",
+      color: "#4285F4", // כחול
+    },
+    {
+      id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com",
+      color: "#DB4437", // אדום
+    },
+  ]}
+/>
+
       </section>
 
       {/* ⭐ הוספת קורס חדש – מתחת ליומן + ממוזער */}
@@ -671,12 +678,13 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
                 יצירת קורס חדש במערכת, כולל שיוך לשנה ולסמסטר.
               </p>
 
-              <NewCourseForm
-                onCreated={() => {
-                  // מרענן את רשימת הקורסים מהשרת אחרי יצירה
-                  setExtraCoursesReloadKey((x) => x + 1);
-                }}
-              />
+             <NewCourseForm
+  onCreated={async () => {
+    setExtraCoursesReloadKey((x) => x + 1); // אפשר להשאיר/להוריד
+    await reload(); // 👈 זה מה שמעדכן את years + allCourses
+  }}
+/>
+
             </div>
           </details>
         </section>
@@ -687,7 +695,6 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
     </>
   );
 }
-
 
 // ---- App ----
 export default function App() {
@@ -807,291 +814,293 @@ export default function App() {
     ) : null;
 
   return (
-      <div
-        className="
-    min-h-screen 
-    bg-black/15               // לייט – כמעט שקוף
-    text-black 
-    dark:bg-black/70         // דארק – חצי שקוף, רואים את התמונה מתחת
-    dark:text-slate-100 
-    transition-colors
-  "
-  dir="rtl"
-      >
-        {/* toolbar קבוע */}
-        <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            {/* לוגו + טקסט */}
-            <Link
-              to="/"
-              className="flex items-center gap-3 cursor-pointer select-none"
-              aria-label="חזרה לעמוד הבית"
-            >
-              <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
-                MedTAU
+    <div
+      className="
+        min-h-screen 
+        bg-black/15
+        text-black 
+        dark:bg-black/70
+        dark:text-slate-100 
+        transition-colors
+      "
+      dir="rtl"
+    >
+      {/* toolbar קבוע */}
+      <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* לוגו + טקסט */}
+          <Link
+            to="/"
+            className="flex items-center gap-3 cursor-pointer select-none"
+            aria-label="חזרה לעמוד הבית"
+          >
+            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
+              MedTAU
+            </div>
+            <div>
+              <div className="text-base font-semibold">
+                אתר מחזור 2032 - תל אביב
               </div>
-              <div>
-                <div className="text-base font-semibold">
-                  אתר מחזור 2032 - תל אביב
-                </div>
-                <div className="text-xs text-neutral-500">
-                  אתר עזר לסטודנטים לרפואה שש שנתי
-                </div>
+              <div className="text-xs text-neutral-500">
+                אתר עזר לסטודנטים לרפואה שש שנתי
               </div>
-            </Link>
+            </div>
+          </Link>
 
-            <div className="flex items-center gap-2">
-              {/* כפתור Dark Mode */}
+          <div className="flex items-center gap-2">
+            {/* כפתור Dark Mode */}
             <button
-            onClick={toggleTheme}
+              onClick={toggleTheme}
               className="
-            rounded-2xl px-3 py-2 text-sm
-          border border-neutral-300           /* גבול דק ואפרפר */
-        hover:bg-neutral-100
-         dark:border-slate-600 dark:hover:bg-slate-800
-        cursor-pointer flex items-center gap-1
-          "
-        >
-  {theme === "dark" ? "☀️" : "🌙"}
-</button>
+                rounded-2xl px-3 py-2 text-sm
+                border border-neutral-300
+                hover:bg-neutral-100
+                dark:border-slate-600 dark:hover:bg-slate-800
+                cursor-pointer flex items-center gap-1
+              "
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
 
+            {user && (
+              <>
+                <span className="text-xs text-neutral-400 hidden sm:inline">
+                  {user.email}
+                </span>
 
-              {user && (
-                <>
-                  <span className="text-xs text-neutral-400 hidden sm:inline">
-                    {user.email}
-                  </span>
-
-                  {canSeeAdminPanel && (
-                    <button
-                      onClick={() => nav("/admin")}
-                      className="
-                       border-red-600 rounded-2xl px-3 py-2 text-sm
-                         bg-red-600 text-white 
-                         hover:bg-red-700
-                        dark:hover:bg-red-800  border-red-800 
-                        flex items-center gap-1 cursor-pointer
-                      "
-                  >
-                      פאנל ניהול
-                    </button>
-                  )}
-
+                {canSeeAdminPanel && (
                   <button
-                    onClick={handleLogout}
+                    onClick={() => nav("/admin")}
                     className="
-                       border-blue-600   rounded-2xl px-3 py-2 text-sm
-                         bg-blue-600 text-white
-                         hover:bg-blue-700
-                        dark:hover:bg-blue-800  border-blue-800 
-                        flex items-center gap-1 cursor-pointer
-                      "
-                    >
-                    <span className="inline">התנתקות</span>
+                      border-red-600 rounded-2xl px-3 py-2 text-sm
+                      bg-red-600 text-white 
+                      hover:bg-red-700
+                      dark:hover:bg-red-800  border-red-800 
+                      flex items-center gap-1 cursor-pointer
+                    "
+                  >
+                    פאנל ניהול
                   </button>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
+                )}
 
-        <main className="max-w-6xl mx-auto px-4 py-6">
-          {loadingUser ? (
-            <div className="text-sm text-neutral-500">טוען…</div>
-          ) : !user ? (
-            <div  className="
-          mb-8 border rounded-2xl p-4 shadow-sm
-          bg-white dark:bg-slate-900
-          border-neutral-200 dark:border-slate-700
-        ">
-              כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
-              בחר/י חשבון עם הדומיין <b>mail.tau.ac.il</b>.
-              <div className="mt-3">
                 <button
-                  onClick={handleSignIn}
+                  onClick={handleLogout}
                   className="
-                       border-blue-600   rounded-2xl px-3 py-2 text-sm
-                         bg-blue-600 text-white
-                         hover:bg-blue-700
-                        dark:hover:bg-blue-800  border-blue-800 
-                        flex items-center gap-1 cursor-pointer
-                      "
+                    border-blue-600 rounded-2xl px-3 py-2 text-sm
+                    bg-blue-600 text-white
+                    hover:bg-blue-700
+                    dark:hover:bg-blue-800 border-blue-800 
+                    flex items-center gap-1 cursor-pointer
+                  "
                 >
-                  התחברות עם Google
+                  <span className="inline">התנתקות</span>
                 </button>
-              </div>
-            </div>
-          ) : !isTauEmail(user.email) ? (
-            <div className="border rounded-2xl p-6 text-sm text-red-600">
-              הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
-              חשבון TAU.
-            </div>
-          ) : (
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <HomeContent
-                    openCourse={openCourse}
-                    canCreateCourse={isAdmin || isGlobalVaad}
-                  />
-                }
-              />
+              </>
+            )}
+          </div>
+        </div>
+      </header>
 
-              <Route path="/course/:id" element={<CourseRoute />} />
-
-              {/* admin routes */}
-              <Route
-                path="/admin"
-                element={
-                  canSeeAdminPanel ? (
-                    <AdminPanel
-                      user={user}
-                      isAdmin={isAdmin}
-                      isGlobalVaad={isGlobalVaad}
-                      isCourseVaad={isCourseVaad}
-                      myCourseVaadIds={myCourseVaadIds}
-                    />
-                  ) : (
-                    <HomeContent
-                      openCourse={openCourse}
-                      canCreateCourse={isAdmin || isGlobalVaad}
-                    />
-                  )
-                }
-              />
-
-              <Route
-                path="/admin/home"
-                element={
-                  isAdmin || isGlobalVaad ? (
-                    <EditHomepageRoute />
-                  ) : (
-                    <HomeContent
-                      openCourse={openCourse}
-                      canCreateCourse={isAdmin || isGlobalVaad}
-                    />
-                  )
-                }
-              />
-
-              <Route
-                path="/admin/courses"
-                element={
-                  isAdmin || isGlobalVaad ? (
-                    <AdminCoursesRoute />
-                  ) : (
-                    <HomeContent
-                      openCourse={openCourse}
-                      canCreateCourse={isAdmin || isGlobalVaad}
-                    />
-                  )
-                }
-              />
-
-              <Route
-                path="/admin/course/:id/edit"
-                element={
-                  canSeeAdminPanel ? (
-                    <EditCourseRoute />
-                  ) : (
-                    <HomeContent
-                      openCourse={openCourse}
-                      canCreateCourse={isAdmin || isGlobalVaad}
-                    />
-                  )
-                }
-              />
-
-              {/* fallback */}
-              <Route
-                path="*"
-                element={
-                  <HomeContent
-                    openCourse={openCourse}
-                    canCreateCourse={isAdmin || isGlobalVaad}
-                  />
-                }
-              />
-            </Routes>
-          )}
-        </main>
-
-        <footer
-          className="
-            max-w-6xl mx-auto px-4 py-8 text-xs
-            text-neutral-500 dark:text-slate-300
-          "
-        >
-          <div className="flex flex-col gap-2">
-            <span>
-              נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן
-              לאחרונה {lastUpdatedText || "—"}
-            </span>
-
-            <span className="flex items-center gap-1 text-neutral-400">
-              מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
-            </span>
-
-            <div className="flex items-center gap-4 mt-2">
-              <a
-                href="https://www.facebook.com/mork0/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-70 hover:opacity-100 transition"
+      <main className="max-w-6xl mx-auto px-4 py-6">
+           <YearsProvider>
+        {loadingUser ? (
+          <div className="text-sm text-neutral-500">טוען…</div>
+        ) : !user ? (
+          <div
+            className="
+              mb-8 border rounded-2xl p-4 shadow-sm
+              bg-white dark:bg-slate-900
+              border-neutral-200 dark:border-slate-700
+            "
+          >
+            כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
+            בחר/י חשבון עם הדומיין <b>mail.tau.ac.il</b>.
+            <div className="mt-3">
+              <button
+                onClick={handleSignIn}
+                className="
+                  border-blue-600 rounded-2xl px-3 py-2 text-sm
+                  bg-blue-600 text-white
+                  hover:bg-blue-700
+                  dark:hover:bg-blue-800 border-blue-800 
+                  flex items-center gap-1 cursor-pointer
+                "
               >
-                <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
-              </a>
-
-              <a
-                href="https://github.com/moramiel8"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-70 hover:opacity-100 transition"
-              >
-                <img
-                  src={IMG_GITHUB}
-                  alt="GitHub"
-                  className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
-                />
-              </a>
-
-              <a
-                href="https://www.buymeacoffee.com/moramiel8"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-70 hover:opacity-100 transition"
-              >
-                <img
-                  src={IMG_BUYME}
-                  alt="BuyMe"
-                  className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
-                />
-              </a>
-
-              <a
-                href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-70 hover:opacity-100 transition"
-              >
-                <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
-              </a>
-            </div>
-
-            <div className="flex items-center gap-4 mt-2">
-              <a href="https://www.buymeacoffee.com/moramiel8">
-                <img
-                  src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=moramiel8&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
-                  alt="Buy Me A Coffee"
-                />
-              </a>
+                התחברות עם Google
+              </button>
             </div>
           </div>
-        </footer>
+        ) : !isTauEmail(user.email) ? (
+          <div className="border rounded-2xl p-6 text-sm text-red-600">
+            הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
+            חשבון TAU.
+          </div>
+        ) : (
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <HomeContent
+                  openCourse={openCourse}
+                  canCreateCourse={isAdmin || isGlobalVaad}
+                />
+              }
+            />
 
-        <Toast />
-      </div>
-   
+            <Route path="/course/:id" element={<CourseRoute />} />
+
+            {/* admin routes */}
+            <Route
+              path="/admin"
+              element={
+                canSeeAdminPanel ? (
+                  <AdminPanel
+                    user={user}
+                    isAdmin={isAdmin}
+                    isGlobalVaad={isGlobalVaad}
+                    isCourseVaad={isCourseVaad}
+                    myCourseVaadIds={myCourseVaadIds}
+                  />
+                ) : (
+                  <HomeContent
+                    openCourse={openCourse}
+                    canCreateCourse={isAdmin || isGlobalVaad}
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/admin/home"
+              element={
+                isAdmin || isGlobalVaad ? (
+                  <EditHomepageRoute />
+                ) : (
+                  <HomeContent
+                    openCourse={openCourse}
+                    canCreateCourse={isAdmin || isGlobalVaad}
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/admin/courses"
+              element={
+                isAdmin || isGlobalVaad ? (
+                  <AdminCoursesRoute />
+                ) : (
+                  <HomeContent
+                    openCourse={openCourse}
+                    canCreateCourse={isAdmin || isGlobalVaad}
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/admin/course/:id/edit"
+              element={
+                canSeeAdminPanel ? (
+                  <EditCourseRoute />
+                ) : (
+                  <HomeContent
+                    openCourse={openCourse}
+                    canCreateCourse={isAdmin || isGlobalVaad}
+                  />
+                )
+              }
+            />
+
+            {/* fallback */}
+            <Route
+              path="*"
+              element={
+                <HomeContent
+                  openCourse={openCourse}
+                  canCreateCourse={isAdmin || isGlobalVaad}
+                />
+              }
+            />
+          </Routes>
+        )}
+        </YearsProvider>
+      </main>
+
+      <footer
+        className="
+          max-w-6xl mx-auto px-4 py-8 text-xs
+          text-neutral-800 dark:text-slate-300
+        "
+      >
+        <div className="flex flex-col gap-2">
+          <span>
+            נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן
+            לאחרונה {lastUpdatedText || "—"}
+          </span>
+
+          <span className="flex items-center gap-1 text-neutral-600">
+            מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
+          </span>
+
+          <div className="flex items-center gap-4 mt-2">
+            <a
+              href="https://www.facebook.com/mork0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
+            </a>
+
+            <a
+              href="https://github.com/moramiel8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img
+                src={IMG_GITHUB}
+                alt="GitHub"
+                className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+              />
+            </a>
+
+            <a
+              href="https://www.buymeacoffee.com/moramiel8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img
+                src={IMG_BUYME}
+                alt="BuyMe"
+                className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+              />
+            </a>
+
+            <a
+              href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
+            </a>
+          </div>
+
+          <div className="flex items-center gap-4 mt-2">
+            <a href="https://www.buymeacoffee.com/moramiel8">
+              <img
+                src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=moramiel8&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
+                alt="Buy Me A Coffee"
+              />
+            </a>
+          </div>
+        </div>
+      </footer>
+
+      <Toast />
+    </div>
   );
 }

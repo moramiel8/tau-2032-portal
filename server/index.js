@@ -8,6 +8,9 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 
+import yearsRouter from "./routes/years.js";
+
+
 import { query } from "./db.js";
 import adminRouter, {
   requireAuth,
@@ -87,6 +90,10 @@ app.use(
     maxAge: 1000 * 60 * 60 * 24 * 7,
   })
 );
+
+// ------------- dynamic courses -------------
+app.use("/api", yearsRouter);
+
 
 // polyfill ל-passport + cookie-session
 app.use((req, _res, next) => {

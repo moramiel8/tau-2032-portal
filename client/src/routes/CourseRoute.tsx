@@ -3,11 +3,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { stripHtml } from "../utils/stripHtml";
 
-import {
-  ALL_COURSES,
-  type Course,
-  type AssessmentItem,
-} from "../data/years";
+import { useYearsContext } from "../context/YearsContext";
+
 import {
   IMG_DRIVE,
   IMG_MOODLE,
@@ -15,13 +12,52 @@ import {
   IMG_PDF,
 } from "../constants/icons";
 
+/* ---------- טיפוסים מקומיים (במקום import מ־data/years) ---------- */
+
+type AssessmentItem = {
+  title?: string;
+  date?: string;
+  weight?: string;
+  notes?: string;
+};
+
+type ExternalMaterial = {
+  label: string;
+  href: string;
+  icon?: string;
+};
+
+type Links = {
+  drive?: string;
+  moodle?: string;
+  whatsapp?: string;
+};
+
+type BaseCourse = {
+  id: string;
+  name: string;
+  reps?: string[] | string;
+  coordinator?: string;
+  courseNumber?: string;
+  note?: string;
+  place?: string;
+  whatwas?: string;
+  whatwill?: string;
+  assignments?: AssessmentItem[];
+  exams?: AssessmentItem[];
+  labs?: AssessmentItem[];
+  syllabus?: string;
+  links?: Links;
+  externalMaterials?: ExternalMaterial[];
+};
+
 type VaadUser = {
   id: string;
   email: string;
   displayName: string | null;
 };
 
-type CourseContent = Course & {
+type CourseContent = BaseCourse & {
   lastEditedByEmail?: string | null;
   lastEditedByName?: string | null;
   lastEditedAt?: string | null;
@@ -38,14 +74,17 @@ type CourseAnnouncement = {
   authorName?: string | null;
 };
 
+/* ------------------------------------------------------------------ */
+
 export default function CourseRoute() {
+  const { allCourses } = useYearsContext();
   const { id } = useParams();
-  const navigate = useNavigate();  
+  const navigate = useNavigate();
+
   const [course, setCourse] = useState<CourseContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
-
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -54,7 +93,6 @@ export default function CourseRoute() {
       navigate("/"); // אם נכנסו ישר ללינק, נחזור לדף הראשי
     }
   };
-
 
   /* --- טענת משתמשי ועד (לשמות יפים וכו') --- */
   useEffect(() => {
@@ -76,7 +114,8 @@ export default function CourseRoute() {
   useEffect(() => {
     if (!id) return;
 
-    const baseCourse = ALL_COURSES.find((c) => c.id === id) || null;
+    const baseCourse =
+      (allCourses.find((c) => c.id === id) as BaseCourse | undefined) || null;
 
     (async () => {
       try {
@@ -107,7 +146,7 @@ export default function CourseRoute() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, allCourses]);
 
   /* --- טענת מודעות לקורס (לתצוגה לסטודנטים) --- */
   useEffect(() => {
@@ -262,19 +301,19 @@ export default function CourseRoute() {
   return (
     <div className="max-w-4xl mx-auto pb-12 px-4">
       <header className="mb-5 border-b pb-3 border-neutral-200 dark:border-slate-800">
-         {/* כפתור חזור */}
-<button
-  onClick={handleBack}
-  className="
-    group mb-2 inline-flex items-center gap-1
-    rounded-2xl border px-3 py-1 text-xs cursor-pointer
-    border-neutral-300 text-neutral-700 bg-white
-    dark:border-slate-600 dark:text-slate-200 dark:bg-slate-900
-  "
->
-  <span className="animate-pulse">→</span>
-  חזרה
-</button>
+        {/* כפתור חזור */}
+        <button
+          onClick={handleBack}
+          className="
+            group mb-2 inline-flex items-center gap-1
+            rounded-2xl border px-3 py-1 text-xs cursor-pointer
+            border-neutral-300 text-neutral-700 bg-white
+            dark:border-slate-600 dark:text-slate-200 dark:bg-slate-900
+          "
+        >
+          <span className="animate-pulse">→</span>
+          חזרה
+        </button>
         <h1 className="text-2xl font-semibold mb-1 dark:text-slate-100">
           {course.name}
         </h1>
@@ -291,10 +330,12 @@ export default function CourseRoute() {
 
       {/* לינקים ואייקונים */}
       {hasLinks && (
-        <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+        <section
+          className=" mb-8 border rounded-2xl p-4 shadow-sm
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
-">
+        "
+        >
           <h2 className="text-sm font-semibold mb-3 text-neutral-800 dark:text-slate-100">
             קישורים חשובים
           </h2>
@@ -369,22 +410,28 @@ export default function CourseRoute() {
 
       {/* מידע כללי + מה היה/יהיה */}
       {hasGeneralInfo && (
-        <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+        <section
+          className=" mb-8 border rounded-2xl p-4 shadow-sm
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
-">
+        "
+        >
           <h2 className="text-l font-semibold mb-3">מידע כללי</h2>
           <div className="space-y-2">
             {course.coordinator && (
               <div>
-                <span className="font-medium font-semibold">רכז/ת הקורס: </span>
+                <span className="font-medium font-semibold">
+                  רכז/ת הקורס:{" "}
+                </span>
                 {course.coordinator}
               </div>
             )}
 
             {repsDisplay.length > 0 && (
               <div>
-                <span className="font-medium font-semibold">נציגי קורס: </span>
+                <span className="font-medium font-semibold">
+                  נציגי קורס:{" "}
+                </span>
                 <span className="text-s text-blue-400">
                   {repsDisplay.join("; ")}
                 </span>
@@ -393,32 +440,36 @@ export default function CourseRoute() {
 
             {course.place && (
               <div>
-                <span className="font-medium font-semibold">מיקום עיקרי: </span>
+                <span className="font-medium font-semibold">
+                  מיקום עיקרי:{" "}
+                </span>
                 {course.place}
               </div>
             )}
 
-          {course.whatwas && (
-  <div className="mt-3">
-    <div className="font-medium font-semibold">➡️ מה היה בשבוע האחרון?</div>
-    <div
-      className="text-s text-neutral-700 dark:text-slate-300 announcement-body"
-      dangerouslySetInnerHTML={{ __html: course.whatwas }}
-    />
-  </div>
-)}
+            {course.whatwas && (
+              <div className="mt-3">
+                <div className="font-medium font-semibold">
+                  ➡️ מה היה בשבוע האחרון?
+                </div>
+                <div
+                  className="text-s text-neutral-700 dark:text-slate-300 announcement-body"
+                  dangerouslySetInnerHTML={{ __html: course.whatwas }}
+                />
+              </div>
+            )}
 
-{course.whatwill && (
-  <div className="mt-3">
-    <div className="font-medium font-semibold">⬅️ מה יהיה בהמשך?</div>
-    <div
-      className="text-s text-neutral-700 dark:text-slate-300 announcement-body"
-      dangerouslySetInnerHTML={{ __html: course.whatwill }}
-    />
-  </div>
-)}
-
-
+            {course.whatwill && (
+              <div className="mt-3">
+                <div className="font-medium font-semibold">
+                  ⬅️ מה יהיה בהמשך?
+                </div>
+                <div
+                  className="text-s text-neutral-700 dark:text-slate-300 announcement-body"
+                  dangerouslySetInnerHTML={{ __html: course.whatwill }}
+                />
+              </div>
+            )}
 
             {lastEditedMeta && (
               <div className="text-[10px] text-neutral-400 mt-1">
@@ -431,10 +482,12 @@ export default function CourseRoute() {
 
       {/* 🔔 מודעות לקורס */}
       {announcements.length > 0 && (
-        <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+        <section
+          className=" mb-8 border rounded-2xl p-4 shadow-sm
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
-">
+        "
+        >
           <h2 className="text-sm font-semibold mb-3">מודעות לקורס זה</h2>
           <ul className="text-xs space-y-2">
             {announcements.map((a) => (
@@ -455,10 +508,12 @@ export default function CourseRoute() {
       )}
 
       {/* מטלות */}
-      <section className=" mb-8 border rounded-2xl p-4 shadow-sm
+      <section
+        className=" mb-8 border rounded-2xl p-4 shadow-sm
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
-">
+        "
+      >
         <h2 className="text-sm font-semibold mb-3">מטלות / עבודות</h2>
         {assignments.length === 0 ? (
           <div className="text-xs text-neutral-500">
@@ -488,10 +543,9 @@ export default function CourseRoute() {
                     <td className="py-2 px-2 align-top">
                       {a.weight || "—"}
                     </td>
-                   <td className="py-2 px-2 align-top">
-                  {a.notes ? stripHtml(a.notes) : "—"}
-                  </td>
-
+                    <td className="py-2 px-2 align-top">
+                      {a.notes ? stripHtml(a.notes) : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -501,10 +555,13 @@ export default function CourseRoute() {
       </section>
 
       {/* בחנים / מבחנים */}
-<section className=" mb-8 border rounded-2xl p-4 shadow-sm
+      <section
+        className=" mb-8 border rounded-2xl p-4 shadow-sm
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
-">        <h2 className="text-sm font-semibold mb-3">בחנים / מבחנים</h2>
+        "
+      >
+        <h2 className="text-sm font-semibold mb-3">בחנים / מבחנים</h2>
         {exams.length === 0 ? (
           <div className="text-xs text-neutral-500">
             עדיין לא הוגדרו בחנים/מבחנים לקורס זה.
@@ -534,9 +591,8 @@ export default function CourseRoute() {
                       {ex.weight || "—"}
                     </td>
                     <td className="py-2 px-2 align-top">
-                    {ex.notes ? stripHtml(ex.notes) : "—"}
+                      {ex.notes ? stripHtml(ex.notes) : "—"}
                     </td>
-
                   </tr>
                 ))}
               </tbody>
@@ -546,10 +602,13 @@ export default function CourseRoute() {
       </section>
 
       {/* מעבדות */}
-<section className=" mb-8 border rounded-2xl p-4 shadow-sm
+      <section
+        className=" mb-8 border rounded-2xl p-4 shadow-sm
           bg-white dark:bg-slate-900
           border-neutral-200 dark:border-slate-700
-">        <h2 className="text-sm font-semibold mb-3">מעבדות</h2>
+        "
+      >
+        <h2 className="text-sm font-semibold mb-3">מעבדות</h2>
         {labs.length === 0 ? (
           <div className="text-xs text-neutral-500">
             עדיין לא הוגדרו מעבדות לקורס זה.
@@ -579,9 +638,8 @@ export default function CourseRoute() {
                       {lab.weight || "—"}
                     </td>
                     <td className="py-2 px-2 align-top">
-                    {lab.notes ? stripHtml(lab.notes) : "—"}
+                      {lab.notes ? stripHtml(lab.notes) : "—"}
                     </td>
-
                   </tr>
                 ))}
               </tbody>

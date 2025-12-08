@@ -16,7 +16,11 @@ type NewCourseFormProps = {
 
 // אפשר לשנות כאן טקסטים אם תרצה
 const YEAR_OPTIONS = ["שנה א'", "שנה ב'", "שנה ג'", "שנה ד'", "שנה ה'", "שנה ו'"];
-const SEMESTER_OPTIONS = ["סמסטר א'", "סמסטר ב'"];
+const SEMESTER_OPTIONS = 
+["סמסטר א'", "סמסטר ב'", "קורסים בחינוך רפואי",
+   "יום קליני", "קורסי מערכות", "קורס רפואה פנימית", "סבבים קליניים", "קורסי בחירה"
+
+];
 
 export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
   const [form, setForm] = useState<NewCoursePayload>({
@@ -67,7 +71,7 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
 
       const data = (await res.json()) as { id?: string };
 
-      setSuccess("הקורס נוצר בהצלחה! 🎉");
+      setSuccess("הקורס נוצר בהצלחה!");
       setForm({
         name: "",
         shortName: "",
@@ -102,7 +106,7 @@ export default function NewCourseForm({ onCreated }: NewCourseFormProps) {
           border-neutral-300 
           focus:outline-none focus:ring-2 
           focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
+           dark:text-black
           dark:bg-slate-400 border-slate-400"
           placeholder="למשל: אנטומיה א'"
           value={form.name}
@@ -119,7 +123,7 @@ className="w-full border bg-white
           border-neutral-300 
           focus:outline-none focus:ring-2 
           focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
+           dark:text-black
           dark:bg-slate-400 border-slate-400"
           placeholder="למשל: אנטומיה"
           value={form.shortName}
@@ -136,7 +140,7 @@ className="w-full border bg-white
           border-neutral-300 
           focus:outline-none focus:ring-2 
           focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
+           dark:text-black
           dark:bg-slate-400 border-slate-400"
                      value={form.yearLabel}
             onChange={handleChange("yearLabel")}
@@ -158,7 +162,7 @@ className="w-full border bg-white
           border-neutral-300 
           focus:outline-none focus:ring-2 
           focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
+           dark:text-black
           dark:bg-slate-400 border-slate-400"
             value={form.semesterLabel}
             onChange={handleChange("semesterLabel")}
@@ -182,7 +186,7 @@ className="w-full border bg-white
           border-neutral-300 
           focus:outline-none focus:ring-2 
           focus:ring-blue-500 focus:border-blue-500
-           dark: text-black
+           dark:text-black
           dark:bg-slate-400 border-slate-400"
           placeholder="למשל: 0123-4567"
           value={form.courseCode}
@@ -201,7 +205,7 @@ className="w-full border bg-white
           bg-blue-600 text-white
           hover:bg-blue-700
           disabled:opacity-60 disabled:cursor-not-allowed
-          dark: border-blue-600
+          dark:border-blue-600
           cursor-pointer
         "
       >
