@@ -10,6 +10,8 @@ import AdminCoursesRoute from "./routes/AdminCoursesRoute";
 import EditCourseRoute from "./routes/EditCourseRoute";
 import EditHomepageRoute from "./routes/EditHomepageRoute";
 
+import MedTauLogo from "./components/MedTauLogo";
+
 import NewCourseForm from "./components/NewCourseForm";
 import { useYears } from "./hooks/useYears";
 
@@ -840,22 +842,25 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* לוגו + טקסט */}
           <Link
-            to="/"
-            className="flex items-center gap-3 cursor-pointer select-none"
-            aria-label="חזרה לעמוד הבית"
-          >
-            <div className="w-22 h-8 rounded-xl border flex items-center justify-center">
-              MedTAU
-            </div>
-            <div>
-              <div className="text-base font-semibold">
-                אתר מחזור 2032 - תל אביב
-              </div>
-              <div className="text-xs text-neutral-500">
-                אתר עזר לסטודנטים לרפואה שש שנתי
-              </div>
-            </div>
-          </Link>
+  to="/"
+  className="flex items-center gap-3 cursor-pointer select-none"
+  aria-label="חזרה לעמוד הבית"
+>
+  {/* לוגו חדש */}
+  <div className="flex items-center justify-center">
+    <MedTauLogo size={200} />
+  </div>
+
+  <div>
+    <div className="text-base font-semibold">
+      אתר מחזור 2032 - תל אביב
+    </div>
+    <div className="text-xs text-neutral-500 dark:text-slate-400">
+      אתר עזר לסטודנטים לרפואה שש שנתי
+    </div>
+  </div>
+</Link>
+
 
           <div className="flex items-center gap-2">
             {/* כפתור Dark Mode */}

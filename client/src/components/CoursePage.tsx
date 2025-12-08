@@ -55,6 +55,49 @@ export default function CoursePage({ course, onBack }: Props) {
     })();
   }, [course.id]);
 
+
+  // מעל renderAnnouncementBody למשל
+const decodeHtmlEntities = (str: string) => {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = str;
+  return textarea.value;
+};
+
+
+ const renderAnnouncementBody = (body?: string) => {
+  if (!body) return null;
+
+  // לפענח &lt; &gt; &amp; וכו'
+  const decoded = decodeHtmlEntities(body);
+
+  const looksLikeHtml =
+    decoded.includes("<p") ||
+    decoded.includes("<br") ||
+    decoded.includes("<div") ||
+    decoded.includes("<span") ||
+    decoded.includes("<strong") ||
+    decoded.includes("<em") ||
+    decoded.includes("<a ");
+
+  if (looksLikeHtml) {
+    return (
+      <div
+        className="text-xs text-neutral-700 dark:text-slate-300 announcement-body"
+        dangerouslySetInnerHTML={{ __html: decoded }}
+      />
+    );
+  }
+
+  // טקסט רגיל / בלי HTML
+  return (
+    <div className="text-xs text-neutral-700 dark:text-slate-300 whitespace-pre-line">
+      {decoded}
+    </div>
+  );
+};
+
+
+
   // --- טעינת מודעות לקורס ---
   useEffect(() => {
     (async () => {
@@ -179,55 +222,58 @@ export default function CoursePage({ course, onBack }: Props) {
         </p>
       )}
 
-      {(coordinator || repsDisplay.length > 0 || whatwas || whatwill) && (
-        <p className="text-xs text-neutral-600 mb-4">
-          {coordinator && <span>רכז/ת: {coordinator}</span>}
-          {coordinator && repsDisplay.length > 0 && <span> · </span>}
-          {repsDisplay.length > 0 && (
-            <span>
-              נציגי ועד:{" "}
-              <span dir="ltr">{repsDisplay.join(", ")}</span>
-            </span>
-          )}
-          {whatwas && (
-            <>
-              {" · "}
-              <span>מה היה בשבוע האחרון? {whatwas}</span>
-            </>
-          )}
-          {whatwill && (
-            <>
-              {" · "}
-              <span>מה יהיה בהמשך? {whatwill}</span>
-            </>
-          )}
-        </p>
-      )}
+   {/* מטא-דאטה בסיסי */}
+{(coordinator || repsDisplay.length > 0) && (
+  <p className="text-xs text-neutral-600 mb-4">
+    {coordinator && <span>רכז/ת: {coordinator}</span>}
+    {coordinator && repsDisplay.length > 0 && <span> · </span>}
+    {repsDisplay.length > 0 && (
+      <span>
+        נציגי ועד: <span dir="ltr">{repsDisplay.join(", ")}</span>
+      </span>
+    )}
+  </p>
+)}
 
-      {/* מודעות לקורס */}
-      {announcements.length > 0 && (
-        <section className="mb-4 border rounded-2xl p-3">
-          <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
-          <ul className="text-xs space-y-2">
-            {announcements.map((a) => (
-              <li
-                key={a.id}
-                className="border-b last:border-b-0 pb-2"
-              >
-                <div className="font-semibold">{a.title}</div>
-                <div className="text-neutral-700 whitespace-pre-line">
-                  {a.body}
-                </div>
-                {(a.createdAt || a.updatedAt || a.authorEmail) && (
-                  <div className="text-[10px] text-neutral-400 mt-1">
-                    {formatAnnouncementMeta(a)}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+{/* מה היה בשבוע האחרון? */}
+{whatwas && (
+  <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70">
+    <h3 className="text-sm font-medium mb-1">מה היה בשבוע האחרון?</h3>
+    {renderAnnouncementBody(whatwas)}
+  </section>
+)}
+
+{/* מה יהיה בהמשך? */}
+{whatwill && (
+  <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70">
+    <h3 className="text-sm font-medium mb-1">מה יהיה בהמשך?</h3>
+    {renderAnnouncementBody(whatwill)}
+  </section>
+)}
+
+
+{/* מודעות לקורס */}
+{announcements.length > 0 && (
+  <section className="mb-4 border rounded-2xl p-3">
+    <h3 className="text-sm font-medium mb-2">מודעות לקורס זה</h3>
+    <ul className="text-xs space-y-2">
+      {announcements.map((a) => (
+        <li key={a.id} className="border-b last:border-b-0 pb-2">
+          <div className="font-semibold">{a.title}</div>
+
+          {renderAnnouncementBody(a.body)}
+
+          {(a.createdAt || a.updatedAt || a.authorEmail) && (
+            <div className="text-[10px] text-neutral-400 mt-1">
+              {formatAnnouncementMeta(a)}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
 
       {/* חומרים חיצוניים */}
       {externalMaterials && externalMaterials.length > 0 && (
@@ -318,10 +364,11 @@ export default function CoursePage({ course, onBack }: Props) {
                   {a.weight && <span>משקל: {a.weight}</span>}
                 </div>
                 {a.notes && (
-                  <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
-                    {a.notes}
-                  </div>
-                )}
+  <div className="mt-1">
+    {renderAnnouncementBody(a.notes)}
+  </div>
+)}
+
               </li>
             ))}
           </ul>
@@ -344,11 +391,12 @@ export default function CoursePage({ course, onBack }: Props) {
                   {ex.date && ex.weight && <span> · </span>}
                   {ex.weight && <span>משקל: {ex.weight}</span>}
                 </div>
-                {ex.notes && (
-                  <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
-                    {ex.notes}
-                  </div>
-                )}
+               {ex.notes && (
+  <div className="mt-1">
+    {renderAnnouncementBody(ex.notes)}
+  </div>
+)}
+
               </li>
             ))}
           </ul>
@@ -371,11 +419,11 @@ export default function CoursePage({ course, onBack }: Props) {
                   {lab.date && lab.weight && <span> · </span>}
                   {lab.weight && <span>משקל: {lab.weight}</span>}
                 </div>
-                {lab.notes && (
-                  <div className="text-[11px] text-neutral-600 mt-1 whitespace-pre-line">
-                    {lab.notes}
-                  </div>
-                )}
+                           {lab.notes && (
+  <div className="mt-1">
+    {renderAnnouncementBody(lab.notes)}
+  </div>
+)}
               </li>
             ))}
           </ul>
