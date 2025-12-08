@@ -232,6 +232,9 @@ const { years, allCourses, loading, error, reload } = useYears();
     })();
   }, [extraCoursesReloadKey]);
 
+
+
+
   // YEARS אחרי merge עם overrides, עם fallback ל־STATIC_YEARS אם קרתה שגיאה/עדיין טוען
   const yearsWithOverrides = useMemo(() => {
     const baseYears = years; // אין יותר fallback ל־STATIC_YEARS
@@ -250,35 +253,43 @@ const { years, allCourses, loading, error, reload } = useYears();
     }));
   }, [years, overrides]);
 
+const inferYearKind = (title: string): StaticYear["kind"] => {
+  // שנים ד/ה/ו נחשבות קליניות
+  if (title.includes("שנה ד'") ||
+   title.includes("שנה ה'") ||
+    title.includes("שנה ו'")) {
+    return "clinical";
+  }
+  // א/ב/ג – פרה קליניות
+  return "preclinical";
+};
+
 
   // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel (אפשר להסיר אחרי שהכול עובר ל-DB)
- const yearsMerged = useMemo<StaticYear[]>(() => {
+const yearsMerged = useMemo<StaticYear[]>(() => {
   const base: StaticYear[] = yearsWithOverrides.map((year) => ({
     id: year.id,
     title: year.title,
-    kind: "preclinical", // 👈 שדה שחייב להיות בטיפוס StaticYear
+    kind: inferYearKind(year.title),   
     semesters: year.semesters.map((sem) => ({
       id: sem.id,
       title: sem.title,
-      // אם ב־overrides כבר יש assignments וכו' זה עדיין יעבוד
       courses: sem.courses as unknown as Course[],
     })),
   }));
 
   extraCourses.forEach((c) => {
-    // 1. מוצאים / יוצרים שנה לפי title
     let year = base.find((y) => y.title === c.yearLabel);
     if (!year) {
       year = {
         id: `extra-year-${c.yearLabel}`,
         title: c.yearLabel,
-        kind: "preclinical", // 👈 שוב, כדי לעמוד בטיפוס
+        kind: inferYearKind(c.yearLabel), // 👈 גם כאן
         semesters: [],
       };
       base.push(year);
     }
 
-    // 2. מוצאים / יוצרים סמסטר לפי title
     let sem = year.semesters.find((s) => s.title === c.semesterLabel);
     if (!sem) {
       sem = {
@@ -289,7 +300,6 @@ const { years, allCourses, loading, error, reload } = useYears();
       year.semesters.push(sem);
     }
 
-    // 3. מוסיפים קורס אם לא קיים כבר
     if (!sem.courses.some((course) => course.id === c.id)) {
       const newCourse: Course = {
         id: c.id,
