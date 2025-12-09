@@ -864,7 +864,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="rounded-2xl px-3 py-2 text-sm border"
+              className="rounded-2xl px-3 py-2 text-sm border cursor-pointer"
             >
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
