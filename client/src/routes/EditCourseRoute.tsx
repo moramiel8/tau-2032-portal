@@ -818,14 +818,14 @@ if (!content) {
           <button
             type="button"
             onClick={() => addArrayItem("assignments")}
-            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 cursor-pointer"
           >
             + הוספת מטלה
           </button>
         </section>
 
         {/* בחנים / מבחנים */}
-        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50 border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
+        <section className="mt-2 border rounded-2xl p-4 bg-neutral-50 border-neutral-200 dark:bg-slate-900 dark:border-slate-700 cursor-pointer">
           <h2 className="text-sm font-medium mb-2 dark:text-slate-100">
             בחנים / מבחנים (exams)
           </h2>
