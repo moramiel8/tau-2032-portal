@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Routes, Route, useNavigate, Link } from "react-router-dom";
 
 import CourseList from "./components/CourseList";
-import type { Course, AssessmentItem,  Year as StaticYear, } from "./data/years";
+import type { Course, AssessmentItem, Year as StaticYear } from "./data/years";
 import { YearsProvider } from "./context/YearsContext";
 
 import AdminCoursesRoute from "./routes/AdminCoursesRoute";
@@ -65,15 +65,11 @@ type HomeContentProps = {
   canCreateCourse: boolean;
 };
 
-const path = window.location.pathname;
-const isGuestMode = path === "/moramiel8";
-
 // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
 function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
-
   const [announcements, setAnnouncements] = useState<AnnouncementPublic[]>([]);
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
@@ -81,7 +77,7 @@ function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
   const [range, setRange] = useState<"week" | "month" | "all">("week");
 
   // טעינת מבנה השנים/סמסטרים/קורסים מהשרת
-const { years, allCourses, loading, error, reload } = useYears();
+  const { years, allCourses, loading, error, reload } = useYears();
 
   // קורסים נוספים מה־DB (API ישן – אפשר להסיר בהמשך)
   type ExtraCourse = {
@@ -238,12 +234,9 @@ const { years, allCourses, loading, error, reload } = useYears();
     })();
   }, [extraCoursesReloadKey]);
 
-
-
-
-  // YEARS אחרי merge עם overrides, עם fallback ל־STATIC_YEARS אם קרתה שגיאה/עדיין טוען
+  // YEARS אחרי merge עם overrides
   const yearsWithOverrides = useMemo(() => {
-    const baseYears = years; // אין יותר fallback ל־STATIC_YEARS
+    const baseYears = years;
 
     if (!Object.keys(overrides).length) return baseYears;
 
@@ -259,68 +252,67 @@ const { years, allCourses, loading, error, reload } = useYears();
     }));
   }, [years, overrides]);
 
-const inferYearKind = (title: string): StaticYear["kind"] => {
-  // שנים ד/ה/ו נחשבות קליניות
-  if (title.includes("שנה ד'") ||
-   title.includes("שנה ה'") ||
-    title.includes("שנה ו'")) {
-    return "clinical";
-  }
-  // א/ב/ג – פרה קליניות
-  return "preclinical";
-};
-
-
-  // מיזוג קורסים דינמיים לפי yearLabel + semesterLabel (אפשר להסיר אחרי שהכול עובר ל-DB)
-const yearsMerged = useMemo<StaticYear[]>(() => {
-  const base: StaticYear[] = yearsWithOverrides.map((year) => ({
-    id: year.id,
-    title: year.title,
-    kind: inferYearKind(year.title),   
-    semesters: year.semesters.map((sem) => ({
-      id: sem.id,
-      title: sem.title,
-      courses: sem.courses as unknown as Course[],
-    })),
-  }));
-
-  extraCourses.forEach((c) => {
-    let year = base.find((y) => y.title === c.yearLabel);
-    if (!year) {
-      year = {
-        id: `extra-year-${c.yearLabel}`,
-        title: c.yearLabel,
-        kind: inferYearKind(c.yearLabel), // 👈 גם כאן
-        semesters: [],
-      };
-      base.push(year);
+  const inferYearKind = (title: string): StaticYear["kind"] => {
+    if (
+      title.includes("שנה ד'") ||
+      title.includes("שנה ה'") ||
+      title.includes("שנה ו'")
+    ) {
+      return "clinical";
     }
+    return "preclinical";
+  };
 
-    let sem = year.semesters.find((s) => s.title === c.semesterLabel);
-    if (!sem) {
-      sem = {
-        id: `extra-sem-${c.yearLabel}-${c.semesterLabel}`,
-        title: c.semesterLabel,
-        courses: [],
-      };
-      year.semesters.push(sem);
-    }
+  // מיזוג קורסים דינמיים
+  const yearsMerged = useMemo<StaticYear[]>(() => {
+    const base: StaticYear[] = yearsWithOverrides.map((year) => ({
+      id: year.id,
+      title: year.title,
+      kind: inferYearKind(year.title),
+      semesters: year.semesters.map((sem) => ({
+        id: sem.id,
+        title: sem.title,
+        courses: sem.courses as unknown as Course[],
+      })),
+    }));
 
-    if (!sem.courses.some((course) => course.id === c.id)) {
-      const newCourse: Course = {
-        id: c.id,
-        name: c.name,
-        shortName: c.shortName || undefined,
-        assignments: [],
-        exams: [],
-        labs: [],
-      };
-      sem.courses.push(newCourse);
-    }
-  });
+    extraCourses.forEach((c) => {
+      let year = base.find((y) => y.title === c.yearLabel);
+      if (!year) {
+        year = {
+          id: `extra-year-${c.yearLabel}`,
+          title: c.yearLabel,
+          kind: inferYearKind(c.yearLabel),
+          semesters: [],
+        };
+        base.push(year);
+      }
 
-  return base;
-}, [yearsWithOverrides, extraCourses]);
+      let sem = year.semesters.find((s) => s.title === c.semesterLabel);
+      if (!sem) {
+        sem = {
+          id: `extra-sem-${c.yearLabel}-${c.semesterLabel}`,
+          title: c.semesterLabel,
+          courses: [],
+        };
+        year.semesters.push(sem);
+      }
+
+      if (!sem.courses.some((course) => course.id === c.id)) {
+        const newCourse: Course = {
+          id: c.id,
+          name: c.name,
+          shortName: c.shortName || undefined,
+          assignments: [],
+          exams: [],
+          labs: [],
+        };
+        sem.courses.push(newCourse);
+      }
+    });
+
+    return base;
+  }, [yearsWithOverrides, extraCourses]);
 
   // עוזר לפענח תאריך
   const parseHebrewDate = (value: string): Date | null => {
@@ -384,69 +376,68 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
       maxDate = null;
     }
 
-  yearsWithOverrides.forEach((year) => {
-  year.semesters.forEach((sem) => {
-    sem.courses.forEach((courseRaw) => {
-      const course = courseRaw as Course;
+    yearsWithOverrides.forEach((year) => {
+      year.semesters.forEach((sem) => {
+        sem.courses.forEach((courseRaw) => {
+          const course = courseRaw as Course;
 
-      const assignments = (course.assignments || []) as AssessmentItem[];
-      const exams = (course.exams || []) as AssessmentItem[];
-      const labs = (course.labs || []) as AssessmentItem[];
+          const assignments = (course.assignments || []) as AssessmentItem[];
+          const exams = (course.exams || []) as AssessmentItem[];
+          const labs = (course.labs || []) as AssessmentItem[];
 
-      assignments.forEach((a) => {
-        if (!a.date) return;
-        const d = parseHebrewDate(a.date);
-        if (!d) return;
-        if (d >= today && (!maxDate || d <= maxDate)) {
-          items.push({
-            courseId: course.id,
-            courseName: course.name,
-            title: a.title || "",
-            date: a.date,
-            dateObj: d,
-            type: "assignment",
-            notes: a.notes ? stripHtml(a.notes) : "",
+          assignments.forEach((a) => {
+            if (!a.date) return;
+            const d = parseHebrewDate(a.date);
+            if (!d) return;
+            if (d >= today && (!maxDate || d <= maxDate)) {
+              items.push({
+                courseId: course.id,
+                courseName: course.name,
+                title: a.title || "",
+                date: a.date,
+                dateObj: d,
+                type: "assignment",
+                notes: a.notes ? stripHtml(a.notes) : "",
+              });
+            }
           });
-        }
-      });
 
-      exams.forEach((ex) => {
-        if (!ex.date) return;
-        const d = parseHebrewDate(ex.date);
-        if (!d) return;
-        if (d >= today && (!maxDate || d <= maxDate)) {
-          items.push({
-            courseId: course.id,
-            courseName: course.name,
-            title: ex.title || "",
-            date: ex.date,
-            dateObj: d,
-            type: "exam",
-            notes: ex.notes ? stripHtml(ex.notes) : "",
+          exams.forEach((ex) => {
+            if (!ex.date) return;
+            const d = parseHebrewDate(ex.date);
+            if (!d) return;
+            if (d >= today && (!maxDate || d <= maxDate)) {
+              items.push({
+                courseId: course.id,
+                courseName: course.name,
+                title: ex.title || "",
+                date: ex.date,
+                dateObj: d,
+                type: "exam",
+                notes: ex.notes ? stripHtml(ex.notes) : "",
+              });
+            }
           });
-        }
-      });
 
-      labs.forEach((lab) => {
-        if (!lab.date) return;
-        const d = parseHebrewDate(lab.date);
-        if (!d) return;
-        if (d >= today && (!maxDate || d <= maxDate)) {
-          items.push({
-            courseId: course.id,
-            courseName: course.name,
-            title: lab.title || "",
-            date: lab.date,
-            dateObj: d,
-            type: "lab",
-            notes: lab.notes ? stripHtml(lab.notes) : "",
+          labs.forEach((lab) => {
+            if (!lab.date) return;
+            const d = parseHebrewDate(lab.date);
+            if (!d) return;
+            if (d >= today && (!maxDate || d <= maxDate)) {
+              items.push({
+                courseId: course.id,
+                courseName: course.name,
+                title: lab.title || "",
+                date: lab.date,
+                dateObj: d,
+                type: "lab",
+                notes: lab.notes ? stripHtml(lab.notes) : "",
+              });
+            }
           });
-        }
+        });
       });
     });
-  });
-});
-
 
     items.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
     return items.slice(0, 25);
@@ -554,7 +545,6 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
           <h2 className="text-lg font-semibold">מטלות ומועדי מבחנים קרובים</h2>
 
           <div className="flex gap-2 text-xs">
-            {/* שבוע */}
             <button
               className={
                 "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
@@ -568,7 +558,6 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
               שבוע
             </button>
 
-            {/* חודש */}
             <button
               className={
                 "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
@@ -582,7 +571,6 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
               חודש
             </button>
 
-            {/* הכל */}
             <button
               className={
                 "px-3 py-1 rounded-2xl border text-xs transition-colors cursor-pointer " +
@@ -651,28 +639,30 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
       </section>
 
       {/* יומן */}
-      <section  className="
-            mb-8 border rounded-2xl p-3 shadow-sm
-            bg-white dark:bg-slate-900
-            border-neutral-200 dark:border-slate-700">
+      <section
+        className="
+          mb-8 border rounded-2xl p-3 shadow-sm
+          bg-white dark:bg-slate-900
+          border-neutral-200 dark:border-slate-700
+        "
+      >
         <h2 className="text-lg font-semibold mb-3">יומן מחזור 2032</h2>
         <CalendarEmbed
-  mode="WEEK"
-  calendars={[
-    {
-      id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com",
-      color: "#4285F4", // כחול
-    },
-    {
-      id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com",
-      color: "#DB4437", // אדום
-    },
-  ]}
-/>
-
+          mode="WEEK"
+          calendars={[
+            {
+              id: "c_9fa7519b0c002d1c818a3da8ecb3181832e44e0d8c0513f10943d86319fb2e34@group.calendar.google.com",
+              color: "#4285F4",
+            },
+            {
+              id: "c_987b0a533e494ec187656f8a2ae4afc19470982cb14bbb821820675d8bd802fc@group.calendar.google.com",
+              color: "#DB4437",
+            },
+          ]}
+        />
       </section>
 
-      {/* ⭐ הוספת קורס חדש – מתחת ליומן + ממוזער */}
+      {/* ⭐ הוספת קורס חדש */}
       {canCreateCourse && (
         <section
           className="
@@ -684,9 +674,7 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
           <details>
             <summary className="cursor-pointer text-sm font-medium flex items-center gap-2">
               <span>➕ הוספת קורס חדש</span>
-              <span className="text-xs text-neutral-500">
-                (לחצו לפתיחה)
-              </span>
+              <span className="text-xs text-neutral-500">(לחצו לפתיחה)</span>
             </summary>
 
             <div className="mt-4">
@@ -694,19 +682,17 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
                 יצירת קורס חדש במערכת, כולל שיוך לשנה ולסמסטר.
               </p>
 
-             <NewCourseForm
-  onCreated={async () => {
-    setExtraCoursesReloadKey((x) => x + 1); // אפשר להשאיר/להוריד
-    await reload(); // 👈 זה מה שמעדכן את years + allCourses
-  }}
-/>
-
+              <NewCourseForm
+                onCreated={async () => {
+                  setExtraCoursesReloadKey((x) => x + 1);
+                  await reload();
+                }}
+              />
             </div>
           </details>
         </section>
       )}
 
-      {/* רשימת קורסים */}
       <CourseList years={yearsMerged} onOpenCourse={openCourse} />
     </>
   );
@@ -714,14 +700,14 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
 
 // ---- App ----
 export default function App() {
-  const path = window.location.pathname;
-  const isGuestMode = path === "/moramiel8";
+  // guest-mode רק ביציאה הראשונית ל־/moramiel8
+  const startedAsGuest = window.location.pathname.startsWith("/moramiel8");
 
   const [user, setUser] = useState<User | null>(() => {
-    if (isGuestMode) {
+    if (startedAsGuest) {
       return {
         email: "guest@tau.ac.il",
-        role: "guest",
+        role: "guest" as any, // דאגת שכבר הוספת "guest" ל-Role
         name: "Guest User",
       };
     }
@@ -763,12 +749,13 @@ export default function App() {
     setTimeout(() => setToast(null), ms);
   };
 
-  // 🔥 חשובה — לא לבצע fetchSession במצב אורח
+  const isGuest = user?.role === "guest";
+
+  // לא נושא session ב-guest
   useEffect(() => {
-    if (isGuestMode || !AUTH_ENABLED) return;
+    if (isGuest || !AUTH_ENABLED) return;
 
     let cancelled = false;
-
     (async () => {
       try {
         const fresh = await fetchSession();
@@ -781,7 +768,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isGuest]);
 
   // מונה צפיות
   useEffect(() => {
@@ -799,9 +786,9 @@ export default function App() {
     })();
   }, []);
 
-  // וועד קורס
+  // וועד קורס – לא רלוונטי ל-guest
   useEffect(() => {
-    if (!user || user.role === "guest") {
+    if (!user || isGuest) {
       setMyCourseVaadIds([]);
       return;
     }
@@ -816,14 +803,12 @@ export default function App() {
         console.warn("[App] failed to load my course-vaad ids", e);
       }
     })();
-  }, [user?.email]);
+  }, [user?.email, isGuest]);
 
   const isAdmin =
     user?.role === "admin" || user?.email === "morrabaev@mail.tau.ac.il";
-
   const isGlobalVaad = user?.role === "vaad";
   const isCourseVaad = myCourseVaadIds.length > 0;
-  const isGuest = user?.role === "guest";
 
   const canSeeAdminPanel =
     !isGuest && !!user && (isAdmin || isGlobalVaad || isCourseVaad);
@@ -859,11 +844,13 @@ export default function App() {
       "
       dir="rtl"
     >
-      {/* ---- HEADER ---- */}
+      {/* HEADER */}
       <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 cursor-pointer">
-            <div><MedTauLogo size={200} /></div>
+            <div>
+              <MedTauLogo size={200} />
+            </div>
             <div>
               <div className="text-base font-semibold">
                 אתר מחזור 2032 - תל אביב
@@ -875,7 +862,10 @@ export default function App() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className="rounded-2xl px-3 py-2 border">
+            <button
+              onClick={toggleTheme}
+              className="rounded-2xl px-3 py-2 text-sm border"
+            >
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
 
@@ -906,13 +896,13 @@ export default function App() {
         </div>
       </header>
 
-      {/* ---- MAIN ---- */}
+      {/* MAIN */}
       <main className="max-w-6xl mx-auto px-4 py-6">
         <YearsProvider>
           {loadingUser ? (
             <div className="text-sm text-neutral-500">טוען…</div>
-          ) : isGuestMode ? (
-            // ⚡ מצב אורח
+          ) : isGuest ? (
+            // 🌟 מצב אורח – אין בדיקת דומיין, אין אדמין
             <Routes>
               <Route
                 path="/"
@@ -929,7 +919,6 @@ export default function App() {
               />
             </Routes>
           ) : !user ? (
-            // Login רגיל
             <div className="border rounded-2xl p-4 shadow-sm bg-white dark:bg-slate-900">
               כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google (mail.tau.ac.il).
               <div className="mt-3">
@@ -942,8 +931,10 @@ export default function App() {
               </div>
             </div>
           ) : !isTauEmail(user.email) ? (
-            <div className="border rounded-2xl p-6 text-sm text-red-600">
-              הדומיין של המייל ({getDomain(user.email)}) אינו מורשה.
+            // 💥 שורה זו כבר לא תרוץ ב־guest, רק ב־user אמיתי
+            <div className="border rounded-2xl p-6 text-sm text-red-600 bg-white dark:bg-slate-900">
+              הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
+              חשבון TAU.
             </div>
           ) : (
             // מצב רגיל
@@ -1036,29 +1027,61 @@ export default function App() {
         </YearsProvider>
       </main>
 
-      {/* ---- FOOTER ---- */}
-      <footer className="max-w-6xl mx-auto px-4 py-8 text-xs">
+      {/* FOOTER */}
+      <footer className="max-w-6xl mx-auto px-4 py-8 text-xs text-neutral-800 dark:text-slate-300">
         <div className="flex flex-col gap-2">
           <span>
-            נבנה ע״י מור עמיאל רבייב · עודכן לאחרונה {lastUpdatedText}
+            נבנה ע״י מור עמיאל רבייב · עודכן לאחרונה{" "}
+            {lastUpdatedText || "—"}
           </span>
 
           <span className="flex items-center gap-1 text-neutral-600">
-            מספר מבקרים: {views.toLocaleString("he-IL")}
+            מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
           </span>
 
           <div className="flex items-center gap-4 mt-2">
-            <a href="https://www.facebook.com/mork0/" target="_blank">
-              <img src={IMG_FACEBOOK} className="w-5 h-5" />
+            <a
+              href="https://www.facebook.com/mork0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
             </a>
-            <a href="https://github.com/moramiel8" target="_blank">
-              <img src={IMG_GITHUB} className="w-5 h-5 dark:invert" />
+
+            <a
+              href="https://github.com/moramiel8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img
+                src={IMG_GITHUB}
+                alt="GitHub"
+                className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+              />
             </a>
-            <a href="https://www.buymeacoffee.com/moramiel8" target="_blank">
-              <img src={IMG_BUYME} className="w-5 h-5 dark:invert" />
+
+            <a
+              href="https://www.buymeacoffee.com/moramiel8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img
+                src={IMG_BUYME}
+                alt="BuyMe"
+                className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
+              />
             </a>
-            <a href="https://wa.me/972556655348" target="_blank">
-              <img src={IMG_WHATSAPP} className="w-5 h-5" />
+
+            <a
+              href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8..."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition"
+            >
+              <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
             </a>
           </div>
         </div>
@@ -1068,4 +1091,3 @@ export default function App() {
     </div>
   );
 }
-
