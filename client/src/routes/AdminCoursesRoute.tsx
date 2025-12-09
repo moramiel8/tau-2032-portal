@@ -215,6 +215,7 @@ export default function AdminCoursesRoute() {
                         hover:bg-red-700
                         disabled:opacity-60 disabled:cursor-not-allowed
                         dark:border-red-700 dark:hover:bg-red-800
+                        cursor-pointer
                       "
                     >
                       {deletingId === c.id ? "מוחק…" : "מחיקה"}

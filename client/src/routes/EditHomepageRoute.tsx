@@ -126,7 +126,7 @@ export default function EditHomepageRoute() {
             onClick={handleSave}
             disabled={saving}
             className="border rounded-xl px-3 py-1  bg-blue-600 text-white
-          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700"
+          hover:bg-blue-700 dark:hover:bg-slate-800 dark:border-slate-700 cursor-pointer"
           >
             {saving ? "שומר..." : "שמירת שינויים"}
           </button>

@@ -697,7 +697,7 @@ if (!content) {
                       />
                     )}
                     <select
-                      className="border rounded-lg px-2 py-1 text-[11px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                      className="border rounded-lg px-2 py-1 text-[11px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 cursor-pointer"
                       value={m.icon || ""}
                       onChange={(e) =>
                         updateExternalItem(idx, "icon", e.target.value)
@@ -716,7 +716,7 @@ if (!content) {
                 <button
                   type="button"
                   onClick={() => removeExternalItem(idx)}
-                  className="self-start text-[11px] text-red-600 underline"
+                  className="self-start text-[11px] text-red-600 underline cursor-pointer"
                 >
                   הסרת חומר
                 </button>
@@ -807,7 +807,7 @@ if (!content) {
                 <button
                   type="button"
                   onClick={() => removeArrayItem("assignments", idx)}
-                  className="self-start text-[11px] text-red-600 underline mt-1"
+                  className="self-start text-[11px] text-red-600 underline mt-1 cursor-pointer"
                 >
                   הסרת מטלה
                 </button>
@@ -887,7 +887,7 @@ if (!content) {
                 <button
                   type="button"
                   onClick={() => removeArrayItem("exams", idx)}
-                  className="self-start text-[11px] text-red-600 underline mt-1"
+                  className="self-start text-[11px] text-red-600 underline mt-1 cursor-pointer"
                 >
                   הסרת בחינה
                 </button>
@@ -898,7 +898,7 @@ if (!content) {
           <button
             type="button"
             onClick={() => addArrayItem("exams")}
-            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 cursor-pointer"
           >
             + הוספת בחינה
           </button>
@@ -920,11 +920,11 @@ if (!content) {
             {labs.map((lab: AssessmentItem, idx: number) => (
               <div
                 key={idx}
-                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white border-neutral-200 dark:bg-slate-950/40 dark:border-slate-700"
+                className="border rounded-xl p-3 text-xs flex flex-col gap-1 bg-white border-neutral-200 dark:bg-slate-950/40 dark:border-slate-700 cursor-pointer"
               >
                 <div className="flex flex-wrap gap-2">
                   <input
-                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 cursor-pointer"
                     placeholder="שם המעבדה"
                     value={lab.title || ""}
                     onChange={(e) =>
@@ -945,7 +945,7 @@ if (!content) {
                     }
                   />
                   <input
-                    className="border rounded-lg px-2 py-1 w-24 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    className="border rounded-lg px-2 py-1 w-24 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 cursor-pointer"
                     placeholder="משקל"
                     value={lab.weight || ""}
                     onChange={(e) =>
@@ -965,7 +965,7 @@ if (!content) {
                 <button
                   type="button"
                   onClick={() => removeArrayItem("labs", idx)}
-                  className="self-start text-[11px] text-red-600 underline mt-1"
+                  className="self-start text-[11px] text-red-600 underline mt-1 cursor-pointer"
                 >
                   הסרת מעבדה
                 </button>
@@ -976,7 +976,7 @@ if (!content) {
           <button
             type="button"
             onClick={() => addArrayItem("labs")}
-            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="mt-3 text-xs border rounded-xl px-3 py-1 border-neutral-200 bg-white hover:bg-neutral-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 cursor-pointer"
           >
             + הוספת מעבדה
           </button>
@@ -989,7 +989,7 @@ if (!content) {
             type="button"
             onClick={manualSave}
             disabled={saving}
-            className="border rounded-xl px-4 py-2 text-sm border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-100"
+            className="border rounded-xl px-4 py-2 text-sm border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-100 cursor-pointer"
           >
             {saving ? "שומר..." : "שמירת שינויים ידנית"}
           </button>
@@ -997,12 +997,12 @@ if (!content) {
           <button
             type="button"
             onClick={() => nav("/admin/courses")}
-            className="text-xs text-neutral-500 dark:text-slate-400 underline"
+            className="text-xs text-neutral-500 dark:text-slate-400 underline cursor-pointer"
           >
             ביטול / חזרה לרשימת הקורסים
           </button>
 
-          <div className="text-[11px] text-neutral-500 dark:text-slate-400 ms-auto">
+          <div className="text-[11px] text-neutral-500 dark:text-slate-400 ms-auto ">
             {autoStatus === "saving" && "שומר אוטומטית..."}
             {autoStatus === "saved" && "נשמר אוטומטית לפני רגע"}
             {autoStatus === "error" &&

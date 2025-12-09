@@ -878,7 +878,7 @@ export default function App() {
                 {canSeeAdminPanel && (
                   <button
                     onClick={() => nav("/admin")}
-                    className="rounded-2xl px-3 py-2 text-sm bg-red-600 text-white"
+                    className="rounded-2xl px-3 py-2 text-sm bg-red-600 text-white cursor-pointer"
                   >
                     פאנל ניהול
                   </button>
@@ -886,7 +886,7 @@ export default function App() {
 
                 <button
                   onClick={handleLogout}
-                  className="rounded-2xl px-3 py-2 text-sm bg-blue-600 text-white"
+                  className="rounded-2xl px-3 py-2 text-sm bg-blue-600 text-white cursor-pointer"
                 >
                   התנתקות
                 </button>
