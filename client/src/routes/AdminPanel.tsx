@@ -649,7 +649,7 @@ const handleSaveAnnouncement = async () => {
                     <td className="py-2">
                       <button
                         onClick={() => handleDeleteGlobalRole(r.id)}
-                        className="text-xs underline text-red-600"
+                        className="text-xs underline text-red-600 cursor-pointer"
                         title="מחיקה"
                       >
                         🗑
