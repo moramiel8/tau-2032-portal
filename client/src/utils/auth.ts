@@ -1,7 +1,7 @@
   // client/src/utils/auth.ts
 import { setCachedUser, clearCachedUser } from "./sessionCache";
 
-export type Role = "student" | "vaad" | "admin";
+export type Role = "admin" | "vaad" | "course-vaad" | "user" | "guest";
 export type User = { email: string;  name?: string; role: Role;   managedCourses?: string[]; } | null;
 
   // החזר את שתי הפונקציות האלו ↓

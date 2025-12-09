@@ -65,11 +65,15 @@ type HomeContentProps = {
   canCreateCourse: boolean;
 };
 
+const path = window.location.pathname;
+const isGuestMode = path === "/moramiel8";
+
 // ---- HomeContent עם overrides + מודעות + מטלות/מבחנים + homepage ----
 function HomeContent({ openCourse, canCreateCourse }: HomeContentProps) {
   const [overrides, setOverrides] = useState<Record<string, Partial<Course>>>(
     {}
   );
+
   const [announcements, setAnnouncements] = useState<AnnouncementPublic[]>([]);
   const [homepage, setHomepage] = useState<HomepageContent | null>(null);
 
@@ -710,7 +714,20 @@ const yearsMerged = useMemo<StaticYear[]>(() => {
 
 // ---- App ----
 export default function App() {
-  const [user, setUser] = useState<User | null>(() => getCachedUser());
+  const path = window.location.pathname;
+  const isGuestMode = path === "/moramiel8";
+
+  const [user, setUser] = useState<User | null>(() => {
+    if (isGuestMode) {
+      return {
+        email: "guest@tau.ac.il",
+        role: "guest",
+        name: "Guest User",
+      };
+    }
+    return getCachedUser();
+  });
+
   const [loadingUser, setLoadingUser] = useState(false);
   const [myCourseVaadIds, setMyCourseVaadIds] = useState<string[]>([]);
   const [views, setViews] = useState<number>(0);
@@ -740,16 +757,18 @@ export default function App() {
     return `${dateStr} ${timeStr}`;
   }, [buildTimeRaw]);
 
-  // Toast
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string, ms = 2200) => {
     setToast(msg);
-    window.setTimeout(() => setToast(null), ms);
+    setTimeout(() => setToast(null), ms);
   };
 
+  // 🔥 חשובה — לא לבצע fetchSession במצב אורח
   useEffect(() => {
-    if (!AUTH_ENABLED) return;
+    if (isGuestMode || !AUTH_ENABLED) return;
+
     let cancelled = false;
+
     (async () => {
       try {
         const fresh = await fetchSession();
@@ -758,12 +777,13 @@ export default function App() {
         if (!cancelled) setLoadingUser(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // רישום צפייה + קריאת המונה מהשרת
+  // מונה צפיות
   useEffect(() => {
     (async () => {
       try {
@@ -779,9 +799,9 @@ export default function App() {
     })();
   }, []);
 
-  // לבדוק אם המשתמש הוא ועד־קורס ועל אילו קורסים
+  // וועד קורס
   useEffect(() => {
-    if (!user) {
+    if (!user || user.role === "guest") {
       setMyCourseVaadIds([]);
       return;
     }
@@ -798,12 +818,15 @@ export default function App() {
     })();
   }, [user?.email]);
 
-  // תפקידי הרשאות
   const isAdmin =
     user?.role === "admin" || user?.email === "morrabaev@mail.tau.ac.il";
+
   const isGlobalVaad = user?.role === "vaad";
   const isCourseVaad = myCourseVaadIds.length > 0;
-  const canSeeAdminPanel = !!user && (isAdmin || isGlobalVaad || isCourseVaad);
+  const isGuest = user?.role === "guest";
+
+  const canSeeAdminPanel =
+    !isGuest && !!user && (isAdmin || isGlobalVaad || isCourseVaad);
 
   const handleSignIn = () => startGoogleLogin();
 
@@ -833,51 +856,30 @@ export default function App() {
         text-black 
         dark:bg-black/70
         dark:text-slate-100 
-        transition-colors
       "
       dir="rtl"
     >
-      {/* toolbar קבוע */}
+      {/* ---- HEADER ---- */}
       <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-neutral-200 dark:border-slate-800 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* לוגו + טקסט */}
-          <Link
-  to="/"
-  className="flex items-center gap-3 cursor-pointer select-none"
-  aria-label="חזרה לעמוד הבית"
->
-  {/* לוגו חדש */}
-  <div className="flex items-center justify-center">
-    <MedTauLogo size={200} />
-  </div>
-
-  <div>
-    <div className="text-base font-semibold">
-      אתר מחזור 2032 - תל אביב
-    </div>
-    <div className="text-xs text-neutral-500 dark:text-slate-400">
-      אתר עזר לסטודנטים לרפואה שש שנתי
-    </div>
-  </div>
-</Link>
-
+          <Link to="/" className="flex items-center gap-3 cursor-pointer">
+            <div><MedTauLogo size={200} /></div>
+            <div>
+              <div className="text-base font-semibold">
+                אתר מחזור 2032 - תל אביב
+              </div>
+              <div className="text-xs text-neutral-500 dark:text-slate-400">
+                אתר עזר לסטודנטים לרפואה שש שנתי
+              </div>
+            </div>
+          </Link>
 
           <div className="flex items-center gap-2">
-            {/* כפתור Dark Mode */}
-            <button
-              onClick={toggleTheme}
-              className="
-                rounded-2xl px-3 py-2 text-sm
-                border border-neutral-300
-                hover:bg-neutral-100
-                dark:border-slate-600 dark:hover:bg-slate-800
-                cursor-pointer flex items-center gap-1
-              "
-            >
+            <button onClick={toggleTheme} className="rounded-2xl px-3 py-2 border">
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
 
-            {user && (
+            {user && !isGuest && (
               <>
                 <span className="text-xs text-neutral-400 hidden sm:inline">
                   {user.email}
@@ -886,13 +888,7 @@ export default function App() {
                 {canSeeAdminPanel && (
                   <button
                     onClick={() => nav("/admin")}
-                    className="
-                      border-red-600 rounded-2xl px-3 py-2 text-sm
-                      bg-red-600 text-white 
-                      hover:bg-red-700
-                      dark:hover:bg-red-800  border-red-800 
-                      flex items-center gap-1 cursor-pointer
-                    "
+                    className="rounded-2xl px-3 py-2 text-sm bg-red-600 text-white"
                   >
                     פאנל ניהול
                   </button>
@@ -900,15 +896,9 @@ export default function App() {
 
                 <button
                   onClick={handleLogout}
-                  className="
-                    border-blue-600 rounded-2xl px-3 py-2 text-sm
-                    bg-blue-600 text-white
-                    hover:bg-blue-700
-                    dark:hover:bg-blue-800 border-blue-800 
-                    flex items-center gap-1 cursor-pointer
-                  "
+                  className="rounded-2xl px-3 py-2 text-sm bg-blue-600 text-white"
                 >
-                  <span className="inline">התנתקות</span>
+                  התנתקות
                 </button>
               </>
             )}
@@ -916,195 +906,161 @@ export default function App() {
         </div>
       </header>
 
+      {/* ---- MAIN ---- */}
       <main className="max-w-6xl mx-auto px-4 py-6">
-           <YearsProvider>
-        {loadingUser ? (
-          <div className="text-sm text-neutral-500">טוען…</div>
-        ) : !user ? (
-          <div
-            className="
-              mb-8 border rounded-2xl p-4 shadow-sm
-              bg-white dark:bg-slate-900
-              border-neutral-200 dark:border-slate-700
-            "
-          >
-            כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google. במסך ההתחברות
-            בחר/י חשבון עם הדומיין <b>mail.tau.ac.il</b>.
-            <div className="mt-3">
-              <button
-                onClick={handleSignIn}
-                className="
-                  border-blue-600 rounded-2xl px-3 py-2 text-sm
-                  bg-blue-600 text-white
-                  hover:bg-blue-700
-                  dark:hover:bg-blue-800 border-blue-800 
-                  flex items-center gap-1 cursor-pointer
-                "
-              >
-                התחברות עם Google
-              </button>
+        <YearsProvider>
+          {loadingUser ? (
+            <div className="text-sm text-neutral-500">טוען…</div>
+          ) : isGuestMode ? (
+            // ⚡ מצב אורח
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <HomeContent openCourse={openCourse} canCreateCourse={false} />
+                }
+              />
+              <Route path="/course/:id" element={<CourseRoute />} />
+              <Route
+                path="*"
+                element={
+                  <HomeContent openCourse={openCourse} canCreateCourse={false} />
+                }
+              />
+            </Routes>
+          ) : !user ? (
+            // Login רגיל
+            <div className="border rounded-2xl p-4 shadow-sm bg-white dark:bg-slate-900">
+              כדי לגשת לתוכן האתר יש להתחבר עם חשבון Google (mail.tau.ac.il).
+              <div className="mt-3">
+                <button
+                  onClick={handleSignIn}
+                  className="rounded-2xl px-3 py-2 text-sm bg-blue-600 text-white"
+                >
+                  התחברות עם Google
+                </button>
+              </div>
             </div>
-          </div>
-        ) : !isTauEmail(user.email) ? (
-          <div className="border rounded-2xl p-6 text-sm text-red-600">
-            הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
-            חשבון TAU.
-          </div>
-        ) : (
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <HomeContent
-                  openCourse={openCourse}
-                  canCreateCourse={isAdmin || isGlobalVaad}
-                />
-              }
-            />
-
-            <Route path="/course/:id" element={<CourseRoute />} />
-
-            {/* admin routes */}
-            <Route
-              path="/admin"
-              element={
-                canSeeAdminPanel ? (
-                  <AdminPanel
-                    user={user}
-                    isAdmin={isAdmin}
-                    isGlobalVaad={isGlobalVaad}
-                    isCourseVaad={isCourseVaad}
-                    myCourseVaadIds={myCourseVaadIds}
-                  />
-                ) : (
+          ) : !isTauEmail(user.email) ? (
+            <div className="border rounded-2xl p-6 text-sm text-red-600">
+              הדומיין של המייל ({getDomain(user.email)}) אינו מורשה.
+            </div>
+          ) : (
+            // מצב רגיל
+            <Routes>
+              <Route
+                path="/"
+                element={
                   <HomeContent
                     openCourse={openCourse}
                     canCreateCourse={isAdmin || isGlobalVaad}
                   />
-                )
-              }
-            />
+                }
+              />
 
-            <Route
-              path="/admin/home"
-              element={
-                isAdmin || isGlobalVaad ? (
-                  <EditHomepageRoute />
-                ) : (
+              <Route path="/course/:id" element={<CourseRoute />} />
+
+              <Route
+                path="/admin"
+                element={
+                  canSeeAdminPanel ? (
+                    <AdminPanel
+                      user={user}
+                      isAdmin={isAdmin}
+                      isGlobalVaad={isGlobalVaad}
+                      isCourseVaad={isCourseVaad}
+                      myCourseVaadIds={myCourseVaadIds}
+                    />
+                  ) : (
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin/home"
+                element={
+                  isAdmin || isGlobalVaad ? (
+                    <EditHomepageRoute />
+                  ) : (
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin/courses"
+                element={
+                  isAdmin || isGlobalVaad ? (
+                    <AdminCoursesRoute />
+                  ) : (
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin/course/:id/edit"
+                element={
+                  canSeeAdminPanel ? (
+                    <EditCourseRoute />
+                  ) : (
+                    <HomeContent
+                      openCourse={openCourse}
+                      canCreateCourse={isAdmin || isGlobalVaad}
+                    />
+                  )
+                }
+              />
+
+              <Route
+                path="*"
+                element={
                   <HomeContent
                     openCourse={openCourse}
                     canCreateCourse={isAdmin || isGlobalVaad}
                   />
-                )
-              }
-            />
-
-            <Route
-              path="/admin/courses"
-              element={
-                isAdmin || isGlobalVaad ? (
-                  <AdminCoursesRoute />
-                ) : (
-                  <HomeContent
-                    openCourse={openCourse}
-                    canCreateCourse={isAdmin || isGlobalVaad}
-                  />
-                )
-              }
-            />
-
-            <Route
-              path="/admin/course/:id/edit"
-              element={
-                canSeeAdminPanel ? (
-                  <EditCourseRoute />
-                ) : (
-                  <HomeContent
-                    openCourse={openCourse}
-                    canCreateCourse={isAdmin || isGlobalVaad}
-                  />
-                )
-              }
-            />
-
-            {/* fallback */}
-            <Route
-              path="*"
-              element={
-                <HomeContent
-                  openCourse={openCourse}
-                  canCreateCourse={isAdmin || isGlobalVaad}
-                />
-              }
-            />
-          </Routes>
-        )}
+                }
+              />
+            </Routes>
+          )}
         </YearsProvider>
       </main>
 
-      <footer
-        className="
-          max-w-6xl mx-auto px-4 py-8 text-xs
-          text-neutral-800 dark:text-slate-300
-        "
-      >
+      {/* ---- FOOTER ---- */}
+      <footer className="max-w-6xl mx-auto px-4 py-8 text-xs">
         <div className="flex flex-col gap-2">
           <span>
-            נבנה ע״י מור עמיאל רבייב · morrabaev@tauex.tau.ac.il · עודכן
-            לאחרונה {lastUpdatedText || "—"}
+            נבנה ע״י מור עמיאל רבייב · עודכן לאחרונה {lastUpdatedText}
           </span>
 
           <span className="flex items-center gap-1 text-neutral-600">
-            מספר מבקרים: {views.toLocaleString("he-IL")} צפיות
+            מספר מבקרים: {views.toLocaleString("he-IL")}
           </span>
 
           <div className="flex items-center gap-4 mt-2">
-            <a
-              href="https://www.facebook.com/mork0/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-70 hover:opacity-100 transition"
-            >
-              <img src={IMG_FACEBOOK} alt="Facebook" className="w-5 h-5" />
+            <a href="https://www.facebook.com/mork0/" target="_blank">
+              <img src={IMG_FACEBOOK} className="w-5 h-5" />
             </a>
-
-            <a
-              href="https://github.com/moramiel8"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-70 hover:opacity-100 transition"
-            >
-              <img
-                src={IMG_GITHUB}
-                alt="GitHub"
-                className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
-              />
+            <a href="https://github.com/moramiel8" target="_blank">
+              <img src={IMG_GITHUB} className="w-5 h-5 dark:invert" />
             </a>
-
-            <a
-              href="https://www.buymeacoffee.com/moramiel8"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-70 hover:opacity-100 transition"
-            >
-              <img
-                src={IMG_BUYME}
-                alt="BuyMe"
-                className="w-5 h-5 opacity-70 hover:opacity-100 transition dark:invert"
-              />
+            <a href="https://www.buymeacoffee.com/moramiel8" target="_blank">
+              <img src={IMG_BUYME} className="w-5 h-5 dark:invert" />
             </a>
-
-            <a
-              href="https://wa.me/972556655348?text=%D7%94%D7%99%D7%99%20%D7%9E%D7%95%D7%A8%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A2%D7%96%D7%A8%D7%94%20%D7%9C%D7%92%D7%91%D7%99%20%D7%90%D7%AA%D7%A8%20%D7%94%D7%9E%D7%97%D7%96%D7%95%D7%A8%20%D7%A9%D7%9C%D7%A0%D7%95%20%28%D7%AA%D7%B4%D7%90%202032%29%21%20%F0%9F%99%8F"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-70 hover:opacity-100 transition"
-            >
-              <img src={IMG_WHATSAPP} alt="WhatsApp" className="w-5 h-5" />
+            <a href="https://wa.me/972556655348" target="_blank">
+              <img src={IMG_WHATSAPP} className="w-5 h-5" />
             </a>
           </div>
-
-  
         </div>
       </footer>
 
@@ -1112,3 +1068,4 @@ export default function App() {
     </div>
   );
 }
+
