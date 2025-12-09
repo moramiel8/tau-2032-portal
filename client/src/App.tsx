@@ -924,14 +924,14 @@ export default function App() {
               <div className="mt-3">
                 <button
                   onClick={handleSignIn}
-                  className="rounded-2xl px-3 py-2 text-sm bg-blue-600 text-white"
+                  className="rounded-2xl px-3 py-2 text-sm bg-blue-600 text-white cursor-pointer"
                 >
                   התחברות עם Google
                 </button>
               </div>
             </div>
           ) : !isTauEmail(user.email) ? (
-            // 💥 שורה זו כבר לא תרוץ ב־guest, רק ב־user אמיתי
+
             <div className="border rounded-2xl p-6 text-sm text-red-600 bg-white dark:bg-slate-900">
               הדומיין של המייל ({getDomain(user.email)}) אינו מורשה. יש לבחור
               חשבון TAU.
