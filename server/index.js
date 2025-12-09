@@ -65,12 +65,16 @@ try {
   if (process.env.NODE_ENV !== "production") {
     uploadRoot = path.join(process.cwd(), "uploads");
   } else {
+    // ב־prod כותבים ל־/tmp (Vercel / שרתים אחרים)
     uploadRoot = path.join("/tmp", "uploads");
   }
 
   fs.mkdirSync(uploadRoot, { recursive: true });
 
+  // 👇 גם /api/uploads וגם /uploads כדי ששני הפורמטים יעבדו
   app.use("/api/uploads", express.static(uploadRoot));
+  app.use("/uploads", express.static(uploadRoot));
+
   console.log("[srv] uploads dir ready:", uploadRoot);
 } catch (err) {
   console.error("[srv] failed to init uploads dir, disabling uploads", err);

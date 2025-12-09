@@ -577,11 +577,23 @@ if (!content) {
               </label>
             </div>
 
-            {uploadingSyllabus && (
-              <div className="text-[11px] text-neutral-500 dark:text-slate-400 mt-1">
-                מעלה את הקובץ… ⏳
-              </div>
-            )}
+          {uploadingSyllabus && (
+  <div className="text-[11px] text-neutral-500 dark:text-slate-400 mt-1">
+    מעלה את הקובץ… ⏳
+  </div>
+)}
+{uploadError && (
+  <div className="text-[11px] text-red-600 mt-1">
+    {uploadError}
+  </div>
+)}
+{content.syllabus &&
+  content.syllabus.includes("/uploads/syllabus/") && (
+    <div className="text-[11px] text-green-700 mt-1">
+      קובץ סילבוס הועלה ונשמר
+    </div>
+  )}
+
             {uploadError && (
               <div className="text-[11px] text-red-600 mt-1">
                 {uploadError}
