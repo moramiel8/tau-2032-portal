@@ -138,6 +138,7 @@ export default function EditCourseRoute() {
 
   const [uploadingSyllabus, setUploadingSyllabus] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   /* -------------------------------------------------
   LOAD COURSE CONTENT FROM SERVER
@@ -268,6 +269,7 @@ export default function EditCourseRoute() {
 
     setUploadingSyllabus(true);
     setUploadError(null);
+    setUploadSuccess(false);
 
     try {
       const fd = new FormData();
@@ -290,12 +292,22 @@ export default function EditCourseRoute() {
         ...content,
         syllabus: data.url,
       });
+      setUploadSuccess(true);
+
     } catch {
       setUploadError("העלאה נכשלה");
     } finally {
       setUploadingSyllabus(false);
     }
   };
+
+  useEffect(() => {
+  // כל פעם שנכנסים לקורס אחר – לאפס סטטוס העלאה
+  setUploadingSyllabus(false);
+  setUploadError(null);
+  setUploadSuccess(false);
+}, [id]);
+
 
   /* -------------------------------------------------
   UPDATE HELPERS
@@ -577,11 +589,24 @@ if (!content) {
               </label>
             </div>
 
-          {uploadingSyllabus && (
+{uploadingSyllabus && (
   <div className="text-[11px] text-neutral-500 dark:text-slate-400 mt-1">
     מעלה את הקובץ… ⏳
   </div>
 )}
+
+{uploadError && (
+  <div className="text-[11px] text-red-600 mt-1">
+    {uploadError}
+  </div>
+)}
+
+{uploadSuccess && !uploadingSyllabus && !uploadError && (
+  <div className="text-[11px] text-green-700 mt-1">
+    קובץ סילבוס הועלה ונשמר
+  </div>
+)}
+
 {uploadError && (
   <div className="text-[11px] text-red-600 mt-1">
     {uploadError}

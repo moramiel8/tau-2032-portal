@@ -3,10 +3,14 @@ import express from "express";
 import { query } from "../server/db.js";
 
 import multer from "multer";
+import supabase from "./supabaseClient.js";
+
 import path from "path";
 import fs from "fs";
 
 import { generateCourseId } from "../server/utils/courseId.js";
+
+
 
 
 
@@ -165,7 +169,8 @@ async function requireCourseVaadOrAdmin(req, res, next) {
 // ---------- file uploads (PDF syllabus) ----------
 
 let syllabusDir = null;
-let upload = null;
+const upload = multer({ storage: multer.memoryStorage() });
+
 
 try {
   if (process.env.NODE_ENV === "production") {
@@ -506,22 +511,31 @@ router.put(
 router.post(
   "/course-content/:courseId/syllabus-upload",
   requireCourseVaadOrAdmin,
-  (req, res, next) => {
-    if (!upload) {
-      return res
-        .status(503)
-        .json({ error: "uploads_disabled_in_this_env" });
-    }
-    next();
-  },
-  upload?.single("file"),
-  (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "no_file" });
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "no_file" });
+
+    const courseId = req.params.courseId;
+    const ext = ".pdf";
+    const fileName = `${courseId}-${Date.now()}${ext}`;
+
+    const { error } = await supabase.storage
+      .from("syllabus")                    // שם הבקט
+      .upload(fileName, req.file.buffer, {
+        contentType: "application/pdf",
+      });
+
+    if (error) {
+      console.error("supabase upload error", error);
+      return res.status(500).json({ error: "upload_failed" });
     }
 
-    const publicUrl = `/api/uploads/syllabus/${req.file.filename}`;
-    return res.json({ url: publicUrl });
+    const { data: publicData } = supabase.storage
+      .from("syllabus")
+      .getPublicUrl(fileName);
+
+    // זה ה-URL שתשמור ב-content.syllabus
+    return res.json({ url: publicData.publicUrl });
   }
 );
 
