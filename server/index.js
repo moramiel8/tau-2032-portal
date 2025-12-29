@@ -10,12 +10,10 @@ import fs from "fs";
 
 import yearsRouter from "./routes/years.js";
 
-
 import { query } from "./db.js";
 import adminRouter, {
   requireAuth,
   getEffectiveRole,
-  requireAdminLike,
   getDisplayNameForEmail,
 } from "../api/adminRoutes.js";
 
@@ -36,15 +34,6 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !SESSION_SECRET) {
   throw new Error("Missing envs");
 }
 
-const ADMIN_EMAILS = ["morrabaev@mail.tau.ac.il"];
-const VAAD_EMAILS = [];
-
-function getRole(email) {
-  if (ADMIN_EMAILS.includes(email)) return "admin";
-  if (VAAD_EMAILS.includes(email)) return "vaad";
-  return "student";
-}
-
 const app = express();
 app.use(express.json());
 app.set("trust proxy", 1);
@@ -62,16 +51,14 @@ app.use(
 let uploadRoot = null;
 
 try {
-  if (process.env.NODE_ENV !== "production") {
-    uploadRoot = path.join(process.cwd(), "uploads");
-  } else {
-    // ב־prod כותבים ל־/tmp (Vercel / שרתים אחרים)
-    uploadRoot = path.join("/tmp", "uploads");
-  }
+  uploadRoot =
+    process.env.NODE_ENV !== "production"
+      ? path.join(process.cwd(), "uploads")
+      : path.join("/tmp", "uploads");
 
   fs.mkdirSync(uploadRoot, { recursive: true });
 
-  // 👇 גם /api/uploads וגם /uploads כדי ששני הפורמטים יעבדו
+  // גם /api/uploads וגם /uploads כדי ששני הפורמטים יעבדו
   app.use("/api/uploads", express.static(uploadRoot));
   app.use("/uploads", express.static(uploadRoot));
 
@@ -95,18 +82,13 @@ app.use(
   })
 );
 
-// ------------- dynamic courses -------------
+// ------------- dynamic years/courses router -------------
 app.use("/api", yearsRouter);
-
 
 // polyfill ל-passport + cookie-session
 app.use((req, _res, next) => {
-  if (req.session && !req.session.regenerate) {
-    req.session.regenerate = (cb) => cb();
-  }
-  if (req.session && !req.session.save) {
-    req.session.save = (cb) => cb();
-  }
+  if (req.session && !req.session.regenerate) req.session.regenerate = (cb) => cb();
+  if (req.session && !req.session.save) req.session.save = (cb) => cb();
   next();
 });
 
@@ -166,7 +148,7 @@ app.get(
   (req, res) => res.redirect(CLIENT_URL)
 );
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProd) {
   app.get("/api/dev/login-as/:email", async (req, res) => {
     const email = req.params.email;
     const role = await getEffectiveRole(email);
@@ -262,7 +244,7 @@ async function mapAnnouncementRow(row) {
     body: row.body,
     courseId: row.course_id,
     createdAt: row.created_at,
-    updatedAt: row.created_at, // כרגע אין updated_at בטבלה – נשתמש ב-created
+    updatedAt: row.created_at,
     authorEmail: email,
     authorName: displayName,
   };
@@ -318,7 +300,7 @@ app.get("/api/course-content", async (_req, res) => {
 });
 
 // -- Count view and return current count --
-app.post("/api/stats/view", async (req, res) => {
+app.post("/api/stats/view", async (_req, res) => {
   try {
     const result = await query(
       `
@@ -338,76 +320,22 @@ app.post("/api/stats/view", async (req, res) => {
   }
 });
 
-// -- Fetch only (for footer refresh) --
-app.get("/api/stats/view", async (req, res) => {
+// -- Fetch only --
+app.get("/api/stats/view", async (_req, res) => {
   try {
-    const result = await query(
-      `SELECT value FROM stats WHERE key = 'site_views'`
-    );
-
-    const views = result.rows.length
-      ? Number(result.rows[0].value ?? 0)
-      : 0;
-
+    const result = await query(`SELECT value FROM stats WHERE key = 'site_views'`);
+    const views = result.rows.length ? Number(result.rows[0].value ?? 0) : 0;
     res.json({ views });
   } catch (err) {
     console.error("[GET /api/stats/view] error", err);
     res.status(500).json({ error: "server_error" });
   }
 });
-
-// -- Fetch only (לא חובה כרגע, אבל שיהיה תקין) --
-app.get("/api/stats/view", async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT value FROM stats WHERE key = 'site_views'`
-    );
-
-    const views = result.rows[0]?.value ?? 0;
-    res.json({ views });
-  } catch (err) {
-    console.error("[GET /api/stats/view] error", err);
-    res.status(500).json({ error: "server_error" });
-  }
-});
-
-
-// -- Fetch only (for footer refresh) --
-app.get("/api/stats/view", async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT value FROM stats WHERE key = 'site_views'`
-    );
-
-    const views = result.rows[0]?.value ?? 0;
-    res.json({ views });
-  } catch (err) {
-    console.error("[GET /api/stats/view] error", err);
-    res.status(500).json({ error: "server_error" });
-  }
-});
-
-
-// -- Fetch only (for footer refresh) --
-app.get("/api/stats/view", async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT value FROM stats WHERE key = 'site_views'`
-    );
-    res.json({ views: result.rows[0].value });
-  } catch (err) {
-    console.error("[GET /api/stats/view] error", err);
-    res.status(500).json({ error: "server_error" });
-  }
-});
-
 
 // אילו קורסים המשתמש הוא ועד שלהם
 app.get("/api/my/course-vaad", async (req, res) => {
   const user = req.user;
-  if (!user?.email) {
-    return res.status(200).json({ courseIds: [] });
-  }
+  if (!user?.email) return res.status(200).json({ courseIds: [] });
 
   try {
     const result = await query(
@@ -423,7 +351,7 @@ app.get("/api/my/course-vaad", async (req, res) => {
   }
 });
 
-// --- public dynamic courses (for homepage & students) ---
+// --- public dynamic courses ---
 app.get("/api/courses", async (_req, res) => {
   try {
     const result = await query(
@@ -450,40 +378,10 @@ app.get("/api/courses", async (_req, res) => {
     res.status(500).json({ error: "server_error" });
   }
 });
-
-// --- public dynamic courses list (לשימוש בעמוד הבית) ---
-app.get("/api/courses", async (_req, res) => {
-  try {
-    const result = await query(
-      `
-      SELECT id, name, short_name, year_label, semester_label, course_code, created_at
-      FROM courses_extra
-      ORDER BY year_label, semester_label, name
-      `
-    );
-
-    res.json({
-      items: result.rows.map((r) => ({
-        id: String(r.id),
-        name: r.name,
-        shortName: r.short_name,
-        yearLabel: r.year_label,
-        semesterLabel: r.semester_label,
-        courseCode: r.course_code,
-        createdAt: r.created_at,
-      })),
-    });
-  } catch (err) {
-    console.error("[GET /api/courses] error", err);
-    res.status(500).json({ error: "server_error" });
-  }
-});
-
-
 
 export default app;
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProd) {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log("[srv] Listening on port", PORT);
