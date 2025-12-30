@@ -482,7 +482,7 @@ router.post(
         "_"
       );
 
-      const fileName = `${courseId}-${Date.now()}.pdf`;
+      const fileName = `syllabus/${courseId}-${Date.now()}.pdf`;
 
       const { error } = await supabase.storage
         .from("syllabus") // bucket
