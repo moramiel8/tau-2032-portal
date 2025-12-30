@@ -9,11 +9,11 @@
     "start": "node server/index.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.87.1",
+    "@supabase/supabase-js": "^2.89.0",
     "@vercel/analytics": "^1.6.1",
     "cookie-session": "^2.1.1",
     "cors": "^2.8.5",
-    "express": "^4.21.2",
+    "express": "^4.22.1",
     "express-session": "^1.18.2",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
@@ -30,7 +30,7 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/pg": "^8.15.6",
     "@vitejs/plugin-react": "^5.1.1",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "nodemon": "^3.1.0",
     "typescript": "^5.9.3"
   }

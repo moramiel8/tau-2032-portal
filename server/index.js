@@ -42,7 +42,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 app.use(
   cors({
-    origin: [ALLOWED_ORIGIN, "http://localhost:5173"],
+    origin: [CLIENT_URL, ALLOWED_ORIGIN, "http://localhost:5173"],
     credentials: true,
   })
 );
@@ -50,22 +50,19 @@ app.use(
 // ---- STATIC UPLOADS ----
 let uploadRoot = null;
 
-try {
-  uploadRoot =
-    process.env.NODE_ENV !== "production"
-      ? path.join(process.cwd(), "uploads")
-      : path.join("/tmp", "uploads");
+if (!isProd) {
+  try {
+    uploadRoot = path.join(process.cwd(), "uploads");
+    fs.mkdirSync(uploadRoot, { recursive: true });
 
-  fs.mkdirSync(uploadRoot, { recursive: true });
+    app.use("/api/uploads", express.static(uploadRoot));
+    app.use("/uploads", express.static(uploadRoot));
 
-  // גם /api/uploads וגם /uploads כדי ששני הפורמטים יעבדו
-  app.use("/api/uploads", express.static(uploadRoot));
-  app.use("/uploads", express.static(uploadRoot));
-
-  console.log("[srv] uploads dir ready:", uploadRoot);
-} catch (err) {
-  console.error("[srv] failed to init uploads dir, disabling uploads", err);
-  uploadRoot = null;
+    console.log("[srv] uploads dir ready:", uploadRoot);
+  } catch (err) {
+    console.error("[srv] failed to init uploads dir, disabling uploads", err);
+    uploadRoot = null;
+  }
 }
 
 export { uploadRoot };

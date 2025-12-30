@@ -3,15 +3,13 @@ import express from "express";
 import { query } from "../server/db.js";
 
 import multer from "multer";
-import supabase from "./supabaseClient.js";
 
 import path from "path";
 import fs from "fs";
 
 import { generateCourseId } from "../server/utils/courseId.js";
 
-
-
+import supabase from "./supabaseClient.js";
 
 
 const router = express.Router();
@@ -169,51 +167,14 @@ async function requireCourseVaadOrAdmin(req, res, next) {
 // ---------- file uploads (PDF syllabus) ----------
 
 let syllabusDir = null;
-const upload = multer({ storage: multer.memoryStorage() });
-
-
-try {
-  if (process.env.NODE_ENV === "production") {
-    syllabusDir = path.join("/tmp", "uploads", "syllabus");
-  } else {
-    syllabusDir = path.join(process.cwd(), "uploads", "syllabus");
-  }
-
-  fs.mkdirSync(syllabusDir, { recursive: true });
-
-  const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-      cb(null, syllabusDir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname) || ".pdf";
-      const safeCourseId = String(req.params.courseId || "course").replace(
-        /[^a-zA-Z0-9-_]/g,
-        "_"
-      );
-      cb(null, `${safeCourseId}-${Date.now()}${ext}`);
-    },
-  });
-
-  upload = multer({
-    storage,
-    limits: {
-      fileSize: 15 * 1024 * 1024,
-    },
-    fileFilter: (_req, file, cb) => {
-      if (file.mimetype !== "application/pdf") {
-        return cb(new Error("PDF only"));
-      }
-      cb(null, true);
-    },
-  });
-
-  console.log("[adminRoutes] syllabus upload ready at", syllabusDir);
-} catch (err) {
-  console.error("[adminRoutes] failed to init syllabus upload dir", err);
-  syllabusDir = null;
-  upload = null;
-}
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== "application/pdf") return cb(new Error("PDF only"));
+    cb(null, true);
+  },
+});
 
 // ---------- helpers לשם תצוגה לפי email ----------
 export async function getDisplayNameForEmail(email) {
@@ -513,31 +474,37 @@ router.post(
   requireCourseVaadOrAdmin,
   upload.single("file"),
   async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "no_file" });
+    try {
+      if (!req.file) return res.status(400).json({ error: "no_file" });
 
-    const courseId = req.params.courseId;
-    const ext = ".pdf";
-    const fileName = `${courseId}-${Date.now()}${ext}`;
+      const courseId = String(req.params.courseId || "course").replace(
+        /[^a-zA-Z0-9-_]/g,
+        "_"
+      );
 
-    const { error } = await supabase.storage
-      .from("syllabus")                    // שם הבקט
-      .upload(fileName, req.file.buffer, {
-        contentType: "application/pdf",
-      });
+      const fileName = `syllabus/${courseId}-${Date.now()}.pdf`;
 
-    if (error) {
-      console.error("supabase upload error", error);
-      return res.status(500).json({ error: "upload_failed" });
+      const { error } = await supabase.storage
+        .from("syllabus") // bucket
+        .upload(fileName, req.file.buffer, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+
+      if (error) {
+        console.error("[syllabus-upload] supabase error", error);
+        return res.status(500).json({ error: "upload_failed" });
+      }
+
+      const { data } = supabase.storage.from("syllabus").getPublicUrl(fileName);
+      return res.json({ url: data.publicUrl });
+    } catch (e) {
+      console.error("[syllabus-upload] server error", e);
+      return res.status(500).json({ error: "server_error" });
     }
-
-    const { data: publicData } = supabase.storage
-      .from("syllabus")
-      .getPublicUrl(fileName);
-
-    // זה ה-URL שתשמור ב-content.syllabus
-    return res.json({ url: publicData.publicUrl });
   }
 );
+
 
 // ----- homepage content (admin) -----
 
