@@ -482,28 +482,37 @@ router.post(
         "_"
       );
 
-      const fileName = `${courseId}-${Date.now()}.pdf`;
+      const filePath = `${courseId}-${Date.now()}.pdf`;
 
-      const { error } = await supabase.storage
-        .from("syllabus") // bucket
-        .upload(fileName, req.file.buffer, {
+      const { error: uploadErr } = await supabase.storage
+        .from("syllabus")
+        .upload(filePath, req.file.buffer, {
           contentType: "application/pdf",
           upsert: true,
         });
 
-      if (error) {
-        console.error("[syllabus-upload] supabase error", error);
+      if (uploadErr) {
+        console.error("[syllabus-upload] supabase upload error", uploadErr);
         return res.status(500).json({ error: "upload_failed" });
       }
 
-      const { data } = supabase.storage.from("syllabus").getPublicUrl(fileName);
-      return res.json({ url: data.publicUrl });
+      const { data, error: signErr } = await supabase.storage
+        .from("syllabus")
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7); // שבוע
+
+      if (signErr) {
+        console.error("[syllabus-upload] signed url error", signErr);
+        return res.status(500).json({ error: "signed_url_failed" });
+      }
+
+      return res.json({ url: data.signedUrl });
     } catch (e) {
       console.error("[syllabus-upload] server error", e);
       return res.status(500).json({ error: "server_error" });
     }
   }
 );
+
 
 
 // ----- homepage content (admin) -----
