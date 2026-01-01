@@ -1,8 +1,7 @@
-// client/src/data/years.ts
-// קובץ טייפים בלבד – אין בו יותר נתונים סטטיים של קורסים
+// Types only – no static data
 
 export type AssessmentItem = {
-  title: string;
+  title?: string;
   date?: string;
   weight?: string;
   notes?: string;
@@ -14,17 +13,30 @@ export type CourseLinks = {
   whatsapp?: string;
 };
 
-export type ExternalMaterial = {
-  label: string;
-  href: string;
-  icon?: string;
-};
+export type ExternalMaterial =
+  | {
+      id: string;
+      kind: "link";
+      label: string;
+      href: string;
+      icon?: string;
+    }
+  | {
+      id: string;
+      kind: "file";
+      label: string;
+      storagePath: string;
+      bucket?: string;        // defaults to "materials" on backend
+      originalName?: string;
+      mime?: string;
+      icon?: string;
+    };
 
 export type Course = {
   id: string;
   name: string;
 
-  // שדות שיכולים להיות null מה-DB
+  // Nullable fields from DB
   shortName?: string | null;
   courseNumber?: string | null;
   courseCode?: string | null;
@@ -33,7 +45,7 @@ export type Course = {
   reps?: string[] | string | null;
   place?: string | null;
 
-  // טקסט עשיר
+  // Rich text
   whatwas?: string | null;
   whatwill?: string | null;
 
@@ -63,6 +75,6 @@ export type Year = {
   semesters: Semester[];
 };
 
-// לשמירת תאימות – ריקים
+// Kept for backward compatibility
 export const YEARS: Year[] = [];
 export const ALL_COURSES: Course[] = [];

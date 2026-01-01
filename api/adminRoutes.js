@@ -167,13 +167,20 @@ async function requireCourseVaadOrAdmin(req, res, next) {
 // ---------- file uploads (PDF syllabus) ----------
 
 let syllabusDir = null;
-const upload = multer({
+const uploadPdfOnly = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== "application/pdf") return cb(new Error("PDF only"));
+    if (file.mimetype !== "application/pdf") {
+      return cb(new Error("PDF only"));
+    }
     cb(null, true);
   },
+});
+
+const uploadAny = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
 });
 
 // ---------- helpers לשם תצוגה לפי email ----------
@@ -472,7 +479,7 @@ router.put(
 router.post(
   "/course-content/:courseId/syllabus-upload",
   requireCourseVaadOrAdmin,
-  upload.single("file"),
+  uploadPdfOnly.single("file"),
   async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "no_file" });
@@ -513,6 +520,53 @@ router.post(
   }
 );
 
+router.post(
+  "/course-content/:courseId/external-materials/upload",
+  requireCourseVaadOrAdmin,
+  uploadAny.single("file"),
+  async (req, res) => {
+
+    try {
+      if (!req.file) return res.status(400).json({ error: "no_file" });
+
+      const courseId = String(req.params.courseId || "course").replace(/[^a-zA-Z0-9-_]/g, "_");
+      const materialId = String(req.body.materialId || "").replace(/[^a-zA-Z0-9-_]/g, "_");
+      if (!materialId) return res.status(400).json({ error: "missing_material_id" });
+
+      // שם קובץ בטוח (אפשר גם לשמר סיומת לפי mimetype)
+      const safeName = String(req.file.originalname || "file").replace(/[^a-zA-Z0-9._-]/g, "_");
+
+      // path בתוך ה-bucket
+      const filePath = `courses/${courseId}/external/${materialId}/${Date.now()}-${safeName}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("materials")              // ← bucket חדש
+        .upload(filePath, req.file.buffer, {
+          contentType: req.file.mimetype || "application/octet-stream",
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.error("[external-materials/upload] supabase upload error", uploadErr);
+        return res.status(500).json({ error: "upload_failed" });
+      }
+
+      // מחזירים *storagePath* ולא Signed URL
+     return res.json({
+      ok: true,
+      kind: "file",
+      bucket: "materials",
+      storagePath: filePath,
+      originalName: req.file.originalname || null,
+      mime: req.file.mimetype || null,
+});
+
+    } catch (e) {
+      console.error("[external-materials/upload] server error", e);
+      return res.status(500).json({ error: "server_error" });
+    }
+  }
+);
 
 
 // ----- homepage content (admin) -----
@@ -569,6 +623,42 @@ router.put("/homepage", requireAdminLike, async (req, res) => {
     res.status(500).json({ error: "server_error" });
   }
 });
+
+router.get(
+  "/storage/signed-url",
+  requireAuth,
+  async (req, res) => {
+    try {
+if (bucket !== "materials") {
+  return res.status(403).json({ error: "forbidden_bucket" });
+}
+      const path = String(req.query.path || "");
+
+      if (!path) {
+        return res.status(400).json({ error: "missing_path" });
+      }
+
+      if (!path.startsWith("courses/")) {
+        return res.status(403).json({ error: "forbidden_path" });
+      }
+
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 15);
+
+      if (error) {
+        console.error("[signed-url] error", error);
+        return res.status(500).json({ error: "signed_url_failed" });
+      }
+
+      return res.json({ ok: true, url: data.signedUrl });
+    } catch (e) {
+      console.error("[signed-url] server error", e);
+      return res.status(500).json({ error: "server_error" });
+    }
+  }
+);
+
 
 // ----- announcements (admin) -----
 
