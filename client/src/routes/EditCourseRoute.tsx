@@ -83,7 +83,8 @@ function normalizeExternalMaterials(raw: any): ExternalMaterial[] {
           label: String(m.label || m.originalName || "קובץ"),
           storagePath: String(m.storagePath || ""),
           bucket: typeof m.bucket === "string" ? m.bucket : undefined,
-          originalName: typeof m.originalName === "string" ? m.originalName : undefined,
+          originalName:
+            typeof m.originalName === "string" ? m.originalName : undefined,
           mime: typeof m.mime === "string" ? m.mime : undefined,
           icon: typeof m.icon === "string" ? m.icon : IMG_PDF,
         } as ExternalMaterial;
@@ -129,7 +130,8 @@ export default function EditCourseRoute() {
   const { allCourses, reload } = useYearsContext();
 
   const baseCourse = useMemo<CourseContent | null>(() => {
-    const found = (allCourses.find((c) => c.id === id) as Course | undefined) || null;
+    const found =
+      (allCourses.find((c) => c.id === id) as Course | undefined) || null;
     return normalizeBaseCourse(found);
   }, [id, allCourses]);
 
@@ -140,9 +142,9 @@ export default function EditCourseRoute() {
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
   const [repSearch, setRepSearch] = useState("");
 
-  const [autoStatus, setAutoStatus] = useState<"idle" | "saving" | "saved" | "error">(
-    "idle"
-  );
+  const [autoStatus, setAutoStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
   const autoTimerRef = useRef<number | null>(null);
   const loadedRef = useRef(false);
 
@@ -151,7 +153,14 @@ export default function EditCourseRoute() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   // external-material upload state (per item)
-  const [uploadingExternalId, setUploadingExternalId] = useState<string | null>(null);
+  const [uploadingExternalId, setUploadingExternalId] = useState<string | null>(
+    null
+  );
+
+  // --- NEW: refs to hidden file inputs, keyed by material id
+  const externalFileInputsRef = useRef<
+    Record<string, HTMLInputElement | null>
+  >({});
 
   /* -------------------------------------------------
   LOAD COURSE CONTENT
@@ -330,7 +339,10 @@ export default function EditCourseRoute() {
     setContent({ ...content, [field]: arr });
   }
 
-  function removeArrayItem(field: "assignments" | "exams" | "labs", index: number) {
+  function removeArrayItem(
+    field: "assignments" | "exams" | "labs",
+    index: number
+  ) {
     if (!content) return;
     const arr = [...content[field]];
     arr.splice(index, 1);
@@ -372,11 +384,14 @@ export default function EditCourseRoute() {
       fd.append("file", file);
       fd.append("materialId", current.id);
 
-      const res = await fetch(`/api/admin/course-content/${id}/external-materials/upload`, {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/admin/course-content/${id}/external-materials/upload`,
+        {
+          method: "POST",
+          body: fd,
+          credentials: "include",
+        }
+      );
 
       if (!res.ok) throw new Error("upload failed");
       const data = await res.json();
@@ -441,7 +456,9 @@ export default function EditCourseRoute() {
       <div className="space-y-6 text-sm dark:text-slate-200">
         {/* פרטי קורס */}
         <section className="border rounded-2xl p-4 bg-neutral-50 dark:bg-slate-900 border-neutral-200 dark:border-slate-700">
-          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">פרטי קורס</h2>
+          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">
+            פרטי קורס
+          </h2>
 
           {/* שם הקורס */}
           <label className="block mb-3">
@@ -459,7 +476,9 @@ export default function EditCourseRoute() {
             <input
               className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.coordinator || ""}
-              onChange={(e) => setContent({ ...content, coordinator: e.target.value })}
+              onChange={(e) =>
+                setContent({ ...content, coordinator: e.target.value })
+              }
             />
           </label>
 
@@ -471,7 +490,9 @@ export default function EditCourseRoute() {
               <div className="flex flex-wrap gap-2 mb-2">
                 {reps.map((email, idx) => {
                   const user = vaadUsers.find((u) => u.email === email);
-                  const label = user?.displayName ? `${user.displayName} (${email})` : email;
+                  const label = user?.displayName
+                    ? `${user.displayName} (${email})`
+                    : email;
 
                   return (
                     <span key={email} className="inline-block" dir="rtl">
@@ -496,7 +517,9 @@ export default function EditCourseRoute() {
               ) : (
                 filteredVaadUsers.map((u) => {
                   const selected = reps.includes(u.email);
-                  const label = u.displayName ? `${u.displayName} (${u.email})` : u.email;
+                  const label = u.displayName
+                    ? `${u.displayName} (${u.email})`
+                    : u.email;
 
                   return (
                     <button
@@ -504,7 +527,10 @@ export default function EditCourseRoute() {
                       type="button"
                       onClick={() => {
                         if (selected) {
-                          setContent({ ...content, reps: reps.filter((e) => e !== u.email) });
+                          setContent({
+                            ...content,
+                            reps: reps.filter((e) => e !== u.email),
+                          });
                         } else {
                           setContent({ ...content, reps: [...reps, u.email] });
                         }
@@ -530,7 +556,9 @@ export default function EditCourseRoute() {
             <input
               className="w-full border rounded-xl px-3 py-2 bg-white dark:bg-slate-950 border-neutral-300 dark:border-slate-700"
               value={content.courseNumber || ""}
-              onChange={(e) => setContent({ ...content, courseNumber: e.target.value })}
+              onChange={(e) =>
+                setContent({ ...content, courseNumber: e.target.value })
+              }
             />
           </label>
 
@@ -568,7 +596,9 @@ export default function EditCourseRoute() {
 
         {/* קישורים */}
         <section className="border rounded-2xl p-4 bg-white border-neutral-200 dark:bg-slate-900 dark:border-slate-700">
-          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">קישורים</h2>
+          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">
+            קישורים
+          </h2>
 
           {/* סילבוס */}
           <label className="block mb-3">
@@ -578,7 +608,9 @@ export default function EditCourseRoute() {
               <input
                 className="border rounded-xl px-3 py-2 w-full sm:flex-1 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 value={content.syllabus || ""}
-                onChange={(e) => setContent({ ...content, syllabus: e.target.value })}
+                onChange={(e) =>
+                  setContent({ ...content, syllabus: e.target.value })
+                }
                 placeholder="https://... או Signed URL"
               />
 
@@ -605,10 +637,14 @@ export default function EditCourseRoute() {
               </div>
             )}
 
-            {uploadError && <div className="text-[11px] text-red-600 mt-1">{uploadError}</div>}
+            {uploadError && (
+              <div className="text-[11px] text-red-600 mt-1">{uploadError}</div>
+            )}
 
             {uploadSuccess && !uploadingSyllabus && !uploadError && (
-              <div className="text-[11px] text-green-700 mt-1">קובץ סילבוס הועלה ונשמר</div>
+              <div className="text-[11px] text-green-700 mt-1">
+                קובץ סילבוס הועלה ונשמר
+              </div>
             )}
           </label>
 
@@ -685,7 +721,9 @@ export default function EditCourseRoute() {
                     className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="שם / תיאור"
                     value={m.label || ""}
-                    onChange={(e) => updateExternalItem(idx, { label: e.target.value } as any)}
+                    onChange={(e) =>
+                      updateExternalItem(idx, { label: e.target.value } as any)
+                    }
                   />
 
                   {/* LINK */}
@@ -695,7 +733,11 @@ export default function EditCourseRoute() {
                         className="border rounded-lg px-2 py-1 flex-[2] min-w-[180px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                         placeholder="https://..."
                         value={m.href || ""}
-                        onChange={(e) => updateExternalItem(idx, { href: e.target.value } as any)}
+                        onChange={(e) =>
+                          updateExternalItem(idx, {
+                            href: e.target.value,
+                          } as any)
+                        }
                       />
 
                       <div className="flex items-center gap-1">
@@ -709,7 +751,11 @@ export default function EditCourseRoute() {
                         <select
                           className="border rounded-lg px-2 py-1 text-[11px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 cursor-pointer"
                           value={m.icon || ""}
-                          onChange={(e) => updateExternalItem(idx, { icon: e.target.value } as any)}
+                          onChange={(e) =>
+                            updateExternalItem(idx, {
+                              icon: e.target.value,
+                            } as any)
+                          }
                         >
                           <option value="">ללא אייקון</option>
                           {ICON_OPTIONS.map((opt) => (
@@ -730,19 +776,37 @@ export default function EditCourseRoute() {
                   )}
                 </div>
 
-                {/* Upload to material (always available) */}
-                <label className="text-[11px] underline cursor-pointer w-fit">
-                  העלאת קובץ (הופך לפריט File)
+                {/* Upload button (always available) */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => externalFileInputsRef.current[m.id]?.click()}
+                    disabled={uploadingExternalId === m.id}
+                    className="text-[11px] border rounded-xl px-3 py-1
+                               border-neutral-200 bg-white hover:bg-neutral-50
+                               disabled:opacity-60
+                               dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {uploadingExternalId === m.id ? "מעלה..." : "העלאת קובץ"}
+                  </button>
+
+                  <span className="text-[11px] text-neutral-500 dark:text-slate-400">
+                    (הופך לפריט File)
+                  </span>
+
                   <input
                     type="file"
                     className="hidden"
+                    ref={(el) => {
+                      externalFileInputsRef.current[m.id] = el;
+                    }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) uploadExternalMaterialFile(idx, file);
                       e.target.value = "";
                     }}
                   />
-                </label>
+                </div>
 
                 {uploadingExternalId === m.id && (
                   <div className="text-[11px] text-neutral-500">מעלה… ⏳</div>
@@ -791,21 +855,30 @@ export default function EditCourseRoute() {
                     className="border rounded-lg px-2 py-1 flex-1 min-w-[140px] border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="שם המטלה"
                     value={a.title || ""}
-                    onChange={(e) => updateArrayItem("assignments", idx, "title", e.target.value)}
+                    onChange={(e) =>
+                      updateArrayItem("assignments", idx, "title", e.target.value)
+                    }
                   />
                   <input
                     type="date"
                     className="border rounded-lg px-2 py-1 w-32 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     value={a.date || ""}
                     onChange={(e) =>
-                      updateArrayItem("assignments", idx, "date", sanitizeDate(e.target.value))
+                      updateArrayItem(
+                        "assignments",
+                        idx,
+                        "date",
+                        sanitizeDate(e.target.value)
+                      )
                     }
                   />
                   <input
                     className="border rounded-lg px-2 py-1 w-24 border-neutral-200 bg-white text-neutral-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     placeholder="משקל"
                     value={a.weight || ""}
-                    onChange={(e) => updateArrayItem("assignments", idx, "weight", e.target.value)}
+                    onChange={(e) =>
+                      updateArrayItem("assignments", idx, "weight", e.target.value)
+                    }
                   />
                 </div>
 
@@ -992,7 +1065,8 @@ export default function EditCourseRoute() {
           <div className="text-[11px] text-neutral-500 dark:text-slate-400 ms-auto">
             {autoStatus === "saving" && "שומר אוטומטית..."}
             {autoStatus === "saved" && "נשמר אוטומטית לפני רגע"}
-            {autoStatus === "error" && "שגיאה בשמירה האוטומטית (השינויים עלולים שלא להישמר)"}
+            {autoStatus === "error" &&
+              "שגיאה בשמירה האוטומטית (השינויים עלולים שלא להישמר)"}
           </div>
         </div>
       </div>
