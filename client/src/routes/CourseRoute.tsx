@@ -1,7 +1,6 @@
 // client/src/routes/CourseRoute.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { stripHtml } from "../utils/stripHtml";
 
 import { useYearsContext } from "../context/YearsContext";
 import type { ExternalMaterial } from "../data/years";
@@ -80,10 +79,14 @@ const sectionCard =
 /* ---------- Text helpers ---------- */
 
 const decodeHtmlEntities = (str: string) => {
+  // במקרה של SSR / prerender / build - אין document
+  if (typeof document === "undefined") return str;
+
   const textarea = document.createElement("textarea");
   textarea.innerHTML = str;
   return textarea.value;
 };
+
 
 const renderRichOrPlainText = (body?: string) => {
   if (!body) return null;
