@@ -1,5 +1,5 @@
 // client/src/routes/CourseRoute.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { useYearsContext } from "../context/YearsContext";
@@ -11,8 +11,6 @@ import {
   IMG_WHATSAPP,
   IMG_PDF,
 } from "../constants/icons";
-
-/* ---------- Local types ---------- */
 
 type AssessmentItem = {
   title?: string;
@@ -68,25 +66,18 @@ type CourseAnnouncement = {
   authorName?: string | null;
 };
 
-/* ---------- UI helpers ---------- */
-
 const pillBtn =
   "inline-flex items-center gap-2 border rounded-xl px-3 py-2 text-xs bg-white/80 hover:bg-white dark:bg-slate-900/70 dark:hover:bg-slate-900 dark:border-slate-700 cursor-pointer";
 
 const sectionCard =
   "mb-4 border rounded-2xl p-4 bg-white/90 dark:bg-slate-950/80 dark:border-slate-800";
 
-/* ---------- Text helpers ---------- */
-
 const decodeHtmlEntities = (str: string) => {
-  // במקרה של SSR / prerender / build - אין document
   if (typeof document === "undefined") return str;
-
   const textarea = document.createElement("textarea");
   textarea.innerHTML = str;
   return textarea.value;
 };
-
 
 const renderRichOrPlainText = (body?: string) => {
   if (!body) return null;
@@ -121,46 +112,36 @@ const renderRichOrPlainText = (body?: string) => {
   );
 };
 
-/**
- * ממיר לינקים של Google/Drive ל-embed URL (אם אפשר).
- * תומך: Drive folders/files, Google Docs/Sheets/Slides
- */
 const toGoogleEmbedUrl = (url?: string | null): string | null => {
   if (!url) return null;
   const u = String(url).trim();
   if (!u) return null;
 
-  // Drive folder: /drive/folders/<id>
   const folder = u.match(/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/);
   if (folder) {
     return `https://drive.google.com/embeddedfolderview?id=${folder[1]}#grid`;
   }
 
-  // Drive file: /file/d/<id>
   const file = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (file) {
     return `https://drive.google.com/file/d/${file[1]}/preview`;
   }
 
-  // Drive open?id=<id>
   const openId = u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
   if (openId) {
     return `https://drive.google.com/file/d/${openId[1]}/preview`;
   }
 
-  // Google Docs
   const doc = u.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
   if (doc) {
     return `https://docs.google.com/document/d/${doc[1]}/preview`;
   }
 
-  // Google Sheets
   const sheet = u.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   if (sheet) {
     return `https://docs.google.com/spreadsheets/d/${sheet[1]}/preview`;
   }
 
-  // Google Slides
   const slides = u.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
   if (slides) {
     return `https://docs.google.com/presentation/d/${slides[1]}/embed?start=false&loop=false&delayms=3000`;
@@ -205,7 +186,10 @@ const AssessmentList = ({
 
       <ul className="text-xs space-y-2">
         {items.map((a, idx) => (
-          <li key={idx} className="border-b last:border-b-0 pb-2 dark:border-slate-800">
+          <li
+            key={idx}
+            className="border-b last:border-b-0 pb-2 dark:border-slate-800"
+          >
             <div className="font-semibold">{a.title || "ללא כותרת"}</div>
 
             {(a.date || a.weight) && (
@@ -216,19 +200,13 @@ const AssessmentList = ({
               </div>
             )}
 
-            {a.notes && (
-              <div className="mt-2">
-                {renderRichOrPlainText(a.notes)}
-              </div>
-            )}
+            {a.notes && <div className="mt-2">{renderRichOrPlainText(a.notes)}</div>}
           </li>
         ))}
       </ul>
     </section>
   );
 };
-
-/* ------------------------------------------------------------------ */
 
 export default function CourseRoute() {
   const { allCourses } = useYearsContext();
@@ -239,21 +217,13 @@ export default function CourseRoute() {
   const [loading, setLoading] = useState(true);
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
-
-  // UI toggles
   const [showDriveEmbed, setShowDriveEmbed] = useState(false);
 
-  /* -------------------------------------------------
-  Navigation
-  ---------------------------------------------------*/
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/");
   };
 
-  /* -------------------------------------------------
-  Load vaad users
-  ---------------------------------------------------*/
   useEffect(() => {
     (async () => {
       try {
@@ -269,9 +239,6 @@ export default function CourseRoute() {
     })();
   }, []);
 
-  /* -------------------------------------------------
-  Load course content
-  ---------------------------------------------------*/
   useEffect(() => {
     if (!id) return;
 
@@ -288,7 +255,6 @@ export default function CourseRoute() {
         }
 
         const data = await res.json();
-
         if (data.exists && data.content) {
           setCourse(
             baseCourse
@@ -307,9 +273,6 @@ export default function CourseRoute() {
     })();
   }, [id, allCourses]);
 
-  /* -------------------------------------------------
-  Load announcements
-  ---------------------------------------------------*/
   useEffect(() => {
     if (!id) return;
 
@@ -332,9 +295,6 @@ export default function CourseRoute() {
     })();
   }, [id]);
 
-  /* -------------------------------------------------
-  Guards
-  ---------------------------------------------------*/
   if (!id) return <div className="p-4 text-sm">Missing course id</div>;
   if (loading) return <div className="p-4 text-sm">Loading course…</div>;
   if (!course) {
@@ -345,9 +305,6 @@ export default function CourseRoute() {
     );
   }
 
-  /* -------------------------------------------------
-  Derived data
-  ---------------------------------------------------*/
   const reps: string[] = Array.isArray(course.reps)
     ? course.reps
     : course.reps
@@ -379,23 +336,14 @@ export default function CourseRoute() {
     !!course.syllabus ||
     (course.externalMaterials && course.externalMaterials.length > 0);
 
-  // Drive embed URL (folder/file)
-  const driveEmbedUrl = useMemo(
-    () => toGoogleEmbedUrl(course.links?.drive),
-    [course.links?.drive]
-  );
+  const driveEmbedUrl = toGoogleEmbedUrl(course.links?.drive);
 
-  // Embeddable items from externalMaterials (google docs/sheets/slides/drive)
-  const embeddables = useMemo(() => {
-    const arr = (course.externalMaterials || []).filter((m) => m.kind === "link");
-    return arr
-      .map((m) => ({ m, embedUrl: toGoogleEmbedUrl((m as any).href) }))
+  const embeddables =
+    (course.externalMaterials || [])
+      .filter((m) => m.kind === "link")
+      .map((m) => ({ m, embedUrl: toGoogleEmbedUrl(m.href) }))
       .filter((x) => !!x.embedUrl);
-  }, [course.externalMaterials]);
 
-  /* -------------------------------------------------
-  External material open helper
-  ---------------------------------------------------*/
   const openExternalMaterial = async (m: ExternalMaterial) => {
     if (m.kind === "link") {
       window.open(m.href, "_blank", "noopener,noreferrer");
@@ -419,22 +367,17 @@ export default function CourseRoute() {
     }
   };
 
-  /* -------------------------------------------------
-  Render
-  ---------------------------------------------------*/
-
   return (
     <div className="px-4 py-6">
-      {/* קלף שמחזיר שליטה לעיצוב ולא נותן לרקע “לשטוף” את הכל */}
       <div className="max-w-4xl mx-auto rounded-3xl border bg-white/95 dark:bg-slate-950/90 dark:border-slate-800 shadow-sm p-4 sm:p-6">
-        {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <button onClick={handleBack} className={pillBtn}>
             ← חזרה
           </button>
 
-          {/* אופציונלי: מידע עריכה */}
-          {(course.lastEditedAt || course.lastEditedByName || course.lastEditedByEmail) && (
+          {(course.lastEditedAt ||
+            course.lastEditedByName ||
+            course.lastEditedByEmail) && (
             <div className="text-[11px] text-neutral-500 dark:text-slate-400 text-left">
               {course.lastEditedAt && (
                 <div>
@@ -449,9 +392,7 @@ export default function CourseRoute() {
                 </div>
               )}
               {(course.lastEditedByName || course.lastEditedByEmail) && (
-                <div>
-                  ע"י: {course.lastEditedByName || course.lastEditedByEmail}
-                </div>
+                <div>ע"י: {course.lastEditedByName || course.lastEditedByEmail}</div>
               )}
             </div>
           )}
@@ -461,7 +402,9 @@ export default function CourseRoute() {
 
         {(course.courseNumber || course.place) && (
           <div className="text-sm text-neutral-600 dark:text-slate-300 mb-2">
-            {course.courseNumber && <span className="ml-2">מס׳ קורס: {course.courseNumber}</span>}
+            {course.courseNumber && (
+              <span className="ml-2">מס׳ קורס: {course.courseNumber}</span>
+            )}
             {course.place && <span> · מקום: {course.place}</span>}
           </div>
         )}
@@ -484,7 +427,6 @@ export default function CourseRoute() {
           </p>
         )}
 
-        {/* Links + materials */}
         {hasLinks && (
           <section className={sectionCard}>
             <div className="flex items-center justify-between gap-2 mb-3">
@@ -503,29 +445,49 @@ export default function CourseRoute() {
 
             <div className="flex flex-wrap gap-2">
               {course.links?.whatsapp && (
-                <a href={course.links.whatsapp} target="_blank" rel="noreferrer" className={pillBtn}>
-                  <img src={IMG_WHATSAPP} className="w-4 h-4" />
+                <a
+                  href={course.links.whatsapp}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={pillBtn}
+                >
+                  <img src={IMG_WHATSAPP} className="w-4 h-4" alt="" />
                   WhatsApp
                 </a>
               )}
 
               {course.links?.drive && (
-                <a href={course.links.drive} target="_blank" rel="noreferrer" className={pillBtn}>
-                  <img src={IMG_DRIVE} className="w-4 h-4" />
+                <a
+                  href={course.links.drive}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={pillBtn}
+                >
+                  <img src={IMG_DRIVE} className="w-4 h-4" alt="" />
                   Drive
                 </a>
               )}
 
               {course.links?.moodle && (
-                <a href={course.links.moodle} target="_blank" rel="noreferrer" className={pillBtn}>
-                  <img src={IMG_MOODLE} className="w-4 h-4" />
+                <a
+                  href={course.links.moodle}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={pillBtn}
+                >
+                  <img src={IMG_MOODLE} className="w-4 h-4" alt="" />
                   Moodle
                 </a>
               )}
 
               {course.syllabus && (
-                <a href={course.syllabus} target="_blank" rel="noreferrer" className={pillBtn}>
-                  <img src={IMG_PDF} className="w-4 h-4" />
+                <a
+                  href={course.syllabus}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={pillBtn}
+                >
+                  <img src={IMG_PDF} className="w-4 h-4" alt="" />
                   Syllabus
                 </a>
               )}
@@ -535,15 +497,18 @@ export default function CourseRoute() {
                   key={m.id}
                   onClick={() => openExternalMaterial(m)}
                   className={pillBtn}
-                  title={m.kind === "file" ? m.originalName || m.storagePath : (m as any).href}
+                  title={
+                    m.kind === "file"
+                      ? m.originalName || m.storagePath
+                      : m.href
+                  }
                 >
-                  {m.icon && <img src={m.icon} className="w-4 h-4" />}
+                  {m.icon && <img src={m.icon} className="w-4 h-4" alt="" />}
                   <span className="truncate max-w-[260px]">{m.label}</span>
                 </button>
               ))}
             </div>
 
-            {/* Drive embed */}
             {showDriveEmbed && driveEmbedUrl && (
               <div className="mt-4">
                 <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
@@ -563,7 +528,6 @@ export default function CourseRoute() {
           </section>
         )}
 
-        {/* whatwas / whatwill */}
         {course.whatwas && (
           <section className={sectionCard}>
             <h3 className="text-sm font-semibold mb-2">מה היה בשבוע האחרון?</h3>
@@ -578,20 +542,22 @@ export default function CourseRoute() {
           </section>
         )}
 
-        {/* Embedded Google docs/sheets/slides from externalMaterials */}
         {embeddables.length > 0 && (
           <section className={sectionCard}>
             <h3 className="text-sm font-semibold mb-2">מסמכים מוטמעים</h3>
 
             <div className="space-y-4">
               {embeddables.map(({ m, embedUrl }) => (
-                <div key={m.id} className="border rounded-2xl overflow-hidden dark:border-slate-800">
+                <div
+                  key={m.id}
+                  className="border rounded-2xl overflow-hidden dark:border-slate-800"
+                >
                   <div className="flex items-center justify-between gap-2 p-3 bg-neutral-50 dark:bg-slate-900">
                     <div className="text-xs font-semibold truncate">
                       {m.label || "מסמך"}
                     </div>
                     <a
-                      href={(m as any).href}
+                      href={m.href}
                       target="_blank"
                       rel="noreferrer"
                       className={pillBtn}
@@ -602,7 +568,7 @@ export default function CourseRoute() {
 
                   <iframe
                     title={`embed-${m.id}`}
-                    src={embedUrl!}
+                    src={embedUrl as string}
                     className="w-full"
                     style={{ height: 520 }}
                     allow="autoplay"
@@ -613,13 +579,15 @@ export default function CourseRoute() {
           </section>
         )}
 
-        {/* announcements */}
         {announcements.length > 0 && (
           <section className={sectionCard}>
             <h3 className="text-sm font-semibold mb-2">מודעות לקורס זה</h3>
             <ul className="text-xs space-y-3">
               {announcements.map((a) => (
-                <li key={a.id} className="border-b last:border-b-0 pb-3 dark:border-slate-800">
+                <li
+                  key={a.id}
+                  className="border-b last:border-b-0 pb-3 dark:border-slate-800"
+                >
                   <div className="font-semibold mb-1">{a.title}</div>
                   {renderRichOrPlainText(a.body)}
                   <div className="text-[10px] text-neutral-400 dark:text-slate-500 mt-2">
@@ -631,7 +599,6 @@ export default function CourseRoute() {
           </section>
         )}
 
-        {/* assignments/exams/labs */}
         <AssessmentList title="מטלות / עבודות" items={assignments} />
         <AssessmentList title="בחנים / מבחנים" items={exams} />
         <AssessmentList title="מעבדות" items={labs} />
