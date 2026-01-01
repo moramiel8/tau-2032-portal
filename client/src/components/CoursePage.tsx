@@ -2,10 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Course, AssessmentItem, ExternalMaterial } from "../data/years";
 
-/* -------------------------------------------------
-Types
----------------------------------------------------*/
-
 type Props = {
   course: Course;
   onBack?: () => void;
@@ -31,6 +27,12 @@ type VaadUser = {
 Helpers (outside component)
 ---------------------------------------------------*/
 
+const pillBtn =
+  "inline-flex items-center gap-2 border rounded-xl px-3 py-2 text-xs bg-white/80 hover:bg-white dark:bg-slate-900/70 dark:hover:bg-slate-900 dark:border-slate-700";
+
+const sectionCard =
+  "mb-4 border rounded-2xl p-4 bg-white/90 dark:bg-slate-950/80 dark:border-slate-800";
+
 const decodeHtmlEntities = (str: string) => {
   const textarea = document.createElement("textarea");
   textarea.innerHTML = str;
@@ -49,7 +51,10 @@ const renderRichOrPlainText = (body?: string) => {
     decoded.includes("<span") ||
     decoded.includes("<strong") ||
     decoded.includes("<em") ||
-    decoded.includes("<a ");
+    decoded.includes("<a ") ||
+    decoded.includes("<ul") ||
+    decoded.includes("<ol") ||
+    decoded.includes("<li");
 
   if (looksLikeHtml) {
     return (
@@ -67,55 +72,96 @@ const renderRichOrPlainText = (body?: string) => {
   );
 };
 
-const isProbablyUrl = (s?: string | null) =>
-  !!s && /^https?:\/\//i.test(String(s).trim());
-
 /**
- * מחזיר URL להטמעה אם זה:
- * - Google Drive folder/file
- * - Google Docs/Sheets/Slides
- * אחרת: null
+ * ממיר לינקים של Google/Drive ל-embed URL (אם אפשר).
+ * תומך: Drive folders/files, Google Docs/Sheets/Slides
  */
-const toGoogleEmbedUrl = (url: string): string | null => {
-  const u = url.trim();
+const toGoogleEmbedUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  const u = String(url).trim();
+  if (!u) return null;
 
-  // Google Drive folder
-  const folderMatch = u.match(
-    /drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/
-  );
-  if (folderMatch) {
-    return `https://drive.google.com/embeddedfolderview?id=${folderMatch[1]}#grid`;
+  // --- Drive folder: /drive/folders/<id>
+  const folder = u.match(/drive\.google\.com\/drive\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folder) {
+    return `https://drive.google.com/embeddedfolderview?id=${folder[1]}#grid`;
   }
 
-  // Google Drive file
-  const fileMatch = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (fileMatch) {
-    return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+  // --- Drive file: /file/d/<id>
+  const file = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (file) {
+    return `https://drive.google.com/file/d/${file[1]}/preview`;
   }
 
-  // Google Docs
-  const docMatch = u.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
-  if (docMatch) {
-    return `https://docs.google.com/document/d/${docMatch[1]}/pub?embedded=true`;
+  // --- Drive open?id=<id>  (לפעמים מקבלים ככה)
+  const openId = u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (openId) {
+    // לא תמיד יודעים אם זה folder/file; preview עדיין עובד לרוב לקובץ
+    return `https://drive.google.com/file/d/${openId[1]}/preview`;
   }
 
-  // Google Sheets
-  const sheetMatch = u.match(
-    /docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/
-  );
-  if (sheetMatch) {
-    return `https://docs.google.com/spreadsheets/d/${sheetMatch[1]}/pubhtml?widget=true&headers=false`;
+  // --- Google Docs: /document/d/<id>
+  const doc = u.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
+  if (doc) {
+    return `https://docs.google.com/document/d/${doc[1]}/preview`;
   }
 
-  // Google Slides
-  const slidesMatch = u.match(
-    /docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/
-  );
-  if (slidesMatch) {
-    return `https://docs.google.com/presentation/d/${slidesMatch[1]}/embed?start=false&loop=false&delayms=3000`;
+  // --- Google Sheets: /spreadsheets/d/<id>
+  const sheet = u.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (sheet) {
+    // preview עובד, אפשר גם pubhtml אם מפרסמים
+    return `https://docs.google.com/spreadsheets/d/${sheet[1]}/preview`;
+  }
+
+  // --- Google Slides: /presentation/d/<id>
+  const slides = u.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if (slides) {
+    return `https://docs.google.com/presentation/d/${slides[1]}/embed?start=false&loop=false&delayms=3000`;
   }
 
   return null;
+};
+
+const formatDateIL = (value?: string) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? value : d.toLocaleDateString("he-IL");
+};
+
+const AssessmentList = ({
+  title,
+  items,
+}: {
+  title: string;
+  items: AssessmentItem[];
+}) => {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <section className={sectionCard}>
+      <h2 className="text-sm font-semibold mb-2">{title}</h2>
+
+      <ul className="text-xs space-y-2">
+        {items.map((a, idx) => (
+          <li key={idx} className="border-b last:border-b-0 pb-2">
+            <div className="font-semibold">{a.title || "ללא כותרת"}</div>
+
+            <div className="text-neutral-700 dark:text-slate-300">
+              {(a.date || a.weight) && (
+                <>
+                  {a.date && <span>תאריך: {a.date}</span>}
+                  {a.date && a.weight && <span> · </span>}
+                  {a.weight && <span>משקל: {a.weight}</span>}
+                </>
+              )}
+            </div>
+
+            {a.notes && <div className="mt-1">{renderRichOrPlainText(a.notes)}</div>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 };
 
 /* -------------------------------------------------
@@ -127,9 +173,8 @@ export default function CoursePage({ course, onBack }: Props) {
   const [announcements, setAnnouncements] = useState<CourseAnnouncement[]>([]);
   const [vaadUsers, setVaadUsers] = useState<VaadUser[]>([]);
 
-  // toggles
+  // UI: embeds toggle
   const [showDriveEmbed, setShowDriveEmbed] = useState(false);
-  const [embedOpen, setEmbedOpen] = useState<Record<string, boolean>>({});
 
   const effectiveCourse = useMemo<Course>(() => {
     return { ...course, ...(override || {}) };
@@ -138,7 +183,6 @@ export default function CoursePage({ course, onBack }: Props) {
   /* -------------------------------------------------
 Load course override
 ---------------------------------------------------*/
-
   useEffect(() => {
     (async () => {
       try {
@@ -159,7 +203,6 @@ Load course override
   /* -------------------------------------------------
 Load announcements
 ---------------------------------------------------*/
-
   useEffect(() => {
     (async () => {
       try {
@@ -180,7 +223,6 @@ Load announcements
   /* -------------------------------------------------
 Load vaad users (display names)
 ---------------------------------------------------*/
-
   useEffect(() => {
     (async () => {
       try {
@@ -199,7 +241,6 @@ Load vaad users (display names)
   /* -------------------------------------------------
 Helpers
 ---------------------------------------------------*/
-
   const formatAnnouncementMeta = (a: CourseAnnouncement) => {
     const ts = a.updatedAt || a.createdAt;
     if (!ts) return a.authorEmail ? `עודכן ע"י ${a.authorEmail}` : "";
@@ -222,12 +263,13 @@ Helpers
   };
 
   const openExternalMaterial = async (m: ExternalMaterial) => {
+    // אם זה לינק רגיל — פותחים ישר
     if (m.kind === "link") {
       window.open(m.href, "_blank", "noopener,noreferrer");
       return;
     }
 
-    // file -> signed url
+    // אם זה קובץ ב-storage — מביאים signed url
     try {
       const res = await fetch(
         `/api/admin/storage/signed-url?bucket=${encodeURIComponent(
@@ -244,14 +286,9 @@ Helpers
     }
   };
 
-  const toggleEmbed = (key: string) => {
-    setEmbedOpen((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   /* -------------------------------------------------
 Derived data
 ---------------------------------------------------*/
-
   const {
     name,
     note,
@@ -285,307 +322,222 @@ Derived data
     });
   }, [repsArray, vaadUsers]);
 
-  const driveUrl = links?.drive || "";
-  const driveEmbedUrl = isProbablyUrl(driveUrl) ? toGoogleEmbedUrl(driveUrl) : null;
+  const hasLinks =
+    !!links?.whatsapp ||
+    !!links?.drive ||
+    !!links?.moodle ||
+    !!syllabus ||
+    (externalMaterials && externalMaterials.length > 0);
 
-  const syllabusEmbedUrl = isProbablyUrl(syllabus || "")
-    ? toGoogleEmbedUrl(String(syllabus))
-    : null;
+  // --- Drive embed URL (folder/file)
+  const driveEmbedUrl = useMemo(() => toGoogleEmbedUrl(links?.drive), [links?.drive]);
+
+  // --- Embeddable items from externalMaterials (google docs/sheets/slides/drive)
+  const embeddables = useMemo(() => {
+    const arr = (externalMaterials || []).filter((m) => m.kind === "link");
+    return arr
+      .map((m) => ({ m, embedUrl: toGoogleEmbedUrl((m as any).href) }))
+      .filter((x) => !!x.embedUrl);
+  }, [externalMaterials]);
 
   /* -------------------------------------------------
-UI
+Render
 ---------------------------------------------------*/
 
   return (
-    <div className="max-w-3xl mx-auto pb-10 px-4">
-      {/* כפתור חזרה אחיד */}
-      {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-4 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs bg-white/80 hover:bg-white dark:bg-slate-900/70 dark:hover:bg-slate-900 dark:border-slate-700"
-        >
-          ← חזרה
-        </button>
-      )}
+    <div className="px-4 py-6">
+      {/* "קלף" שמחזיר שליטה על עיצוב העמוד ולא נותן לרקע/שקיפות להשתלט */}
+      <div className="max-w-3xl mx-auto rounded-3xl border bg-white/95 dark:bg-slate-950/90 dark:border-slate-800 shadow-sm p-4 sm:p-6">
+        {/* Back button */}
+        {onBack && (
+          <button type="button" onClick={onBack} className={pillBtn}>
+            ← חזרה
+          </button>
+        )}
 
-      <h1 className="text-2xl font-semibold mb-1 dark:text-slate-100">{name}</h1>
+        <h1 className="text-2xl font-semibold mt-3 mb-1">{name}</h1>
 
-      <div className="text-sm text-neutral-600 dark:text-slate-300 mb-2">
-        {courseNumber && <span className="ml-2">מס׳ קורס: {courseNumber}</span>}
-        {place && <span> · מקום: {place}</span>}
+        <div className="text-sm text-neutral-600 dark:text-slate-300 mb-2">
+          {courseNumber && <span className="ml-2">מס׳ קורס: {courseNumber}</span>}
+          {place && <span> · מקום: {place}</span>}
+        </div>
+
+        {note && (
+          <p className="text-sm text-neutral-700 dark:text-slate-300 mb-4 whitespace-pre-line">
+            {note}
+          </p>
+        )}
+
+        {(coordinator || repsDisplay.length > 0) && (
+          <p className="text-xs text-neutral-600 dark:text-slate-300 mb-4">
+            {coordinator && <span>רכז/ת: {coordinator}</span>}
+            {coordinator && repsDisplay.length > 0 && <span> · </span>}
+            {repsDisplay.length > 0 && (
+              <span>
+                נציגי ועד: <span dir="ltr">{repsDisplay.join(", ")}</span>
+              </span>
+            )}
+          </p>
+        )}
+
+        {/* Links + materials buttons */}
+        {hasLinks && (
+          <section className={sectionCard}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h2 className="text-sm font-semibold">קישורים וחומרים</h2>
+
+              {/* Toggle drive embed if possible */}
+              {driveEmbedUrl && (
+                <button
+                  type="button"
+                  onClick={() => setShowDriveEmbed((s) => !s)}
+                  className={pillBtn}
+                >
+                  {showDriveEmbed ? "הסתר דרייב מוטמע" : "הצג דרייב מוטמע"}
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {links?.whatsapp && (
+                <a href={links.whatsapp} target="_blank" rel="noreferrer" className={pillBtn}>
+                  WhatsApp
+                </a>
+              )}
+
+              {links?.drive && (
+                <a href={links.drive} target="_blank" rel="noreferrer" className={pillBtn}>
+                  Drive
+                </a>
+              )}
+
+              {links?.moodle && (
+                <a href={links.moodle} target="_blank" rel="noreferrer" className={pillBtn}>
+                  Moodle
+                </a>
+              )}
+
+              {syllabus && (
+                <a href={syllabus} target="_blank" rel="noreferrer" className={pillBtn}>
+                  Syllabus
+                </a>
+              )}
+
+              {externalMaterials?.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => openExternalMaterial(m)}
+                  className={pillBtn}
+                  title={m.kind === "file" ? m.originalName || m.storagePath : (m as any).href}
+                >
+                  {m.icon && <img src={m.icon} alt="" className="w-4 h-4" />}
+                  <span className="truncate max-w-[240px]">{m.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Drive embed */}
+            {showDriveEmbed && driveEmbedUrl && (
+              <div className="mt-4">
+                <div className="text-xs text-neutral-500 dark:text-slate-400 mb-2">
+                  דרייב מוטמע (אם לא נטען — בד״כ זה בגלל הרשאות שיתוף)
+                </div>
+                <div className="rounded-2xl overflow-hidden border dark:border-slate-800">
+                  <iframe
+                    title="Drive embed"
+                    src={driveEmbedUrl}
+                    className="w-full"
+                    style={{ height: 520 }}
+                    allow="autoplay"
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* whatwas / whatwill */}
+        {whatwas && (
+          <section className={sectionCard}>
+            <h3 className="text-sm font-semibold mb-2">מה היה בשבוע האחרון?</h3>
+            {renderRichOrPlainText(whatwas)}
+          </section>
+        )}
+
+        {whatwill && (
+          <section className={sectionCard}>
+            <h3 className="text-sm font-semibold mb-2">מה יהיה בהמשך?</h3>
+            {renderRichOrPlainText(whatwill)}
+          </section>
+        )}
+
+        {/* Embedded Google docs/sheets/slides from externalMaterials */}
+        {embeddables.length > 0 && (
+          <section className={sectionCard}>
+            <h3 className="text-sm font-semibold mb-2">מסמכים מוטמעים</h3>
+
+            <div className="space-y-4">
+              {embeddables.map(({ m, embedUrl }) => (
+                <div key={m.id} className="border rounded-2xl overflow-hidden dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-2 p-3 bg-neutral-50 dark:bg-slate-900">
+                    <div className="text-xs font-semibold truncate">
+                      {m.label || "מסמך"}
+                    </div>
+                    <a
+                      href={(m as any).href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={pillBtn}
+                    >
+                      פתיחה בטאב
+                    </a>
+                  </div>
+
+                  <iframe
+                    title={`embed-${m.id}`}
+                    src={embedUrl!}
+                    className="w-full"
+                    style={{ height: 520 }}
+                    allow="autoplay"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* announcements */}
+        {announcements.length > 0 && (
+          <section className={sectionCard}>
+            <h3 className="text-sm font-semibold mb-2">מודעות לקורס זה</h3>
+            <ul className="text-xs space-y-3">
+              {announcements.map((a) => (
+                <li key={a.id} className="border-b last:border-b-0 pb-3">
+                  <div className="font-semibold mb-1">{a.title}</div>
+                  {renderRichOrPlainText(a.body)}
+                  <div className="text-[10px] text-neutral-400 dark:text-slate-500 mt-2">
+                    {formatAnnouncementMeta(a)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* assignments/exams/labs — החזרתי אותם */}
+        <AssessmentList title="מטלות / עבודות" items={assignments} />
+        <AssessmentList title="בחנים / מבחנים" items={exams} />
+        <AssessmentList title="מעבדות" items={labs} />
+
+        {/* footer small meta (optional) */}
+        <div className="mt-6 text-[11px] text-neutral-500 dark:text-slate-400">
+          עודכן לאחרונה:{" "}
+          {override && (override as any).lastEditedAt
+            ? formatDateIL((override as any).lastEditedAt)
+            : "—"}
+        </div>
       </div>
-
-      {note && (
-        <p className="text-sm text-neutral-700 dark:text-slate-200 mb-3 whitespace-pre-line">
-          {note}
-        </p>
-      )}
-
-      {(coordinator || repsDisplay.length > 0) && (
-        <p className="text-xs text-neutral-600 dark:text-slate-300 mb-4">
-          {coordinator && <span>רכז/ת: {coordinator}</span>}
-          {coordinator && repsDisplay.length > 0 && <span> · </span>}
-          {repsDisplay.length > 0 && (
-            <span>
-              נציגי ועד: <span dir="ltr">{repsDisplay.join(", ")}</span>
-            </span>
-          )}
-        </p>
-      )}
-
-      {/* LINKS + EMBEDS */}
-      {(links?.drive || links?.moodle || links?.whatsapp || syllabus || (externalMaterials?.length || 0) > 0) && (
-        <section className="mb-5 border rounded-2xl p-4 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h2 className="text-sm font-medium mb-3 dark:text-slate-100">קישורים וחומרים</h2>
-
-          <div className="flex flex-wrap gap-2 text-xs">
-            {links?.whatsapp && (
-              <a
-                href={links.whatsapp}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                WhatsApp
-              </a>
-            )}
-
-            {links?.drive && (
-              <a
-                href={links.drive}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                Drive
-              </a>
-            )}
-
-            {links?.moodle && (
-              <a
-                href={links.moodle}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                Moodle
-              </a>
-            )}
-
-            {syllabus && (
-              <a
-                href={syllabus}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                Syllabus
-              </a>
-            )}
-
-            {/* Toggle embed Drive */}
-            {links?.drive && driveEmbedUrl && (
-              <button
-                type="button"
-                onClick={() => setShowDriveEmbed((v) => !v)}
-                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                {showDriveEmbed ? "הסתר דרייב מוטמע" : "הצג דרייב מוטמע"}
-              </button>
-            )}
-
-            {/* Toggle embed Syllabus if google */}
-            {syllabus && syllabusEmbedUrl && (
-              <button
-                type="button"
-                onClick={() => toggleEmbed("syllabus")}
-                className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-              >
-                {embedOpen["syllabus"] ? "הסתר סילבוס מוטמע" : "הצג סילבוס מוטמע"}
-              </button>
-            )}
-          </div>
-
-          {/* Embeds area */}
-          {showDriveEmbed && driveEmbedUrl && (
-            <div className="mt-4 border rounded-2xl overflow-hidden dark:border-slate-700">
-              <iframe
-                src={driveEmbedUrl}
-                className="w-full"
-                style={{ height: 520 }}
-                allow="autoplay"
-              />
-            </div>
-          )}
-
-          {embedOpen["syllabus"] && syllabusEmbedUrl && (
-            <div className="mt-4 border rounded-2xl overflow-hidden dark:border-slate-700">
-              <iframe
-                src={syllabusEmbedUrl}
-                className="w-full"
-                style={{ height: 520 }}
-                allow="autoplay"
-              />
-            </div>
-          )}
-
-          {/* external materials list (+ embeds for google links) */}
-          {externalMaterials && externalMaterials.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-xs font-medium mb-2 dark:text-slate-100">
-                חומרים חיצוניים
-              </h3>
-
-              <ul className="text-xs space-y-2">
-                {externalMaterials.map((m) => {
-                  const key = `ext-${m.id}`;
-                  const href = m.kind === "link" ? m.href : "";
-                  const embedUrl =
-                    m.kind === "link" && isProbablyUrl(href)
-                      ? toGoogleEmbedUrl(href)
-                      : null;
-
-                  return (
-                    <li key={m.id} className="border rounded-xl p-3 bg-white/70 dark:bg-slate-950/30 dark:border-slate-700">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openExternalMaterial(m)}
-                          className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-                        >
-                          {m.icon && <img src={m.icon} className="w-4 h-4" />}
-                          <span>{m.label}</span>
-                        </button>
-
-                        {m.kind === "link" && embedUrl && (
-                          <button
-                            type="button"
-                            onClick={() => toggleEmbed(key)}
-                            className="inline-flex items-center gap-2 border rounded-xl px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800 dark:border-slate-700"
-                          >
-                            {embedOpen[key] ? "הסתר הטמעה" : "הצג הטמעה"}
-                          </button>
-                        )}
-                      </div>
-
-                      {m.kind === "link" && embedUrl && embedOpen[key] && (
-                        <div className="mt-3 border rounded-2xl overflow-hidden dark:border-slate-700">
-                          <iframe
-                            src={embedUrl}
-                            className="w-full"
-                            style={{ height: 520 }}
-                            allow="autoplay"
-                          />
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* whatwas / whatwill */}
-      {whatwas && (
-        <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h3 className="text-sm font-medium mb-1 dark:text-slate-100">
-            מה היה בשבוע האחרון?
-          </h3>
-          {renderRichOrPlainText(whatwas)}
-        </section>
-      )}
-
-      {whatwill && (
-        <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h3 className="text-sm font-medium mb-1 dark:text-slate-100">
-            מה יהיה בהמשך?
-          </h3>
-          {renderRichOrPlainText(whatwill)}
-        </section>
-      )}
-
-      {/* announcements */}
-      {announcements.length > 0 && (
-        <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h3 className="text-sm font-medium mb-2 dark:text-slate-100">
-            מודעות לקורס זה
-          </h3>
-          <ul className="text-xs space-y-3">
-            {announcements.map((a) => (
-              <li key={a.id} className="border-b last:border-b-0 pb-3 dark:border-slate-700">
-                <div className="font-semibold mb-1 dark:text-slate-100">{a.title}</div>
-                {renderRichOrPlainText(a.body)}
-                <div className="text-[10px] text-neutral-400 mt-2">
-                  {formatAnnouncementMeta(a)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* assignments */}
-      {assignments.length > 0 && (
-        <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">מטלות / עבודות</h2>
-          <ul className="text-xs space-y-2">
-            {assignments.map((a, idx) => (
-              <li key={idx} className="border-b last:border-b-0 pb-2 dark:border-slate-700">
-                <div className="font-semibold dark:text-slate-100">{a.title}</div>
-                <div className="text-neutral-700 dark:text-slate-300">
-                  {a.date && <span>תאריך: {a.date}</span>}
-                  {a.date && a.weight && <span> · </span>}
-                  {a.weight && <span>משקל: {a.weight}</span>}
-                </div>
-                {a.notes && <div className="mt-1">{renderRichOrPlainText(a.notes)}</div>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* exams */}
-      {exams.length > 0 && (
-        <section className="mb-4 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">בחנים / מבחנים</h2>
-          <ul className="text-xs space-y-2">
-            {exams.map((ex, idx) => (
-              <li key={idx} className="border-b last:border-b-0 pb-2 dark:border-slate-700">
-                <div className="font-semibold dark:text-slate-100">{ex.title}</div>
-                <div className="text-neutral-700 dark:text-slate-300">
-                  {ex.date && <span>תאריך: {ex.date}</span>}
-                  {ex.date && ex.weight && <span> · </span>}
-                  {ex.weight && <span>משקל: {ex.weight}</span>}
-                </div>
-                {ex.notes && <div className="mt-1">{renderRichOrPlainText(ex.notes)}</div>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* labs */}
-      {labs.length > 0 && (
-        <section className="mb-6 border rounded-2xl p-3 bg-white/70 dark:bg-slate-900/70 dark:border-slate-700">
-          <h2 className="text-sm font-medium mb-2 dark:text-slate-100">מעבדות</h2>
-          <ul className="text-xs space-y-2">
-            {labs.map((lab, idx) => (
-              <li key={idx} className="border-b last:border-b-0 pb-2 dark:border-slate-700">
-                <div className="font-semibold dark:text-slate-100">{lab.title}</div>
-                <div className="text-neutral-700 dark:text-slate-300">
-                  {lab.date && <span>תאריך: {lab.date}</span>}
-                  {lab.date && lab.weight && <span> · </span>}
-                  {lab.weight && <span>משקל: {lab.weight}</span>}
-                </div>
-                {lab.notes && <div className="mt-1">{renderRichOrPlainText(lab.notes)}</div>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
